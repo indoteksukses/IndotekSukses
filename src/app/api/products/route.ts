@@ -20,24 +20,57 @@ function payload(body: any) {
 export async function POST(request: Request) {
   const body = await request.json();
   const data = payload(body);
-  if (!data.name || !data.sku || data.selling_price < 0 || data.cost_price < 0) return NextResponse.json({ error: "Data produk tidak valid" }, { status: 400 });
-  if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ product: { id: crypto.randomUUID(), ...data }, demo: true }, { status: 201 });
+
+  if (!data.name || !data.sku || data.selling_price < 0 || data.cost_price < 0) {
+    return NextResponse.json({ error: "Data produk tidak valid" }, { status: 400 });
+  }
+
+  const productId = crypto.randomUUID();
+
+  if (isDemoMode || !hasSupabaseEnv) {
+    return NextResponse.json({ product: { id: productId, ...data }, demo: true }, { status: 201 });
+  }
+
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { data: product, error } = await auth.supabase.from("products").insert({ ...data, created_by: auth.user.id }).select("*").single();
+
+  // Do not request RETURNING * here. The products table intentionally hides
+  // cost_price from ordinary authenticated SELECT access. Requesting all
+  // columns after INSERT caused PostgreSQL error: permission denied for table products.
+  const { error } = await auth.supabase.from("products").insert({
+    id: productId,
+    ...data,
+    created_by: auth.user.id,
+  });
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ product }, { status: 201 });
+
+  return NextResponse.json(
+    { product: { id: productId, ...data, created_by: auth.user.id } },
+    { status: 201 },
+  );
 }
 
 export async function PATCH(request: Request) {
   const body = await request.json();
   if (!body.id) return NextResponse.json({ error: "ID produk tidak ditemukan" }, { status: 400 });
+
   const data = payload(body);
-  if (!data.name || !data.sku) return NextResponse.json({ error: "Nama dan SKU wajib diisi" }, { status: 400 });
-  if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ product: { id: body.id, ...data }, demo: true });
+  if (!data.name || !data.sku || data.selling_price < 0 || data.cost_price < 0) {
+    return NextResponse.json({ error: "Nama, SKU, dan harga produk tidak valid" }, { status: 400 });
+  }
+
+  if (isDemoMode || !hasSupabaseEnv) {
+    return NextResponse.json({ product: { id: body.id, ...data }, demo: true });
+  }
+
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { data: product, error } = await auth.supabase.from("products").update(data).eq("id", body.id).select("*").single();
+
+  // Avoid .select("*") for the same column-level security reason as POST.
+  const { error } = await auth.supabase.from("products").update(data).eq("id", body.id);
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ product });
+
+  return NextResponse.json({ product: { id: body.id, ...data } });
 }
