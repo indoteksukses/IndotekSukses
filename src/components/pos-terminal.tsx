@@ -1,0 +1,24 @@
+"use client";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Minus, Plus, ScanBarcode, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { demoProducts as fallbackProducts } from "@/lib/demo-data";
+import type { CartItem, Product } from "@/lib/types";
+import { formatCurrency } from "@/lib/format";
+
+export function PosTerminal({ products = fallbackProducts }: { products?: Product[] }){
+ const router = useRouter();
+ const demoProducts = products;
+ const [query,setQuery]=useState(""); const [cart,setCart]=useState<CartItem[]>([]); const [paid,setPaid]=useState(false);
+ const [processing,setProcessing]=useState(false); const [error,setError]=useState(""); const [invoice,setInvoice]=useState("");
+ const filtered=demoProducts.filter(p=>`${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(query.toLowerCase()));
+ const add=(p:typeof demoProducts[number])=>setCart(prev=>{const found=prev.find(i=>i.product_id===p.id); if(found)return prev.map(i=>i.product_id===p.id?{...i,quantity:Math.min(i.quantity+1,i.stock)}:i); return [...prev,{product_id:p.id,sku:p.sku,name:p.name,price:p.selling_price,quantity:1,stock:p.stock_store_1??0}]});
+ const change=(id:string,delta:number)=>setCart(prev=>prev.map(i=>i.product_id===id?{...i,quantity:Math.max(1,Math.min(i.quantity+delta,i.stock))}:i));
+ const subtotal=useMemo(()=>cart.reduce((s,i)=>s+i.price*i.quantity,0),[cart]);
+ const checkout=async()=>{setProcessing(true);setError("");try{const response=await fetch("/api/pos/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store_id:"11111111-1111-1111-1111-111111111111",shift_id:null,items:cart.map(i=>({product_id:i.product_id,quantity:i.quantity})),payments:[{method:"cash",amount:subtotal}],discount:0,grand_total:subtotal})});const result=await response.json();if(!response.ok)throw new Error(result.error||"Transaksi gagal");setInvoice(result.invoice_number||"");setPaid(true);router.refresh()}catch(e){setError(e instanceof Error?e.message:"Transaksi gagal")}finally{setProcessing(false)}};
+ return <div className="pos-layout">
+   <section className="pos-products"><div className="pos-search"><Search size={20}/><input autoFocus placeholder="Scan barcode atau cari produk..." value={query} onChange={e=>setQuery(e.target.value)}/><button><ScanBarcode size={20}/></button></div><div className="category-chips"><button className="active">Semua</button><button>Aksesori</button><button>Kabel</button><button>Jaringan</button><button>Power</button></div><div className="product-grid">{filtered.map(p=><button className="pos-product" key={p.id} onClick={()=>add(p)} disabled={(p.stock_store_1??0)<=0}><div className="pos-product-image">{p.name.slice(0,2).toUpperCase()}</div><strong>{p.name}</strong><span>{p.sku}</span><div><b>{formatCurrency(p.selling_price)}</b><small>Stok {p.stock_store_1}</small></div></button>)}</div></section>
+   <aside className="cart-panel"><div className="cart-head"><div><ShoppingCart size={20}/><h2>Keranjang</h2></div><span>{cart.reduce((s,i)=>s+i.quantity,0)} item</span></div><div className="cart-customer"><span>Pelanggan</span><button>+ Pilih pelanggan</button></div><div className="cart-items">{cart.length===0?<div className="cart-empty"><ShoppingCart size={36}/><strong>Keranjang masih kosong</strong><span>Pilih produk atau scan barcode.</span></div>:cart.map(i=><div className="cart-item" key={i.product_id}><div><strong>{i.name}</strong><span>{formatCurrency(i.price)} / pcs</span></div><button className="trash" onClick={()=>setCart(c=>c.filter(x=>x.product_id!==i.product_id))}><Trash2 size={16}/></button><div className="quantity-control"><button onClick={()=>change(i.product_id,-1)}><Minus size={14}/></button><span>{i.quantity}</span><button onClick={()=>change(i.product_id,1)}><Plus size={14}/></button></div><strong>{formatCurrency(i.price*i.quantity)}</strong></div>)}</div><div className="cart-summary"><div><span>Subtotal</span><strong>{formatCurrency(subtotal)}</strong></div><div><span>Diskon</span><button>+ Tambah diskon</button></div><div className="grand-total"><span>Total</span><strong>{formatCurrency(subtotal)}</strong></div><button className="button primary pay-button" disabled={!cart.length||processing} onClick={checkout}>{processing?"Memproses...":`Bayar ${formatCurrency(subtotal)}`}</button>{error?<div className="pos-error">{error}</div>:null}</div></aside>
+   {paid?<div className="modal-backdrop"><div className="modal-card payment-modal"><div className="success-check">✓</div><h2>Pembayaran berhasil</h2><p>{invoice ? `Invoice ${invoice} sudah tersimpan.` : "Transaksi sudah tersimpan."} Stok dikurangi secara atomik dan riwayat pergerakan dibuat otomatis.</p><strong>{formatCurrency(subtotal)}</strong><button className="button primary" onClick={()=>{setPaid(false);setCart([])}}>Transaksi baru</button></div></div>:null}
+ </div>
+}
