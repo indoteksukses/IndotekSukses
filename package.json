@@ -1,6 +1,6 @@
 {
   "name": "indotek-sukses-pos",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.8",
+    "@zxing/browser": "0.2.1",
     "lucide-react": "1.27.0",
     "next": "16.2.12",
     "react": "19.2.8",

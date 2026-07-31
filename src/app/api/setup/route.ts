@@ -40,10 +40,10 @@ export async function POST(request: Request) {
     const { data: existingStore } = await admin.from("stores").select("id").eq("code", storeCode).maybeSingle();
     let storeId = existingStore?.id as string | undefined;
     if (storeId) {
-      const { error } = await admin.from("stores").update({ name: storeName, address: body.store_address || null, phone: body.store_phone || null, is_active: true }).eq("id", storeId);
+      const { error } = await admin.from("stores").update({ name: storeName, address: body.store_address || null, phone: body.store_phone || null, image_url: String(body.store_image_url ?? "").trim() || null, is_active: true }).eq("id", storeId);
       if (error) throw error;
     } else {
-      const { data: store, error } = await admin.from("stores").insert({ code: storeCode, name: storeName, address: body.store_address || null, phone: body.store_phone || null }).select("id").single();
+      const { data: store, error } = await admin.from("stores").insert({ code: storeCode, name: storeName, address: body.store_address || null, phone: body.store_phone || null, image_url: String(body.store_image_url ?? "").trim() || null }).select("id").single();
       if (error || !store) throw new Error(error?.message ?? "Gagal membuat toko pertama");
       storeId = store.id;
     }

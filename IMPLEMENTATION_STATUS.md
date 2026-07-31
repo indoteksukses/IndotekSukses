@@ -1,32 +1,27 @@
-# Status Implementasi — Indotek Sukses v2.0.0
+# Status Implementasi — Indotek Sukses v2.1.0
 
-## Siap digunakan
+## Selesai
 
-- Autentikasi Supabase SSR dan proteksi route.
-- Setup owner dan toko pertama dari website.
-- Multi-cabang dinamis dan penggantian nama toko.
-- Hak akses role dan akses per cabang.
-- Master produk, kategori, harga modal, harga jual, barcode, minimum stok.
-- Inventory matrix dinamis untuk seluruh toko.
-- Stok masuk/keluar dan audit pergerakan.
-- Kasir, keranjang, diskon, pembayaran, dan pengurangan stok atomik.
-- Shift kasir dan rekonsiliasi kas.
-- Daftar transaksi dan pembatalan dengan reversal stok.
-- Supplier dan pembelian.
-- Transfer antartoko dengan proses kirim/terima.
-- Stok opname dan penyesuaian.
-- Retur pelanggan.
-- Dashboard dengan tren transaksi nyata, laporan periode, ekspor CSV, cetak/PDF, audit, dan pengaturan perusahaan.
-- Tampilan responsif desktop dan HP.
+- Multi-cabang dinamis.
+- Master produk dan kategori CRUD.
+- Pencarian katalog besar.
+- Stok masuk/keluar, notifikasi, live activity, ralat, dan edit saldo.
+- Kasir multi-metode pembayaran.
+- Barcode kamera native + ZXing fallback + scanner eksternal.
+- Satu shift aktif bersama per toko.
+- Invoice detail dan reprint/PDF.
+- Gambar toko dari URL.
+- Avatar bawaan dan profil pengguna.
+- Hak akses role dan cabang.
+- Pembelian, supplier, transfer, opname, retur, pembatalan, laporan, ekspor, dan audit.
+- Layout desktop dan HP.
+- Migration upgrade dan fresh install.
 
-## Integrasi tambahan yang dapat dikembangkan terpisah
+## Integrasi terpisah yang belum termasuk
 
 - Payment gateway QRIS otomatis.
-- Pengiriman struk melalui WhatsApp.
-- Notifikasi Telegram/WhatsApp.
-- Printer thermal dengan protokol perangkat khusus.
-- Laporan terjadwal melalui email.
-- Akuntansi penuh, hutang supplier, dan piutang pelanggan.
-- Multi-tenant untuk perusahaan yang berbeda.
+- Printer thermal ESC/POS langsung tanpa dialog browser.
+- WhatsApp/Telegram otomatis.
+- Akuntansi buku besar penuh.
 
-Fitur tambahan tersebut tidak diperlukan untuk operasional stok dan kasir dasar.
+Fitur tersebut bukan syarat untuk operasional kasir, stok, dan invoice dasar.

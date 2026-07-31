@@ -7,6 +7,7 @@ export type Store = {
   address?: string | null;
   phone?: string | null;
   manager_name?: string | null;
+  image_url?: string | null;
   is_active?: boolean;
 };
 
@@ -55,6 +56,7 @@ export type UserProfile = {
   role: UserRole;
   primary_store_id?: string | null;
   is_active: boolean;
+  avatar_key?: string;
   store_ids?: string[];
 };
 
@@ -67,6 +69,13 @@ export type Movement = {
   quantity: number;
   user: string;
   reason?: string | null;
+  movement_type?: string;
+  product_id?: string;
+  store_id?: string;
+  stock_before?: number;
+  stock_after?: number;
+  reversed_at?: string | null;
+  correction_reason?: string | null;
 };
 
 export type SaleSummary = {
@@ -97,4 +106,36 @@ export type FinancialReport = {
   transactions: number;
   net_units: number;
   inventory_value: number;
+};
+
+
+export type SaleItemDetail = {
+  id: string;
+  product_id: string;
+  name: string;
+  sku: string;
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  subtotal: number;
+};
+
+export type PaymentDetail = {
+  id: string;
+  method: string;
+  amount: number;
+  reference_number?: string | null;
+};
+
+export type SaleDetail = SaleSummary & {
+  store_code?: string | null;
+  store_address?: string | null;
+  store_phone?: string | null;
+  store_image_url?: string | null;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  notes?: string | null;
+  items: SaleItemDetail[];
+  payments: PaymentDetail[];
 };

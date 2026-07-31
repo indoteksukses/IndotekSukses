@@ -9,6 +9,8 @@ import {
   ShoppingCart, Store, Truck, Users, WalletCards, X, RotateCcw,
 } from "lucide-react";
 import type { Store as StoreType, SystemSettings, UserProfile } from "@/lib/types";
+import { ProfileMenu } from "@/components/profile-menu";
+import { UserAvatar } from "@/components/user-avatar";
 
 const groups = [
   {
@@ -57,7 +59,6 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
   const [storeOpen, setStoreOpen] = useState(false);
   const selectedStoreId = searchParams.get("store") ?? "";
   const selectedStore = stores.find((store) => store.id === selectedStoreId);
-  const initials = profile.full_name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "IS";
 
   const selectStore = (storeId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -88,7 +89,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div className="user-avatar">{initials}</div>
+          <UserAvatar name={profile.full_name} avatarKey={profile.avatar_key}/>
           <div><strong>{profile.full_name}</strong><span>{roleLabels[profile.role] ?? profile.role}</span></div>
           <form action="/auth/signout" method="post"><button className="logout-button" title="Keluar"><LogOut size={17}/></button></form>
         </div>
@@ -99,17 +100,17 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Buka menu"><Menu size={22}/></button>
           <div className="store-selector-wrap">
-            <button className="store-selector" onClick={() => setStoreOpen((value) => !value)}><Store size={18}/><span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/></button>
+            <button className="store-selector" onClick={() => setStoreOpen((value) => !value)}>{selectedStore?.image_url ? <img className="store-selector-image" src={selectedStore.image_url} alt=""/> : <Store size={18}/>}<span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/></button>
             {storeOpen ? <div className="store-menu">
               <button className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko</button>
-              {stores.map((store) => <button className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}><strong>{store.name}</strong><small>{store.code}</small></button>)}
+              {stores.map((store) => <button className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}>{store.image_url ? <img className="store-menu-image" src={store.image_url} alt=""/> : null}<span><strong>{store.name}</strong><small>{store.code}</small></span></button>)}
               {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" className="store-manage-link">+ Kelola cabang</Link> : null}
             </div> : null}
           </div>
           <div className="topbar-right">
             <div className="system-status"><span/> Sistem aktif</div>
             <Link className="icon-button" href="/reports" title="Ringkasan laporan"><BarChart3 size={19}/></Link>
-            <div className="top-avatar">{initials}</div>
+            <ProfileMenu profile={profile} stores={stores}/>
           </div>
         </header>
         <div className="content">{children}</div>

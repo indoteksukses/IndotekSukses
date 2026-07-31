@@ -1,15 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Boxes } from "lucide-react";
+import { Boxes, CheckCircle2, X } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { StatusBadge } from "@/components/ui";
+import { StockEditButton } from "@/components/stock-edit-button";
 import type { Product, Store } from "@/lib/types";
 
-export function InventoryTable({ products, stores }: { products: Product[]; stores: Store[] }) {
+export function InventoryTable({ products, stores, canEditStock = false }: { products: Product[]; stores: Store[]; canEditStock?: boolean }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("");
+  const [toast, setToast] = useState("");
+  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
   const categories = useMemo(() => [...new Set(products.map((product) => product.category).filter(Boolean) as string[])].sort(), [products]);
   const state = (product: Product) => {
     const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
@@ -25,7 +28,8 @@ export function InventoryTable({ products, stores }: { products: Product[]; stor
       const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
       const conditionValue = state(product);
       const tone = conditionValue === "out" ? "danger" : conditionValue === "low" ? "warning" : "success";
-      return <tr key={product.id}><td className="sticky-col"><div className="product-cell"><div className="product-thumb"><Boxes size={20}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div></div></td><td>{product.minimum_stock} {product.unit}</td>{stores.map((store) => { const row = product.stocks[store.id]; return <td key={store.id}><div className="stock-number"><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}{row?.quantity_reserved ? ` · ${row.quantity_reserved} dipesan` : ""}</span></div></td>; })}<td><strong>{quantities.reduce((sum, value) => sum + value, 0)}</strong></td><td><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></td></tr>;
+      return <tr key={product.id}><td className="sticky-col" data-label="Produk"><div className="product-cell"><div className="product-thumb"><Boxes size={20}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => { const row = product.stocks[store.id]; return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}{row?.quantity_reserved ? ` · ${row.quantity_reserved} dipesan` : ""}</span></div>{canEditStock ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div></td>; })}<td data-label="Total"><strong>{quantities.reduce((sum, value) => sum + value, 0)}</strong></td><td data-label="Kondisi"><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></td></tr>;
     })}{!filtered.length ? <tr><td colSpan={stores.length + 4}><div className="empty-inline">Stok tidak ditemukan.</div></td></tr> : null}</tbody></table></div>
+    {toast ? <div className="toast success"><CheckCircle2 size={20}/><div><strong>Stok berhasil diperbarui</strong><span>{toast}</span></div><button onClick={() => setToast("")}><X size={16}/></button></div> : null}
   </>;
 }

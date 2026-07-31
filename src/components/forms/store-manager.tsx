@@ -17,7 +17,7 @@ export function StoreManager({ stores }: { stores: Store[] }) {
   return <>
     <div className="store-grid">
       {stores.map((store) => <article className={`store-card ${store.is_active === false ? "inactive" : ""}`} key={store.id}>
-        <div className="store-card-top"><div className="store-card-icon"><Building2 size={23}/></div><span className={`status-dot ${store.is_active === false ? "off" : ""}`}>{store.is_active === false ? "Nonaktif" : "Aktif"}</span></div>
+        <div className="store-card-top"><div className="store-card-icon">{store.image_url ? <img src={store.image_url} alt={store.name}/> : <Building2 size={23}/>}</div><span className={`status-dot ${store.is_active === false ? "off" : ""}`}>{store.is_active === false ? "Nonaktif" : "Aktif"}</span></div>
         <h2>{store.name}</h2><strong className="store-code">{store.code}</strong>
         <div className="store-meta"><span><MapPin size={15}/>{store.address || "Alamat belum diisi"}</span><span><Phone size={15}/>{store.phone || "Telepon belum diisi"}</span></div>
         <div className="store-card-actions"><a className="button secondary" href={`/inventory?store=${store.id}`}>Lihat stok</a><button className="button ghost" onClick={() => showForm(store)}><Edit3 size={16}/> Edit</button></div>
@@ -42,6 +42,7 @@ export function StoreManager({ stores }: { stores: Store[] }) {
         <label className="span-2">Alamat<input name="address" defaultValue={editing?.address ?? ""} placeholder="Alamat lengkap cabang"/></label>
         <label>Nomor telepon<input name="phone" defaultValue={editing?.phone ?? ""} placeholder="08xxxxxxxxxx"/></label>
         <label>Penanggung jawab<input name="manager_name" defaultValue={editing?.manager_name ?? ""} placeholder="Nama kepala toko"/></label>
+        <label className="span-2">URL gambar profil toko<input name="image_url" type="url" defaultValue={editing?.image_url ?? ""} placeholder="https://.../logo-toko.png"/><small>Gunakan URL gambar HTTPS. Gambar akan tampil di daftar cabang dan invoice.</small></label>
         {editing ? <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={editing.is_active !== false}/><span>Toko aktif dan dapat digunakan untuk transaksi</span></label> : <input type="hidden" name="is_active" value="on"/>}
         <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan toko"}</button></div>
       </form>

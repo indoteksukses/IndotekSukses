@@ -1,77 +1,60 @@
-# Indotek Sukses v2.0.0 — Inventory & Point of Sale
+# Indotek Sukses v2.1.0 — Inventory & Point of Sale
 
-Aplikasi web multi-cabang untuk pengelolaan produk, stok, kasir, pembelian, transfer, stok opname, retur, karyawan, laporan, dan audit. Dibangun dengan Next.js 16, TypeScript, Supabase, dan siap diterapkan di Vercel.
+Aplikasi web multi-cabang untuk produk, stok, kasir, pembelian, transfer, stok opname, retur, karyawan, laporan, dan audit. Dibangun dengan Next.js, TypeScript, Supabase, dan ditujukan untuk deployment Vercel.
 
-## Fitur produksi
+## Pembaruan v2.1.0
 
-- Jumlah toko dinamis: tambah cabang baru tanpa mengubah kode.
-- Nama, kode, alamat, telepon, penanggung jawab, dan status toko dapat diatur.
-- Satu master produk dan harga pusat untuk seluruh cabang.
-- Stok terpisah untuk setiap toko, termasuk stok tersedia, dipesan, rusak, dan dalam perjalanan.
-- Kasir per toko dengan shift wajib, scan barcode/SKU, diskon, pelanggan, referensi pembayaran, tunai, QRIS, transfer, dan debit.
-- Transaksi atomik: penjualan dan pengurangan stok berhasil bersama-sama atau dibatalkan bersama-sama.
-- Shift kasir dengan kas awal, kas seharusnya, kas fisik, dan selisih.
-- Stok masuk/keluar dengan alasan dan jejak audit.
-- Transfer antartoko dengan status disetujui, dikirim, dalam perjalanan, dan diterima.
-- Pembelian supplier dan penerimaan otomatis ke stok toko tujuan.
-- Stok opname dengan snapshot stok sistem, input fisik, dan koreksi otomatis.
-- Retur pelanggan dengan kondisi layak jual, rusak, atau pemeriksaan.
-- Pembatalan transaksi melalui reversal, bukan menghapus transaksi.
-- Karyawan dengan role Owner, Admin, Kepala Toko, Kasir, dan Gudang.
-- Karyawan dapat ditambah, diedit, dinonaktifkan, serta diberi akses ke satu atau beberapa cabang.
-- Dashboard dengan tren penjualan nyata, laporan periode, laba kotor/HPP terlindungi, ekspor CSV, cetak/PDF, audit aktivitas, dan pengaturan perusahaan.
-- Setup owner dan toko pertama langsung dari website.
-- Mode demo opsional.
+- Kategori produk dapat ditambah, dicari, diedit, diaktifkan, dan dinonaktifkan.
+- Form stok masuk/keluar memakai kenaikan jumlah 1 unit dan pencarian nama, SKU, barcode, atau kategori.
+- Setelah pergerakan stok disimpan, notifikasi sukses tampil dan aktivitas terbaru langsung diperbarui.
+- Pergerakan stok manual dapat diralat tanpa menghapus riwayat; sistem membuat transaksi pembalik.
+- Saldo stok tiap produk dan toko dapat diedit langsung dengan alasan serta audit permanen.
+- Invoice penjualan memiliki rincian produk, jumlah, harga, subtotal, metode pembayaran, kasir, pelanggan, toko, dan total.
+- Invoice lama dapat dibuka, dicetak ulang, atau disimpan sebagai PDF dari menu Transaksi.
+- Modal pembayaran dirapikan, termasuk uang diterima, pilihan nominal cepat, dan kembalian.
+- Pemindai barcode memakai API browser dan fallback ZXing; scanner USB/Bluetooth tetap didukung melalui input kasir.
+- Satu toko hanya memiliki satu shift aktif yang dapat dipakai bersama oleh seluruh karyawan berizin.
+- Setiap toko dapat memakai gambar profil dari URL HTTPS.
+- Tersedia 12 avatar bawaan untuk pengguna. Pengguna dapat mengganti avatar sendiri melalui ikon profil.
+- Profil menampilkan role, email, telepon, dan akses cabang; detail tertentu hanya dapat diedit owner/admin.
+- Penyempurnaan desktop dan mobile pada kasir, laporan, tabel, modal, stok, profil, dan invoice.
 
-## 1. Persyaratan
+## Fitur utama
 
-- Node.js 22.x
-- Project Supabase
-- Akun Vercel
-- Repository GitHub
+- Jumlah cabang dinamis tanpa batas tetap di kode.
+- Satu master produk dan harga pusat untuk semua cabang.
+- Stok terpisah per toko.
+- Kasir atomik dengan tunai, QRIS, transfer, dan debit.
+- Pencegahan stok minus dan produk ganda dalam satu transaksi.
+- Shift toko, rekonsiliasi kas, pembelian, supplier, transfer, opname, retur, pembatalan, laporan, ekspor CSV, dan audit.
+- Role Owner, Admin, Kepala Toko, Kasir, dan Gudang dengan akses per cabang.
+- Supabase Auth, SSR cookie, RLS, RPC transaksi, dan service key hanya pada server.
 
-## 2. Database Supabase
+## Instalasi Supabase
 
-### Instalasi baru
+### Project baru
 
-Buka **Supabase → SQL Editor**, lalu jalankan berurutan:
-
-Jalankan satu file gabungan:
+Jalankan satu file berikut melalui **Supabase → SQL Editor**:
 
 ```text
 supabase/FRESH_INSTALL.sql
 ```
 
-Alternatifnya, jalankan dua migration secara berurutan:
+File tersebut sudah mencakup schema dasar, sistem multi-cabang, dan pembaruan operasional v2.1.0.
 
-1. `supabase/migrations/202607310001_indotek_sukses.sql`
-2. `supabase/migrations/202607310002_multi_store_ready.sql`
+### Upgrade dari v2.0.0 / v2.0.1
 
-Migration pertama membuat tabel dasar. Migration kedua menambahkan sistem multi-cabang produksi, setup awal, pengaturan perusahaan, dan fungsi transaksi operasional.
-
-### Upgrade dari versi sebelumnya
-
-Jika migration `202607310001_indotek_sukses.sql` sudah pernah dijalankan, cukup jalankan:
+Backup database, kemudian jalankan hanya:
 
 ```text
-supabase/migrations/202607310002_multi_store_ready.sql
+supabase/migrations/202608010004_operational_ux.sql
 ```
 
-Data toko dan transaksi lama tetap dipertahankan. Toko lama dapat diganti nama melalui menu **Toko & Cabang**.
+Migration ini tidak menghapus produk, toko, stok, transaksi, atau akun yang sudah ada.
 
-### Data produk contoh
+Untuk database yang belum pernah menerima hotfix permission v2.0.1, migration v2.1.0 juga memperbaiki privilege dasar sambil tetap menyembunyikan harga modal dari query pengguna biasa.
 
-Setelah owner dan toko pertama selesai dibuat, data contoh dapat ditambahkan dengan menjalankan:
-
-```text
-supabase/seed.sql
-```
-
-Jangan menjalankan seed jika Anda ingin memulai dengan data kosong.
-
-## 3. Environment Variables
-
-Salin `.env.example` menjadi `.env.local` untuk penggunaan lokal.
+## Environment Variables Vercel
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
@@ -81,15 +64,15 @@ NEXT_PUBLIC_DEMO_MODE=false
 NEXT_PUBLIC_APP_NAME=Indotek Sukses
 ```
 
-Project lama yang masih memakai key legacy dapat menggunakan:
+Project legacy dapat memakai:
 
 ```env
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
 ```
 
-Gunakan salah satu `SUPABASE_SECRET_KEY` atau `SUPABASE_SERVICE_ROLE_KEY`. Key tersebut hanya boleh dipasang pada server/Vercel dan tidak boleh menggunakan awalan `NEXT_PUBLIC_`.
+Gunakan salah satu `SUPABASE_SECRET_KEY` atau `SUPABASE_SERVICE_ROLE_KEY`. Jangan menambahkan awalan `NEXT_PUBLIC_` pada key rahasia.
 
-## 4. Menjalankan lokal
+## Menjalankan lokal
 
 ```powershell
 npm install
@@ -102,95 +85,98 @@ Buka:
 http://localhost:3000/setup
 ```
 
-Isi:
+Pada setup pertama, isi perusahaan, owner, toko pertama, dan URL gambar toko bila diperlukan.
 
-- Nama perusahaan
-- Nama dan email owner
-- Password owner
-- Nama toko pertama
-- Kode toko pertama
-- Alamat dan telepon toko
+## Upgrade source code di GitHub
 
-Setelah setup berhasil, login dari `/login`.
+1. Ekstrak paket v2.1.0.
+2. Ganti seluruh isi repository lama dengan isi folder ini.
+3. Jangan menyalin `.env.local` ke GitHub.
+4. Jalankan:
 
-## 5. Deploy ke Vercel
-
-1. Push seluruh folder proyek ke repository GitHub.
-2. Import repository di Vercel.
-3. Tambahkan seluruh environment variables.
-4. Deploy.
-5. Buka `https://domain-anda/setup` untuk membuat owner pertama.
-
-Untuk deployment lama, jalankan migration upgrade sebelum membuka versi website yang baru.
-
-## 6. Menambahkan toko baru
-
-Login sebagai Owner atau Admin, lalu buka:
-
-```text
-Toko & Cabang → Tambah toko baru
+```powershell
+git add .
+git commit -m "Upgrade Indotek Sukses v2.1.0"
+git push origin main
 ```
 
-Isi nama dan kode toko. Cabang baru otomatis muncul pada:
+5. Tunggu deployment Vercel selesai.
+6. Logout, login kembali, kemudian tekan `Ctrl + Shift + R`.
 
-- Pemilih toko di bagian atas
-- Kasir
-- Stok semua toko
-- Stok masuk/keluar
-- Transfer antartoko
-- Pembelian
-- Stok opname
-- Laporan
-- Pengaturan akses karyawan
+## Cara operasional baru
 
-Tidak ada batas dua toko di kode aplikasi.
+### Kategori
 
-## 7. Hak akses
+```text
+Master Produk → Kelola kategori
+```
 
-| Fitur | Owner | Admin | Kepala Toko | Kasir | Gudang |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Atur toko | Ya | Ya | Tidak | Tidak | Tidak |
-| Atur produk dan harga | Ya | Ya | Tidak | Tidak | Tidak |
-| Melihat stok | Semua | Semua | Toko akses | Toko akses | Toko akses |
-| Kasir | Ya | Ya | Ya | Ya | Tidak |
-| Stok manual | Ya | Ya | Ya | Tidak | Ya |
-| Transfer stok | Ya | Ya | Ya | Tidak | Ya |
-| Pembelian | Ya | Ya | Ya | Tidak | Ya |
-| Opname | Ya | Ya | Ya | Tidak | Ya |
-| Kelola karyawan | Ya | Ya terbatas | Tidak | Tidak | Tidak |
-| Audit | Semua | Semua | Toko akses | Tidak | Tidak |
+Kategori nonaktif tetap terlihat pada pengelola kategori sehingga dapat diedit atau diaktifkan kembali, tetapi tidak ditawarkan pada produk baru.
 
-Validasi hak akses dilakukan kembali di server dan database RLS, bukan hanya melalui tampilan.
+### Stok masuk/keluar dan ralat
 
-## 8. Pemeriksaan sebelum operasional
+```text
+Stok Masuk / Keluar
+```
 
-- Pastikan `NEXT_PUBLIC_DEMO_MODE=false`.
-- Pastikan secret/service role key hanya berada di Vercel.
+Cari produk, pilih toko, masukkan jumlah, alasan, lalu simpan. Aktivitas baru langsung muncul. Owner, admin, atau kepala toko dapat memilih **Ralat** pada pergerakan manual yang salah.
+
+### Edit saldo stok
+
+```text
+Stok Semua Toko → ikon pensil pada saldo cabang
+```
+
+Masukkan stok fisik akhir dan alasan. Sistem menyimpan selisih sebagai pergerakan audit, bukan mengubah angka tanpa jejak.
+
+### Invoice
+
+```text
+Transaksi → Detail atau Cetak
+```
+
+Halaman invoice dapat dibuka kembali kapan saja. Tombol **Cetak** dan **Unduh / Simpan PDF** memakai dialog cetak browser dengan layout invoice khusus, bukan mencetak seluruh dashboard.
+
+### Barcode
+
+Pada kasir:
+
+- Klik **Scan** untuk kamera HP/laptop.
+- Izinkan kamera dan gunakan website HTTPS.
+- Scanner USB/Bluetooth dapat langsung mengetik ke kolom pencarian; tekan atau kirim Enter.
+- Barcode dan SKU harus tersimpan di master produk.
+
+### Shift toko
+
+```text
+Shift Kasir → Kelola shift toko
+```
+
+Satu karyawan membuka satu shift untuk satu toko. Setelah aktif, seluruh kasir yang memiliki akses ke toko tersebut dapat bertransaksi. Pembuka shift, kepala toko, admin, atau owner dapat menutupnya.
+
+### Avatar dan profil
+
+Klik avatar di kanan atas. Semua pengguna dapat mengganti avatar. Owner/admin dapat mengubah nama dan telepon sendiri; role lain melihat detailnya dalam mode baca-saja.
+
+## Pemeriksaan sebelum digunakan
+
+- `NEXT_PUBLIC_DEMO_MODE=false`.
+- Migration v2.1.0 berhasil dijalankan.
+- Akun owner memiliki akses ke seluruh cabang.
+- Setiap produk memiliki SKU unik; barcode juga harus unik bila diisi.
+- Uji stok masuk, ralat, edit saldo, buka shift, transaksi, cetak invoice, dan tutup shift.
+- Uji kamera dari domain HTTPS Vercel.
 - Buat akun terpisah untuk setiap karyawan.
-- Berikan akses cabang sesuai tugas.
-- Uji satu transaksi kasir dan periksa stok berkurang.
-- Uji pembatalan transaksi dan periksa stok kembali.
-- Uji transfer dari cabang asal sampai diterima cabang tujuan.
-- Uji tutup shift dan selisih kas.
-- Aktifkan backup database pada paket Supabase yang digunakan.
+- Aktifkan backup Supabase sesuai paket yang digunakan.
 
-## Struktur penting
+## Struktur proyek
 
 ```text
-src/app/(protected)       halaman aplikasi
-src/app/api               endpoint transaksi server
-src/components            komponen tampilan dan formulir
-src/lib/data.ts            pembacaan data Supabase
-src/lib/supabase           koneksi Supabase SSR dan admin
-supabase/migrations        schema, RLS, trigger, dan RPC
-supabase/seed.sql          data contoh opsional
+src/app/(protected)        halaman aplikasi
+src/app/api                endpoint server
+src/components             UI dan formulir
+src/lib/data.ts             pembacaan data Supabase
+src/lib/supabase            koneksi SSR/admin
+supabase/migrations         migration bertahap
+supabase/FRESH_INSTALL.sql  instalasi database baru
 ```
-
-## Keamanan
-
-- Autentikasi menggunakan Supabase Auth dan cookie SSR.
-- RLS aktif pada tabel utama.
-- Secret/service role key tidak dikirim ke browser.
-- Perubahan produk, harga, toko, supplier, pengguna, transfer, pembelian, retur, shift, dan pengaturan masuk ke audit log.
-- Stok tidak dapat minus pada transaksi penjualan dan transfer.
-- Transaksi yang dibatalkan tetap tersimpan.

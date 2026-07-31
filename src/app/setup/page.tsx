@@ -56,6 +56,7 @@ export default function SetupPage() {
           <label>Kode toko<input name="store_code" defaultValue="IDS-01" required/></label>
           <label>Alamat toko<input name="store_address" placeholder="Alamat cabang"/></label>
           <label>Telepon toko<input name="store_phone" placeholder="08xxxxxxxxxx"/></label>
+          <label className="span-2">URL gambar toko<input name="store_image_url" type="url" placeholder="https://.../logo-toko.png"/><small>Opsional. Dapat diubah lagi melalui menu Toko & Cabang.</small></label>
         </div></div>
         <button className="button primary setup-submit" disabled={saving}>{saving ? "Menyiapkan sistem..." : "Buat sistem Indotek Sukses"}</button>
       </form>}

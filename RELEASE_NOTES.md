@@ -1,27 +1,58 @@
-# Indotek Sukses v2.0.0 — Release Notes
+# Indotek Sukses v2.1.0 — Release Notes
 
-## Perubahan utama
+## Produk dan kategori
 
-- Tidak ada lagi asumsi dua toko. Cabang dapat ditambah sebanyak kebutuhan bisnis.
-- Nama, kode, alamat, telepon, penanggung jawab, dan status setiap cabang dapat diubah.
-- Cabang baru otomatis tersedia pada kasir, inventori, transfer, pembelian, opname, laporan, dan akses karyawan.
-- Setup owner dan toko pertama dilakukan langsung melalui `/setup`.
-- Kasir wajib memakai shift milik pengguna yang sedang login.
-- Scan barcode atau SKU dapat langsung ditambahkan dengan tombol Enter.
-- Referensi pembayaran QRIS, transfer, dan debit disimpan bersama transaksi.
-- Filter dan ekspor CSV produk, inventori, transaksi, laporan, serta audit telah berfungsi.
-- Dashboard 7 hari memakai transaksi nyata, bukan grafik contoh.
-- Laporan periode menghitung penjualan kotor, retur, penjualan bersih, HPP, laba kotor, unit bersih, dan nilai persediaan.
-- Hak akses karyawan diperketat; admin tidak dapat menaikkan dirinya atau pengguna lain menjadi owner/admin tanpa izin owner.
-- Retur kumulatif tidak dapat melebihi jumlah barang pada transaksi asli.
-- RPC transfer, pembelian, dan opname memeriksa role dan akses cabang di database.
-- Nilai modal produk tidak ditampilkan kepada kasir dan gudang.
+- Pengelola kategori baru dengan tambah, cari, edit, aktif/nonaktif.
+- Kategori nonaktif dapat dibuka kembali oleh admin.
+- Pencarian produk diperluas untuk katalog ratusan hingga ribuan item.
+
+## Stok
+
+- Tombol jumlah stok bergerak 1 unit per klik.
+- Product combobox mencari nama, SKU, barcode, dan kategori.
+- Notifikasi sukses dan pembaruan aktivitas tanpa refresh manual.
+- Ralat stok membuat reversal, bukan menghapus log.
+- Edit stok fisik langsung dengan alasan dan audit.
+- Saldo negatif tetap dicegah.
+
+## Kasir dan barcode
+
+- Modal pembayaran dirapikan dan dibuat responsif.
+- Nominal cepat, uang diterima, dan kembalian berada dalam layout yang konsisten.
+- Kamera barcode memakai detector native dengan fallback `@zxing/browser`.
+- Scanner USB/Bluetooth dan input SKU tetap didukung.
+- Satu shift aktif per toko dapat dipakai bersama beberapa karyawan.
+
+## Invoice dan laporan
+
+- Invoice detail berisi item, qty, harga, subtotal, pembayaran, pelanggan, kasir, toko, dan total.
+- Invoice lama dapat dicetak ulang atau disimpan sebagai PDF.
+- Print stylesheet hanya mencetak dokumen invoice.
+- Tabel laporan dan kartu statistik dirapikan untuk desktop dan HP.
+
+## Profil dan toko
+
+- URL gambar profil toko.
+- Dua belas avatar pengguna bawaan.
+- Menu profil untuk melihat detail akun dan akses cabang.
+- Role biasa hanya dapat mengganti avatar; detail lain baca-saja.
+
+## Database
+
+Migration baru:
+
+```text
+supabase/migrations/202608010004_operational_ux.sql
+```
+
+Migration menambah kolom gambar toko, avatar, metadata reversal, satu shift per toko, RPC edit stok, RPC ralat stok, complete-sale shared shift, dan perbaikan privilege aman.
 
 ## Pemeriksaan rilis
 
-- Pemeriksaan TypeScript struktural: lulus.
-- Pemeriksaan seluruh import lokal: lulus.
-- Tidak ditemukan referensi produksi yang mengunci sistem pada Toko 1/Toko 2.
-- SQL instalasi baru dan SQL upgrade disertakan.
+- Seluruh import lokal ditemukan.
+- Transpilasi sintaks 81 file TypeScript/TSX: lulus.
+- Pemeriksaan semantic internal dengan strict null checking: lulus.
+- Kurung CSS seimbang.
+- Fresh install telah digabung dengan migration v2.1.0.
 
-Build Next.js penuh perlu dijalankan oleh Vercel atau komputer yang dapat mengakses registry npm publik.
+Build penuh tetap perlu dilakukan melalui Vercel atau komputer yang dapat mengakses registry npm publik.

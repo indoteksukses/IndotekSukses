@@ -2,7 +2,7 @@ import { demoMovements, demoProducts, demoProfile, demoSettings, demoStores } fr
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { FinancialReport, Movement, Product, SaleSummary, Store, SystemSettings, UserProfile } from "@/lib/types";
+import type { FinancialReport, Movement, Product, SaleDetail, SaleSummary, Store, SystemSettings, UserProfile } from "@/lib/types";
 
 const demo = isDemoMode || !hasSupabaseEnv;
 
@@ -12,7 +12,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const [{ data: profile }, { data: access }] = await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active").eq("id", user.id).single(),
+    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active,avatar_key").eq("id", user.id).single(),
     supabase.from("user_store_access").select("store_id").eq("user_id", user.id),
   ]);
   if (!profile) {
@@ -24,6 +24,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
       role: "cashier",
       primary_store_id: null,
       is_active: true,
+      avatar_key: "ocean",
       store_ids: [],
     };
   }
@@ -33,7 +34,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
 export async function getStores(includeInactive = false): Promise<Store[]> {
   if (demo) return includeInactive ? demoStores : demoStores.filter((store) => store.is_active !== false);
   const supabase = await createClient();
-  let query = supabase.from("stores").select("id,code,name,address,phone,manager_name,is_active").order("name");
+  let query = supabase.from("stores").select("id,code,name,address,phone,manager_name,image_url,is_active").order("name");
   if (!includeInactive) query = query.eq("is_active", true);
   const { data, error } = await query;
   if (error) return [];
@@ -120,7 +121,7 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
   const supabase = await createClient();
   let query = supabase
     .from("stock_movements")
-    .select("id,created_at,quantity,movement_type,reason,stores(name),products(name),profiles!stock_movements_created_by_fkey(full_name)")
+    .select("id,store_id,product_id,created_at,quantity,movement_type,reason,stock_before,stock_after,reversed_at,correction_reason,stores(name),products(name),profiles!stock_movements_created_by_fkey(full_name)")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (storeId) query = query.eq("store_id", storeId);
@@ -135,6 +136,13 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
     quantity: Number(row.quantity),
     user: row.profiles?.full_name ?? "Pengguna",
     reason: row.reason,
+    movement_type: String(row.movement_type),
+    product_id: String(row.product_id),
+    store_id: String(row.store_id),
+    stock_before: Number(row.stock_before ?? 0),
+    stock_after: Number(row.stock_after ?? 0),
+    reversed_at: row.reversed_at,
+    correction_reason: row.correction_reason,
   }));
 }
 
@@ -235,11 +243,62 @@ export async function getSuppliers() {
   return data ?? [];
 }
 
+export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> {
+  if (demo) {
+    const sale = (await getSales()).find((row) => row.id === saleId) ?? (await getSales())[0];
+    if (!sale) return null;
+    return {
+      ...sale,
+      store_code: demoStores[0]?.code ?? "IDS",
+      store_address: demoStores[0]?.address ?? null,
+      store_phone: demoStores[0]?.phone ?? null,
+      store_image_url: demoStores[0]?.image_url ?? null,
+      subtotal: sale.grand_total,
+      discount: 0,
+      tax: 0,
+      notes: null,
+      items: [{ id: "demo-item", product_id: demoProducts[0].id, name: demoProducts[0].name, sku: demoProducts[0].sku, quantity: 1, unit_price: demoProducts[0].selling_price, discount: 0, subtotal: demoProducts[0].selling_price }],
+      payments: [{ id: "demo-pay", method: "cash", amount: sale.grand_total, reference_number: null }],
+    };
+  }
+  const supabase = await createClient();
+  const { data: sale, error } = await supabase
+    .from("sales")
+    .select("id,invoice_number,customer_name,subtotal,discount,tax,grand_total,status,notes,completed_at,stores(code,name,address,phone,image_url),profiles!sales_cashier_id_fkey(full_name),sale_items(id,product_id,product_name_snapshot,sku_snapshot,quantity,selling_price_snapshot,discount,subtotal),payments(id,method,amount,reference_number)")
+    .eq("id", saleId)
+    .maybeSingle();
+  if (error || !sale) return null;
+  const row = sale as any;
+  return {
+    id: String(row.id),
+    invoice_number: String(row.invoice_number),
+    store_name: row.stores?.name ?? "Toko",
+    store_code: row.stores?.code ?? null,
+    store_address: row.stores?.address ?? null,
+    store_phone: row.stores?.phone ?? null,
+    store_image_url: row.stores?.image_url ?? null,
+    cashier_name: row.profiles?.full_name ?? "Kasir",
+    grand_total: Number(row.grand_total ?? 0),
+    subtotal: Number(row.subtotal ?? 0),
+    discount: Number(row.discount ?? 0),
+    tax: Number(row.tax ?? 0),
+    status: String(row.status),
+    completed_at: String(row.completed_at),
+    customer_name: row.customer_name,
+    notes: row.notes,
+    items: (row.sale_items ?? []).map((item: any) => ({
+      id: String(item.id), product_id: String(item.product_id), name: String(item.product_name_snapshot), sku: String(item.sku_snapshot),
+      quantity: Number(item.quantity ?? 0), unit_price: Number(item.selling_price_snapshot ?? 0), discount: Number(item.discount ?? 0), subtotal: Number(item.subtotal ?? 0),
+    })),
+    payments: (row.payments ?? []).map((payment: any) => ({ id: String(payment.id), method: String(payment.method), amount: Number(payment.amount ?? 0), reference_number: payment.reference_number })),
+  };
+}
+
 export async function getUsers(): Promise<UserProfile[]> {
   if (demo) return [demoProfile, { id: "u2", full_name: "Rina Kasir", email: "rina@example.com", phone: null, role: "cashier", primary_store_id: demoStores[0].id, is_active: true, store_ids: [demoStores[0].id] } as UserProfile];
   const supabase = await createClient();
   const [{ data: profiles }, { data: access }] = await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active").order("full_name"),
+    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active,avatar_key").order("full_name"),
     supabase.from("user_store_access").select("user_id,store_id"),
   ]);
   return (profiles ?? []).map((profile: any) => ({ ...profile, store_ids: (access ?? []).filter((row: any) => row.user_id === profile.id).map((row: any) => row.store_id) })) as UserProfile[];
@@ -251,7 +310,7 @@ export async function getShifts(storeId?: string | null) {
   let query = supabase.from("cashier_shifts").select("id,store_id,cashier_id,opening_cash,expected_cash,actual_cash,cash_difference,status,opened_at,closed_at,stores(name),profiles!cashier_shifts_cashier_id_fkey(full_name)").order("opened_at", { ascending: false }).limit(100);
   if (storeId) query = query.eq("store_id", storeId);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name, cashier_name: row.profiles?.full_name }));
+  return (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name ?? "Toko", cashier_name: row.profiles?.full_name ?? "Karyawan toko" }));
 }
 
 export async function getTransfers(storeId?: string | null) {
@@ -297,9 +356,17 @@ export async function getAuditLogs(limit = 100) {
   return (data ?? []).map((row: any) => ({ ...row, user_name: row.profiles?.full_name, store_name: row.stores?.name }));
 }
 
-export async function getCategories() {
-  if (demo) return [{ id: "cat-1", name: "Aksesori Komputer" }, { id: "cat-2", name: "Kabel" }, { id: "cat-3", name: "Jaringan" }, { id: "cat-4", name: "Power" }];
+export async function getCategories(includeInactive = false) {
+  const demoCategories = [
+    { id: "cat-1", name: "Aksesori Komputer", description: null, is_active: true },
+    { id: "cat-2", name: "Kabel", description: null, is_active: true },
+    { id: "cat-3", name: "Jaringan", description: null, is_active: true },
+    { id: "cat-4", name: "Power", description: null, is_active: true },
+  ];
+  if (demo) return demoCategories;
   const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("id,name").eq("is_active", true).order("name");
+  let query = supabase.from("categories").select("id,name,description,is_active").order("is_active", { ascending: false }).order("name");
+  if (!includeInactive) query = query.eq("is_active", true);
+  const { data } = await query;
   return data ?? [];
 }

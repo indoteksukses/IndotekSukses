@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ store: { id: crypto.randomUUID(), ...body, name, code, is_active: true }, demo: true }, { status: 201 });
   const auth = await requireAdmin();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { data, error } = await auth.supabase.from("stores").insert({ name, code, address: body.address || null, phone: body.phone || null, manager_name: body.manager_name || null, is_active: true }).select("*").single();
+  const { data, error } = await auth.supabase.from("stores").insert({ name, code, address: body.address || null, phone: body.phone || null, manager_name: body.manager_name || null, image_url: String(body.image_url ?? "").trim() || null, is_active: true }).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ store: data }, { status: 201 });
 }
@@ -27,6 +27,7 @@ export async function PATCH(request: Request) {
     address: body.address || null,
     phone: body.phone || null,
     manager_name: body.manager_name || null,
+    image_url: String(body.image_url ?? "").trim() || null,
     is_active: body.is_active !== false,
   };
   const { data, error } = await auth.supabase.from("stores").update(payload).eq("id", body.id).select("*").single();
