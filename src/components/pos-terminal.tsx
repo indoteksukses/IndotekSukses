@@ -1,24 +1,108 @@
 "use client";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, ScanBarcode, Search, ShoppingCart, Trash2 } from "lucide-react";
-import { demoProducts as fallbackProducts } from "@/lib/demo-data";
-import type { CartItem, Product } from "@/lib/types";
+import { Banknote, CreditCard, Minus, Plus, QrCode, ScanBarcode, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import type { CartItem, Product, Store } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
-export function PosTerminal({ products = fallbackProducts }: { products?: Product[] }){
- const router = useRouter();
- const demoProducts = products;
- const [query,setQuery]=useState(""); const [cart,setCart]=useState<CartItem[]>([]); const [paid,setPaid]=useState(false);
- const [processing,setProcessing]=useState(false); const [error,setError]=useState(""); const [invoice,setInvoice]=useState("");
- const filtered=demoProducts.filter(p=>`${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(query.toLowerCase()));
- const add=(p:typeof demoProducts[number])=>setCart(prev=>{const found=prev.find(i=>i.product_id===p.id); if(found)return prev.map(i=>i.product_id===p.id?{...i,quantity:Math.min(i.quantity+1,i.stock)}:i); return [...prev,{product_id:p.id,sku:p.sku,name:p.name,price:p.selling_price,quantity:1,stock:p.stock_store_1??0}]});
- const change=(id:string,delta:number)=>setCart(prev=>prev.map(i=>i.product_id===id?{...i,quantity:Math.max(1,Math.min(i.quantity+delta,i.stock))}:i));
- const subtotal=useMemo(()=>cart.reduce((s,i)=>s+i.price*i.quantity,0),[cart]);
- const checkout=async()=>{setProcessing(true);setError("");try{const response=await fetch("/api/pos/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store_id:"11111111-1111-1111-1111-111111111111",shift_id:null,items:cart.map(i=>({product_id:i.product_id,quantity:i.quantity})),payments:[{method:"cash",amount:subtotal}],discount:0,grand_total:subtotal})});const result=await response.json();if(!response.ok)throw new Error(result.error||"Transaksi gagal");setInvoice(result.invoice_number||"");setPaid(true);router.refresh()}catch(e){setError(e instanceof Error?e.message:"Transaksi gagal")}finally{setProcessing(false)}};
- return <div className="pos-layout">
-   <section className="pos-products"><div className="pos-search"><Search size={20}/><input autoFocus placeholder="Scan barcode atau cari produk..." value={query} onChange={e=>setQuery(e.target.value)}/><button><ScanBarcode size={20}/></button></div><div className="category-chips"><button className="active">Semua</button><button>Aksesori</button><button>Kabel</button><button>Jaringan</button><button>Power</button></div><div className="product-grid">{filtered.map(p=><button className="pos-product" key={p.id} onClick={()=>add(p)} disabled={(p.stock_store_1??0)<=0}><div className="pos-product-image">{p.name.slice(0,2).toUpperCase()}</div><strong>{p.name}</strong><span>{p.sku}</span><div><b>{formatCurrency(p.selling_price)}</b><small>Stok {p.stock_store_1}</small></div></button>)}</div></section>
-   <aside className="cart-panel"><div className="cart-head"><div><ShoppingCart size={20}/><h2>Keranjang</h2></div><span>{cart.reduce((s,i)=>s+i.quantity,0)} item</span></div><div className="cart-customer"><span>Pelanggan</span><button>+ Pilih pelanggan</button></div><div className="cart-items">{cart.length===0?<div className="cart-empty"><ShoppingCart size={36}/><strong>Keranjang masih kosong</strong><span>Pilih produk atau scan barcode.</span></div>:cart.map(i=><div className="cart-item" key={i.product_id}><div><strong>{i.name}</strong><span>{formatCurrency(i.price)} / pcs</span></div><button className="trash" onClick={()=>setCart(c=>c.filter(x=>x.product_id!==i.product_id))}><Trash2 size={16}/></button><div className="quantity-control"><button onClick={()=>change(i.product_id,-1)}><Minus size={14}/></button><span>{i.quantity}</span><button onClick={()=>change(i.product_id,1)}><Plus size={14}/></button></div><strong>{formatCurrency(i.price*i.quantity)}</strong></div>)}</div><div className="cart-summary"><div><span>Subtotal</span><strong>{formatCurrency(subtotal)}</strong></div><div><span>Diskon</span><button>+ Tambah diskon</button></div><div className="grand-total"><span>Total</span><strong>{formatCurrency(subtotal)}</strong></div><button className="button primary pay-button" disabled={!cart.length||processing} onClick={checkout}>{processing?"Memproses...":`Bayar ${formatCurrency(subtotal)}`}</button>{error?<div className="pos-error">{error}</div>:null}</div></aside>
-   {paid?<div className="modal-backdrop"><div className="modal-card payment-modal"><div className="success-check">✓</div><h2>Pembayaran berhasil</h2><p>{invoice ? `Invoice ${invoice} sudah tersimpan.` : "Transaksi sudah tersimpan."} Stok dikurangi secara atomik dan riwayat pergerakan dibuat otomatis.</p><strong>{formatCurrency(subtotal)}</strong><button className="button primary" onClick={()=>{setPaid(false);setCart([])}}>Transaksi baru</button></div></div>:null}
- </div>
+const payments = [
+  { id: "cash", label: "Tunai", icon: Banknote },
+  { id: "qris", label: "QRIS", icon: QrCode },
+  { id: "bank_transfer", label: "Transfer", icon: CreditCard },
+  { id: "debit_card", label: "Debit", icon: CreditCard },
+] as const;
+
+export function PosTerminal({ products, store, shiftId = null }: { products: Product[]; store: Store; shiftId?: string | null }) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("Semua");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [customerName, setCustomerName] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [cashReceived, setCashReceived] = useState(0);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paid, setPaid] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState("");
+  const [invoice, setInvoice] = useState("");
+
+  const categories = useMemo(() => ["Semua", ...Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[]))], [products]);
+  const filtered = products.filter((product) => {
+    const matchesQuery = `${product.name} ${product.sku} ${product.barcode ?? ""}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (category === "Semua" || product.category === category);
+  });
+  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
+  const grandTotal = Math.max(subtotal - Math.max(discount, 0), 0);
+  const changeAmount = Math.max(cashReceived - grandTotal, 0);
+
+  const add = (product: Product) => setCart((current) => {
+    const stock = product.selected_stock ?? 0;
+    if (stock <= 0) return current;
+    const found = current.find((item) => item.product_id === product.id);
+    if (found) return current.map((item) => item.product_id === product.id ? { ...item, quantity: Math.min(item.quantity + 1, item.stock) } : item);
+    return [...current, { product_id: product.id, sku: product.sku, name: product.name, price: product.selling_price, quantity: 1, stock }];
+  });
+
+  const change = (id: string, delta: number) => setCart((current) => current.map((item) => item.product_id === id ? { ...item, quantity: Math.max(1, Math.min(item.quantity + delta, item.stock)) } : item));
+
+  const checkout = async () => {
+    if (!cart.length) return;
+    if (paymentMethod === "cash" && cashReceived < grandTotal) { setError("Uang tunai yang diterima masih kurang."); return; }
+    setProcessing(true); setError("");
+    try {
+      const response = await fetch("/api/pos/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          store_id: store.id,
+          shift_id: shiftId,
+          customer_name: customerName || null,
+          items: cart.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
+          payments: [{ method: paymentMethod, amount: grandTotal, reference_number: paymentReference || null }],
+          discount,
+          notes: paymentMethod === "cash" ? `Uang diterima ${cashReceived}; kembalian ${changeAmount}` : null,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Transaksi gagal");
+      setInvoice(result.invoice_number || "");
+      setPaymentOpen(false); setPaid(true); router.refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : "Transaksi gagal"); }
+    finally { setProcessing(false); }
+  };
+
+  const reset = () => { setPaid(false); setCart([]); setCustomerName(""); setDiscount(0); setCashReceived(0); setPaymentReference(""); setQuery(""); };
+
+  return <div className="pos-layout">
+    <section className="pos-products">
+      <div className="pos-search"><Search size={20}/><input autoFocus placeholder="Scan barcode atau cari produk..." value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); const value = query.trim().toLowerCase(); const matched = products.find((product) => product.barcode?.toLowerCase() === value || product.sku.toLowerCase() === value); if (matched) { add(matched); setQuery(""); } }}/><button title="Scanner barcode"><ScanBarcode size={20}/></button></div>
+      <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => setCategory(name)}>{name}</button>)}</div>
+      <div className="product-grid">{filtered.map((product) => <button className="pos-product" key={product.id} onClick={() => add(product)} disabled={(product.selected_stock ?? 0) <= 0}>
+        <div className="pos-product-image">{product.name.slice(0,2).toUpperCase()}</div><strong>{product.name}</strong><span>{product.sku}</span><div><b>{formatCurrency(product.selling_price)}</b><small>Stok {product.selected_stock ?? 0}</small></div>
+      </button>)}</div>
+      {!filtered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
+    </section>
+    <aside className="cart-panel">
+      <div className="cart-head"><div><ShoppingCart size={20}/><h2>Keranjang</h2></div><span>{cart.reduce((sum, item) => sum + item.quantity, 0)} item</span></div>
+      <div className="cart-customer"><span>Pelanggan</span><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Pelanggan umum"/></div>
+      <div className="cart-items">{cart.length === 0 ? <div className="cart-empty"><ShoppingCart size={36}/><strong>Keranjang masih kosong</strong><span>Pilih produk atau scan barcode.</span></div> : cart.map((item) => <div className="cart-item" key={item.product_id}>
+        <div><strong>{item.name}</strong><span>{formatCurrency(item.price)} / item · stok {item.stock}</span></div><button className="trash" onClick={() => setCart((current) => current.filter((row) => row.product_id !== item.product_id))}><Trash2 size={16}/></button>
+        <div className="quantity-control"><button onClick={() => change(item.product_id,-1)}><Minus size={14}/></button><span>{item.quantity}</span><button onClick={() => change(item.product_id,1)}><Plus size={14}/></button></div><strong>{formatCurrency(item.price * item.quantity)}</strong>
+      </div>)}</div>
+      <div className="cart-summary"><div><span>Subtotal</span><strong>{formatCurrency(subtotal)}</strong></div><div><span>Diskon</span><input className="discount-input" type="number" min="0" max={subtotal} value={discount || ""} onChange={(event) => setDiscount(Number(event.target.value || 0))} placeholder="Rp0"/></div><div className="grand-total"><span>Total</span><strong>{formatCurrency(grandTotal)}</strong></div><button className="button primary pay-button" disabled={!cart.length} onClick={() => { setPaymentOpen(true); setCashReceived(grandTotal); }}>Bayar {formatCurrency(grandTotal)}</button>{error ? <div className="pos-error">{error}</div> : null}</div>
+    </aside>
+
+    {paymentOpen ? <div className="modal-backdrop"><div className="modal-card payment-sheet"><div className="modal-header"><div><h2>Pembayaran</h2><p>{store.name} · {cart.reduce((sum, item) => sum + item.quantity, 0)} item</p></div><button className="icon-button" onClick={() => setPaymentOpen(false)}><X size={20}/></button></div>
+      <div className="payment-total"><span>Total pembayaran</span><strong>{formatCurrency(grandTotal)}</strong></div>
+      <div className="payment-methods">{payments.map(({ id, label, icon: Icon }) => <button className={paymentMethod === id ? "active" : ""} key={id} onClick={() => { setPaymentMethod(id); if (id !== "cash") setCashReceived(grandTotal); }}><Icon size={22}/><span>{label}</span></button>)}</div>
+      {paymentMethod === "cash" ? <div className="cash-payment"><label>Uang diterima<input type="number" min={grandTotal} value={cashReceived || ""} onChange={(event) => setCashReceived(Number(event.target.value || 0))}/></label><div><span>Kembalian</span><strong>{formatCurrency(changeAmount)}</strong></div></div> : <label>Nomor referensi<input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Opsional: nomor transaksi pembayaran"/></label>}
+      {error ? <div className="alert error">{error}</div> : null}
+      <button className="button primary setup-submit" disabled={processing} onClick={checkout}>{processing ? "Memproses transaksi..." : `Selesaikan ${formatCurrency(grandTotal)}`}</button>
+    </div></div> : null}
+
+    {paid ? <div className="modal-backdrop"><div className="modal-card payment-modal"><div className="success-check">✓</div><h2>Pembayaran berhasil</h2><p>Invoice <strong>{invoice}</strong> tersimpan. Stok {store.name} sudah berkurang dan tercatat pada audit.</p><strong>{formatCurrency(grandTotal)}</strong><div className="success-actions"><button className="button secondary" onClick={() => window.print()}>Cetak struk</button><button className="button primary" onClick={reset}>Transaksi baru</button></div></div></div> : null}
+  </div>;
 }

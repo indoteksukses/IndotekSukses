@@ -252,8 +252,13 @@ begin
  if v_cashier is null then raise exception 'Not authenticated'; end if;
  if public.current_user_role() not in ('owner','admin','manager','cashier') then raise exception 'Role cannot complete sales'; end if;
  if not public.can_access_store(p_store_id) then raise exception 'Store access denied'; end if;
- if jsonb_array_length(p_items)=0 then raise exception 'Cart is empty'; end if;
- if p_shift_id is not null and not exists(select 1 from public.cashier_shifts where id=p_shift_id and cashier_id=v_cashier and store_id=p_store_id and status='open') then raise exception 'Invalid cashier shift'; end if;
+ if coalesce(jsonb_typeof(p_items),'')<>'array' or jsonb_array_length(p_items)=0 then raise exception 'Cart is empty'; end if;
+ if coalesce(jsonb_typeof(p_payments),'')<>'array' then raise exception 'Invalid payment data'; end if;
+ if p_shift_id is null or not exists(select 1 from public.cashier_shifts where id=p_shift_id and cashier_id=v_cashier and store_id=p_store_id and status='open') then raise exception 'Open cashier shift required'; end if;
+ if exists(
+   select 1 from jsonb_array_elements(p_items) item
+   group by item->>'product_id' having count(*)>1
+ ) then raise exception 'Duplicate product in cart'; end if;
  v_invoice:='IDS-'||to_char(now() at time zone 'Asia/Jakarta','YYYYMMDD')||'-'||lpad(nextval('public.invoice_seq')::text,6,'0');
  foreach v_item in array array(select value from jsonb_array_elements(p_items)) loop
   select * into v_product from public.products where id=(v_item->>'product_id')::uuid and is_active=true;
@@ -264,7 +269,9 @@ begin
   if v_before<v_qty then raise exception 'Insufficient stock for %',v_product.name; end if;
   v_line:=v_product.selling_price*v_qty; v_subtotal:=v_subtotal+v_line;
  end loop;
- v_total:=greatest(v_subtotal-coalesce(p_discount,0),0);
+ if coalesce(p_discount,0)<0 or coalesce(p_discount,0)>v_subtotal then raise exception 'Invalid discount'; end if;
+ v_total:=v_subtotal-coalesce(p_discount,0);
+ if exists(select 1 from jsonb_array_elements(p_payments) payment where (payment->>'amount')::numeric<0) then raise exception 'Payment amount cannot be negative'; end if;
  select coalesce(sum((value->>'amount')::numeric),0) into v_paid from jsonb_array_elements(p_payments);
  if v_paid<>v_total then raise exception 'Payment total must equal grand total'; end if;
  insert into public.sales(id,invoice_number,store_id,cashier_id,shift_id,customer_name,subtotal,discount,grand_total,notes)
@@ -281,8 +288,10 @@ begin
   values(p_store_id,v_product.id,'sale',-v_qty,v_before,v_after,'sale',v_sale_id,'Penjualan '||v_invoice,v_cashier);
  end loop;
  foreach v_payment in array array(select value from jsonb_array_elements(p_payments)) loop
-  insert into public.payments(sale_id,method,amount,reference_number)
-  values(v_sale_id,(v_payment->>'method')::public.payment_method,(v_payment->>'amount')::numeric,v_payment->>'reference_number');
+  if (v_payment->>'amount')::numeric>0 then
+   insert into public.payments(sale_id,method,amount,reference_number)
+   values(v_sale_id,(v_payment->>'method')::public.payment_method,(v_payment->>'amount')::numeric,v_payment->>'reference_number');
+  end if;
  end loop;
  return jsonb_build_object('sale_id',v_sale_id,'invoice_number',v_invoice,'grand_total',v_total);
 end $$;
@@ -369,14 +378,5 @@ revoke select on public.sale_items from authenticated;
 grant select(id,sale_id,product_id,product_name_snapshot,sku_snapshot,quantity,selling_price_snapshot,discount,subtotal) on public.sale_items to authenticated;
 grant select on public.inventory_overview to authenticated;
 
--- Initial stores and categories
-insert into public.stores(id,code,name,address) values
- ('11111111-1111-1111-1111-111111111111','IDS-01','Indotek Sukses Toko 1','Cabang Utama'),
- ('22222222-2222-2222-2222-222222222222','IDS-02','Indotek Sukses Toko 2','Cabang Kedua')
-on conflict(code) do nothing;
+-- Initial categories. Stores are created from the web-based first-run setup.
 insert into public.categories(name) values ('Aksesori Komputer'),('Kabel'),('Jaringan'),('Power'),('Lainnya') on conflict do nothing;
-
--- After signing up the first owner, run:
--- update public.profiles set role='owner', full_name='Owner Indotek Sukses' where email='EMAIL_OWNER_ANDA';
--- insert into public.user_store_access(user_id,store_id) select id,'11111111-1111-1111-1111-111111111111' from public.profiles where email='EMAIL_OWNER_ANDA' on conflict do nothing;
--- insert into public.user_store_access(user_id,store_id) select id,'22222222-2222-2222-2222-222222222222' from public.profiles where email='EMAIL_OWNER_ANDA' on conflict do nothing;

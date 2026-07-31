@@ -1,14 +1,2 @@
-import { Bell, Building2, CreditCard, DatabaseBackup, FileText, LockKeyhole, Palette, ReceiptText } from "lucide-react";
-import { PageHeader } from "@/components/ui";
-const sections=[
- {title:"Profil perusahaan",desc:"Nama, logo, alamat pusat, kontak, dan identitas usaha.",icon:Building2},
- {title:"Data toko",desc:"Nama cabang, kode, alamat, telepon, kepala toko, dan status.",icon:Building2},
- {title:"Struk & nomor transaksi",desc:"Logo, footer, ukuran printer, pola invoice, dan nomor urut.",icon:ReceiptText},
- {title:"Metode pembayaran",desc:"Tunai, transfer, QRIS, kartu, dan pembayaran campuran.",icon:CreditCard},
- {title:"Hak akses & keamanan",desc:"Matriks izin, PIN persetujuan, sesi, dan batas percobaan login.",icon:LockKeyhole},
- {title:"Notifikasi",desc:"Stok kritis, transfer, retur, selisih kas, dan persetujuan.",icon:Bell},
- {title:"Tampilan",desc:"Logo, warna merek, mode terang/gelap, dan kepadatan tabel.",icon:Palette},
- {title:"Backup & ekspor",desc:"Cadangan data, retensi audit, dan ekspor arsip perusahaan.",icon:DatabaseBackup},
-];
-export const metadata={title:"Pengaturan"};
-export default function SettingsPage(){return <><PageHeader title="Pengaturan Sistem" description="Konfigurasi perusahaan, toko, transaksi, keamanan, dan integrasi."/><div className="settings-grid">{sections.map(({title,desc,icon:Icon})=><button className="setting-card" key={title}><div className="setting-icon"><Icon size={22}/></div><div><strong>{title}</strong><span>{desc}</span></div><b>›</b></button>)}</div><div className="panel danger-zone"><div><h2>Zona administratif</h2><p>Perubahan berikut memerlukan autentikasi ulang owner.</p></div><button className="button danger">Nonaktifkan sistem sementara</button></div></>}
+import{Building2,Database,ReceiptText,ShieldCheck,Users}from"lucide-react";import{PageHeader}from"@/components/ui";import{SettingsForm}from"@/components/forms/settings-form";import{getSystemSettings}from"@/lib/data";
+export const metadata={title:"Pengaturan"};export default async function SettingsPage(){const settings=await getSystemSettings();return <><PageHeader title="Pengaturan Sistem" description="Atur identitas perusahaan, cabang, akses pengguna, struk, dan keamanan."/><div className="settings-layout"><SettingsForm settings={settings}/><div className="settings-side"><a className="setting-card" href="/stores"><div className="setting-icon"><Building2/></div><div><strong>Toko & cabang</strong><span>Tambah, ubah nama, kode, alamat, dan status cabang.</span></div><b>›</b></a><a className="setting-card" href="/users"><div className="setting-icon"><Users/></div><div><strong>Karyawan & akses</strong><span>Role, toko utama, dan cabang yang dapat diakses.</span></div><b>›</b></a><a className="setting-card" href="/sales"><div className="setting-icon"><ReceiptText/></div><div><strong>Struk & transaksi</strong><span>Nomor invoice otomatis dan riwayat pembatalan.</span></div><b>›</b></a><a className="setting-card" href="/audit"><div className="setting-icon"><ShieldCheck/></div><div><strong>Keamanan & audit</strong><span>Jejak perubahan data penting dan aktivitas pengguna.</span></div><b>›</b></a><div className="setting-card"><div className="setting-icon"><Database/></div><div><strong>Database Supabase</strong><span>Backup terjadwal diatur melalui dashboard Supabase.</span></div><b>✓</b></div></div></div></>}
