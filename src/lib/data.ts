@@ -13,11 +13,17 @@ export async function getProductsWithStocks(): Promise<Product[]> {
   ]);
 
   if (error || !catalog) return demoProducts;
-  const finance = new Map((financials ?? []).map((row: { product_id: string; cost_price: number }) => [row.product_id, Number(row.cost_price)]));
+  const financeRows = (financials ?? []) as unknown as Array<{
+    product_id: string;
+    cost_price: number | string | null;
+  }>;
+  const finance = new Map<string, number>(
+    financeRows.map((row): [string, number] => [row.product_id, Number(row.cost_price ?? 0)]),
+  );
   const grouped = new Map<string, Product>();
 
   for (const row of catalog) {
-    const current = grouped.get(row.product_id) ?? {
+    const current: Product = grouped.get(row.product_id) ?? {
       id: row.product_id,
       sku: row.sku,
       barcode: row.barcode,
