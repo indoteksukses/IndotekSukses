@@ -13,6 +13,8 @@ function payload(body: any) {
     cost_price: Number(body.cost_price ?? 0),
     selling_price: Number(body.selling_price ?? 0),
     minimum_stock: Number(body.minimum_stock ?? 0),
+    image_url: String(body.image_url ?? "").trim() || null,
+    visual_id: body.visual_id || null,
     is_active: body.is_active !== false,
   };
 }

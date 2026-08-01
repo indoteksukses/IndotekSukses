@@ -1,182 +1,120 @@
-# Indotek Sukses v2.1.0 — Inventory & Point of Sale
+# Indotek Sukses Inventory & POS v2.2.0
 
-Aplikasi web multi-cabang untuk produk, stok, kasir, pembelian, transfer, stok opname, retur, karyawan, laporan, dan audit. Dibangun dengan Next.js, TypeScript, Supabase, dan ditujukan untuk deployment Vercel.
+Aplikasi manajemen toko teknik multi-cabang untuk penjualan mur, baut, perkakas tangan, mesin, aksesori teknik, dan produk sejenis. Dibangun dengan Next.js 16, TypeScript, Supabase PostgreSQL/RLS, dan siap di-deploy ke Vercel.
 
-## Pembaruan v2.1.0
+## Perubahan v2.2.0
 
-- Kategori produk dapat ditambah, dicari, diedit, diaktifkan, dan dinonaktifkan.
-- Form stok masuk/keluar memakai kenaikan jumlah 1 unit dan pencarian nama, SKU, barcode, atau kategori.
-- Setelah pergerakan stok disimpan, notifikasi sukses tampil dan aktivitas terbaru langsung diperbarui.
-- Pergerakan stok manual dapat diralat tanpa menghapus riwayat; sistem membuat transaksi pembalik.
-- Saldo stok tiap produk dan toko dapat diedit langsung dengan alasan serta audit permanen.
-- Invoice penjualan memiliki rincian produk, jumlah, harga, subtotal, metode pembayaran, kasir, pelanggan, toko, dan total.
-- Invoice lama dapat dibuka, dicetak ulang, atau disimpan sebagai PDF dari menu Transaksi.
-- Modal pembayaran dirapikan, termasuk uang diterima, pilihan nominal cepat, dan kembalian.
-- Pemindai barcode memakai API browser dan fallback ZXing; scanner USB/Bluetooth tetap didukung melalui input kasir.
-- Satu toko hanya memiliki satu shift aktif yang dapat dipakai bersama oleh seluruh karyawan berizin.
-- Setiap toko dapat memakai gambar profil dari URL HTTPS.
-- Tersedia 12 avatar bawaan untuk pengguna. Pengguna dapat mengganti avatar sendiri melalui ikon profil.
-- Profil menampilkan role, email, telepon, dan akses cabang; detail tertentu hanya dapat diedit owner/admin.
-- Penyempurnaan desktop dan mobile pada kasir, laporan, tabel, modal, stok, profil, dan invoice.
+- Tampilan kasir tablet dioptimalkan menjadi tiga kolom produk; HP menjadi dua kolom.
+- Tampilan transaksi, transfer, pembelian, dan retur berubah menjadi kartu yang mudah dibaca pada HP.
+- Laporan memiliki kontrol tanggal rapi, dua tombol ekspor sejajar, serta dokumen cetak khusus yang padat tanpa halaman kosong besar.
+- Stok masuk/keluar menerima beberapa produk dalam satu dokumen atomik.
+- Transfer antartoko dan pembelian supplier menerima beberapa produk dalam satu dokumen.
+- Retur mencari invoice terlebih dahulu; daftar produk hanya memuat barang yang benar-benar ada pada invoice dan masih dapat diretur.
+- Produk mendukung URL gambar atau visual vector ringan berbasis kode JSON.
+- Tersedia visual bawaan untuk baut, mur, sekrup, kunci, bor, gerinda, gergaji, palu, tang, bearing, meteran, dan perkakas umum.
+- Visual `custom` dapat disusun dari elemen vector aman (`path`, `rect`, `circle`, `ellipse`, `polygon`, `line`) tanpa HTML mentah dan tanpa script.
+- URL logo perusahaan dapat diatur dari Pengaturan dan dipakai pada sidebar, login, laporan, dan invoice.
+- Validasi server ditambahkan untuk dokumen transfer dan pembelian.
 
-## Fitur utama
+## Upgrade dari v2.1.0
 
-- Jumlah cabang dinamis tanpa batas tetap di kode.
-- Satu master produk dan harga pusat untuk semua cabang.
-- Stok terpisah per toko.
-- Kasir atomik dengan tunai, QRIS, transfer, dan debit.
-- Pencegahan stok minus dan produk ganda dalam satu transaksi.
-- Shift toko, rekonsiliasi kas, pembelian, supplier, transfer, opname, retur, pembatalan, laporan, ekspor CSV, dan audit.
-- Role Owner, Admin, Kepala Toko, Kasir, dan Gudang dengan akses per cabang.
-- Supabase Auth, SSR cookie, RLS, RPC transaksi, dan service key hanya pada server.
+1. Backup database Supabase.
+2. Buka Supabase → SQL Editor.
+3. Jalankan file:
 
-## Instalasi Supabase
+```text
+supabase/migrations/202608010005_mobile_batch_visuals.sql
+```
 
-### Project baru
+4. Ganti source repository dengan isi paket v2.2.0.
+5. Push ke branch utama GitHub dan tunggu Vercel selesai membangun proyek.
+6. Logout, login kembali, lalu lakukan hard refresh.
 
-Jalankan satu file berikut melalui **Supabase → SQL Editor**:
+Migration tidak menghapus produk, toko, stok, transaksi, pengguna, pembelian, transfer, maupun riwayat audit.
+
+## Instalasi baru
+
+Untuk database Supabase kosong, jalankan:
 
 ```text
 supabase/FRESH_INSTALL.sql
 ```
 
-File tersebut sudah mencakup schema dasar, sistem multi-cabang, dan pembaruan operasional v2.1.0.
-
-### Upgrade dari v2.0.0 / v2.0.1
-
-Backup database, kemudian jalankan hanya:
-
-```text
-supabase/migrations/202608010004_operational_ux.sql
-```
-
-Migration ini tidak menghapus produk, toko, stok, transaksi, atau akun yang sudah ada.
-
-Untuk database yang belum pernah menerima hotfix permission v2.0.1, migration v2.1.0 juga memperbaiki privilege dasar sambil tetap menyembunyikan harga modal dari query pengguna biasa.
+Setelah deploy, buka `/setup` untuk membuat owner dan toko pertama.
 
 ## Environment Variables Vercel
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxxxxxxx
-SUPABASE_SECRET_KEY=sb_secret_xxxxxxxxx
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+SUPABASE_SECRET_KEY=sb_secret_xxx
 NEXT_PUBLIC_DEMO_MODE=false
 NEXT_PUBLIC_APP_NAME=Indotek Sukses
 ```
 
-Project legacy dapat memakai:
+Untuk project Supabase lama, `SUPABASE_SERVICE_ROLE_KEY` masih dapat digunakan sebagai pengganti `SUPABASE_SECRET_KEY`. Jangan menambahkan awalan `NEXT_PUBLIC_` pada secret key.
 
-```env
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+## Visual produk berbasis kode
+
+Buka **Master Produk → Visual Produk**. Admin dapat memilih preset atau menempel kode JSON yang dibuat khusus.
+
+Contoh preset:
+
+```json
+{
+  "shape": "bolt",
+  "primary": "#334155",
+  "secondary": "#94a3b8",
+  "accent": "#f59e0b",
+  "background": "#eff6ff"
+}
 ```
 
-Gunakan salah satu `SUPABASE_SECRET_KEY` atau `SUPABASE_SERVICE_ROLE_KEY`. Jangan menambahkan awalan `NEXT_PUBLIC_` pada key rahasia.
+Contoh vector custom:
 
-## Menjalankan lokal
-
-```powershell
-npm install
-npm run dev
+```json
+{
+  "shape": "custom",
+  "primary": "#334155",
+  "secondary": "#94a3b8",
+  "accent": "#f59e0b",
+  "background": "#eff6ff",
+  "elements": [
+    { "type": "rect", "x": 33, "y": 20, "width": 14, "height": 52, "rx": 5, "fill": "primary", "stroke": "secondary", "strokeWidth": 2 },
+    { "type": "polygon", "points": "25,18 55,18 62,28 55,38 25,38 18,28", "fill": "secondary", "stroke": "primary", "strokeWidth": 3 },
+    { "type": "line", "x1": 31, "y1": 50, "x2": 49, "y2": 50, "stroke": "accent", "strokeWidth": 3 }
+  ]
+}
 ```
 
-Buka:
+Kode custom diproses sebagai data vector terbatas. Aplikasi tidak menjalankan SVG mentah, HTML, JavaScript, URL eksternal, atau event handler dari kode tersebut.
 
-```text
-http://localhost:3000/setup
-```
+## Alur batch
 
-Pada setup pertama, isi perusahaan, owner, toko pertama, dan URL gambar toko bila diperlukan.
+### Stok masuk/keluar
 
-## Upgrade source code di GitHub
+Pilih toko dan alasan, tambahkan beberapa produk, isi jumlah setiap baris, lalu simpan. Semua baris diproses dalam satu transaksi database: semuanya berhasil atau semuanya dibatalkan.
 
-1. Ekstrak paket v2.1.0.
-2. Ganti seluruh isi repository lama dengan isi folder ini.
-3. Jangan menyalin `.env.local` ke GitHub.
-4. Jalankan:
+### Transfer
 
-```powershell
-git add .
-git commit -m "Upgrade Indotek Sukses v2.1.0"
-git push origin main
-```
+Satu dokumen transfer dapat berisi banyak produk. Stok toko asal dikurangi saat dokumen dikirim dan stok tujuan bertambah saat diterima.
 
-5. Tunggu deployment Vercel selesai.
-6. Logout, login kembali, kemudian tekan `Ctrl + Shift + R`.
+### Pembelian
 
-## Cara operasional baru
+Satu PO dapat berisi banyak produk dengan harga beli berbeda. Stok bertambah ketika PO diterima.
 
-### Kategori
+### Retur
 
-```text
-Master Produk → Kelola kategori
-```
+Cari nomor invoice, pilih produk dari invoice tersebut, lalu masukkan jumlah. Sistem memperhitungkan retur sebelumnya sehingga jumlah tidak dapat melebihi sisa yang masih boleh dikembalikan.
 
-Kategori nonaktif tetap terlihat pada pengelola kategori sehingga dapat diedit atau diaktifkan kembali, tetapi tidak ditawarkan pada produk baru.
+## Pemeriksaan sebelum produksi
 
-### Stok masuk/keluar dan ralat
-
-```text
-Stok Masuk / Keluar
-```
-
-Cari produk, pilih toko, masukkan jumlah, alasan, lalu simpan. Aktivitas baru langsung muncul. Owner, admin, atau kepala toko dapat memilih **Ralat** pada pergerakan manual yang salah.
-
-### Edit saldo stok
-
-```text
-Stok Semua Toko → ikon pensil pada saldo cabang
-```
-
-Masukkan stok fisik akhir dan alasan. Sistem menyimpan selisih sebagai pergerakan audit, bukan mengubah angka tanpa jejak.
-
-### Invoice
-
-```text
-Transaksi → Detail atau Cetak
-```
-
-Halaman invoice dapat dibuka kembali kapan saja. Tombol **Cetak** dan **Unduh / Simpan PDF** memakai dialog cetak browser dengan layout invoice khusus, bukan mencetak seluruh dashboard.
-
-### Barcode
-
-Pada kasir:
-
-- Klik **Scan** untuk kamera HP/laptop.
-- Izinkan kamera dan gunakan website HTTPS.
-- Scanner USB/Bluetooth dapat langsung mengetik ke kolom pencarian; tekan atau kirim Enter.
-- Barcode dan SKU harus tersimpan di master produk.
-
-### Shift toko
-
-```text
-Shift Kasir → Kelola shift toko
-```
-
-Satu karyawan membuka satu shift untuk satu toko. Setelah aktif, seluruh kasir yang memiliki akses ke toko tersebut dapat bertransaksi. Pembuka shift, kepala toko, admin, atau owner dapat menutupnya.
-
-### Avatar dan profil
-
-Klik avatar di kanan atas. Semua pengguna dapat mengganti avatar. Owner/admin dapat mengubah nama dan telepon sendiri; role lain melihat detailnya dalam mode baca-saja.
-
-## Pemeriksaan sebelum digunakan
-
-- `NEXT_PUBLIC_DEMO_MODE=false`.
-- Migration v2.1.0 berhasil dijalankan.
-- Akun owner memiliki akses ke seluruh cabang.
-- Setiap produk memiliki SKU unik; barcode juga harus unik bila diisi.
-- Uji stok masuk, ralat, edit saldo, buka shift, transaksi, cetak invoice, dan tutup shift.
-- Uji kamera dari domain HTTPS Vercel.
-- Buat akun terpisah untuk setiap karyawan.
-- Aktifkan backup Supabase sesuai paket yang digunakan.
-
-## Struktur proyek
-
-```text
-src/app/(protected)        halaman aplikasi
-src/app/api                endpoint server
-src/components             UI dan formulir
-src/lib/data.ts             pembacaan data Supabase
-src/lib/supabase            koneksi SSR/admin
-supabase/migrations         migration bertahap
-supabase/FRESH_INSTALL.sql  instalasi database baru
-```
+- Jalankan migration tanpa error.
+- Pastikan Vercel build berstatus Ready.
+- Uji kasir dengan transaksi nominal kecil.
+- Uji stok masuk banyak produk.
+- Uji transfer kirim dan terima.
+- Uji PO dan penerimaan barang.
+- Uji cetak invoice dan laporan dari komputer serta HP.
+- Uji kamera barcode melalui HTTPS dan berikan izin kamera.
+- Pastikan backup Supabase aktif sebelum memasukkan data produksi besar.

@@ -13,7 +13,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
     <ReceiptActions autoPrint={query.print === "1"}/>
     <article className="receipt-document" id="invoice-document">
       <header className="receipt-header">
-        <div className="receipt-brand">{sale.store_image_url ? <img src={sale.store_image_url} alt={sale.store_name}/> : <div className="receipt-logo">IS</div>}<div><h1>{sale.store_name}</h1><p>{sale.store_address || settings.address || ""}</p><p>{sale.store_phone || settings.phone || ""}</p></div></div>
+        <div className="receipt-brand">{sale.store_image_url || settings.logo_url ? <img src={sale.store_image_url || settings.logo_url} alt={sale.store_name}/> : <div className="receipt-logo">IS</div>}<div><h1>{sale.store_name}</h1><p>{sale.store_address || settings.address || ""}</p><p>{sale.store_phone || settings.phone || ""}</p></div></div>
         <div className="receipt-title"><span>INVOICE PENJUALAN</span><strong>{sale.invoice_number}</strong><small>{formatDateTime(sale.completed_at)}</small></div>
       </header>
       <section className="receipt-meta"><div><span>Pelanggan</span><strong>{sale.customer_name || "Pelanggan umum"}</strong></div><div><span>Kasir</span><strong>{sale.cashier_name}</strong></div><div><span>Cabang</span><strong>{sale.store_code || sale.store_name}</strong></div><div><span>Status</span><strong>{sale.status === "completed" ? "Lunas" : sale.status.replaceAll("_", " ")}</strong></div></section>

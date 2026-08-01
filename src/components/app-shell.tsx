@@ -72,7 +72,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
     <div className="app-shell">
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark">IS</div>
+          {settings.logo_url ? <img className="brand-logo" src={settings.logo_url} alt={settings.company_name}/> : <div className="brand-mark">IS</div>}
           <div><strong>{settings.company_name}</strong><span>{settings.company_tagline}</span></div>
           <button className="icon-button sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Tutup menu"><X size={20}/></button>
         </div>

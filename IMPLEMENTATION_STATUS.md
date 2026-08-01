@@ -1,27 +1,20 @@
-# Status Implementasi — Indotek Sukses v2.1.0
+# Implementation Status v2.2.0
 
-## Selesai
+Selesai diterapkan:
 
-- Multi-cabang dinamis.
-- Master produk dan kategori CRUD.
-- Pencarian katalog besar.
-- Stok masuk/keluar, notifikasi, live activity, ralat, dan edit saldo.
-- Kasir multi-metode pembayaran.
-- Barcode kamera native + ZXing fallback + scanner eksternal.
-- Satu shift aktif bersama per toko.
-- Invoice detail dan reprint/PDF.
-- Gambar toko dari URL.
-- Avatar bawaan dan profil pengguna.
-- Hak akses role dan cabang.
-- Pembelian, supplier, transfer, opname, retur, pembatalan, laporan, ekspor, dan audit.
-- Layout desktop dan HP.
-- Migration upgrade dan fresh install.
+- Responsive tablet dan HP untuk kasir, transaksi, laporan, transfer, pembelian, dan retur.
+- Batch stok masuk/keluar.
+- Batch transfer dan pembelian.
+- Retur berbasis invoice.
+- Logo URL perusahaan.
+- URL gambar produk.
+- Preset dan vector custom berbasis kode.
+- Print layout laporan padat.
+- Validasi API dokumen batch.
 
-## Integrasi terpisah yang belum termasuk
+Perlu divalidasi pada lingkungan pengguna:
 
-- Payment gateway QRIS otomatis.
-- Printer thermal ESC/POS langsung tanpa dialog browser.
-- WhatsApp/Telegram otomatis.
-- Akuntansi buku besar penuh.
-
-Fitur tersebut bukan syarat untuk operasional kasir, stok, dan invoice dasar.
+- Build Vercel dengan dependency publik.
+- Eksekusi migration pada database Supabase pengguna.
+- Izin kamera dan dukungan barcode pada perangkat pengguna.
+- Printer dan ukuran kertas sesuai perangkat kasir pengguna.

@@ -19,7 +19,7 @@ export function StockMovementWorkspace({ initialMovements, products, stores, def
   const filtered = useMemo(() => movements.filter((row) => `${row.product} ${row.store} ${row.type} ${row.reason ?? ""}`.toLowerCase().includes(query.toLowerCase())), [movements, query]);
 
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
-  const onSaved = (movement: Movement) => { setMovements((rows) => [movement, ...rows].slice(0, 50)); notify(`Stok ${movement.product} berhasil diperbarui.`); };
+  const onSaved = (saved: Movement[]) => { if (!saved.length) return; setMovements((rows) => [...saved, ...rows].slice(0, 50)); notify(`${saved.length} pergerakan stok berhasil disimpan.`); };
 
   return <>
     <div className="split-layout stock-workspace"><StockForm products={products} stores={stores} defaultStoreId={defaultStoreId} onSaved={onSaved}/>

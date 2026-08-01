@@ -21,6 +21,33 @@ export type StockLevel = {
   stock_status: "safe" | "low" | "out";
 };
 
+export type ProductVisualShape = "bolt" | "nut" | "screw" | "wrench" | "drill" | "grinder" | "saw" | "hammer" | "pliers" | "bearing" | "tape" | "generic" | "custom";
+
+export type ProductVisualElement = {
+  type: "path" | "rect" | "circle" | "ellipse" | "polygon" | "line";
+  x?: number; y?: number; x1?: number; y1?: number; x2?: number; y2?: number;
+  width?: number; height?: number; rx?: number; cx?: number; cy?: number; r?: number;
+  points?: string; d?: string; fill?: string; stroke?: string; strokeWidth?: number;
+  opacity?: number; rotate?: number;
+};
+
+export type ProductVisualDefinition = {
+  shape: ProductVisualShape;
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+  elements?: ProductVisualElement[];
+};
+
+export type ProductVisual = {
+  id: string;
+  name: string;
+  code: ProductVisualDefinition;
+  is_builtin: boolean;
+  is_active: boolean;
+};
+
 export type Product = {
   id: string;
   sku: string;
@@ -33,6 +60,9 @@ export type Product = {
   cost_price: number;
   selling_price: number;
   minimum_stock: number;
+  image_url?: string | null;
+  visual_id?: string | null;
+  visual?: ProductVisual | null;
   is_active: boolean;
   stocks: Record<string, StockLevel>;
   total_stock: number;
@@ -95,6 +125,7 @@ export type SystemSettings = {
   phone?: string;
   address?: string;
   receipt_footer?: string;
+  logo_url?: string;
 };
 
 export type FinancialReport = {

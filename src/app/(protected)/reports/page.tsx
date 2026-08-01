@@ -1,7 +1,7 @@
 import { Boxes, CircleDollarSign, ReceiptText, RotateCcw, TrendingUp } from "lucide-react";
 import { ExportButtons } from "@/components/export-buttons";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui";
-import { getCurrentProfile, getFinancialReport, getProductsWithStocks, getSalesForPeriod, getStores } from "@/lib/data";
+import { getCurrentProfile, getFinancialReport, getProductsWithStocks, getSalesForPeriod, getStores, getSystemSettings } from "@/lib/data";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Laporan & Analitik" };
@@ -16,34 +16,107 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const defaults = defaultPeriod();
   const from = /^\d{4}-\d{2}-\d{2}$/.test(params.from ?? "") ? params.from! : defaults.from;
   const to = /^\d{4}-\d{2}-\d{2}$/.test(params.to ?? "") ? params.to! : defaults.to;
-  const [report, sales, products, stores, profile] = await Promise.all([
-    getFinancialReport(params.store, from, to), getSalesForPeriod(params.store, from, to), getProductsWithStocks(params.store), getStores(), getCurrentProfile(),
+  const [report, sales, products, stores, profile, settings] = await Promise.all([
+    getFinancialReport(params.store, from, to),
+    getSalesForPeriod(params.store, from, to),
+    getProductsWithStocks(params.store),
+    getStores(),
+    getCurrentProfile(),
+    getSystemSettings(),
   ]);
   const canViewProductCosts = profile.role === "owner" || profile.role === "admin";
   const selectedStore = stores.find((store) => store.id === params.store);
-  const stockValue = report.inventory_value;
+  const scopeName = selectedStore?.name ?? "Semua toko";
   const exportRows = sales.map((sale) => ({
-    Invoice: sale.invoice_number, Tanggal: formatDateTime(sale.completed_at), Toko: sale.store_name, Kasir: sale.cashier_name,
-    Pelanggan: sale.customer_name ?? "Pelanggan umum", Total: sale.grand_total, Status: sale.status,
+    Invoice: sale.invoice_number,
+    Tanggal: formatDateTime(sale.completed_at),
+    Toko: sale.store_name,
+    Kasir: sale.cashier_name,
+    Pelanggan: sale.customer_name ?? "Pelanggan umum",
+    Total: sale.grand_total,
+    Status: sale.status,
   }));
 
-  return <>
-    <PageHeader title="Laporan & Analitik" description={`Periode ${from} sampai ${to} · ${selectedStore?.name ?? "Semua toko"}.`} actions={<ExportButtons filename={`laporan-indotek-${from}-${to}`} rows={exportRows}/>}/>
-    <form className="panel report-filter" method="get">
-      {params.store ? <input type="hidden" name="store" value={params.store}/> : null}
-      <label>Dari tanggal<input type="date" name="from" defaultValue={from}/></label>
-      <label>Sampai tanggal<input type="date" name="to" defaultValue={to}/></label>
-      <button className="button primary">Terapkan periode</button>
-    </form>
-    <div className="stats-grid">
-      <StatCard label="Penjualan bersih" value={formatCurrency(report.net_sales)} helper={`Omzet kotor ${formatCurrency(report.gross_sales)}`} icon={<CircleDollarSign size={22}/>} tone="blue"/>
-      <StatCard label="Retur" value={formatCurrency(report.refunds)} helper="Retur selesai dalam periode" icon={<RotateCcw size={22}/>} tone="orange"/>
-      <StatCard label="Laba kotor" value={formatCurrency(report.gross_profit)} helper={`HPP ${formatCurrency(report.cogs)}`} icon={<TrendingUp size={22}/>} tone="green"/>
-      <StatCard label="Transaksi & unit" value={`${report.transactions} transaksi`} helper={`${report.net_units} unit bersih`} icon={<ReceiptText size={22}/>} tone="purple"/>
+  return <div className="reports-page">
+    <div className="report-screen">
+      <PageHeader
+        title="Laporan & Analitik"
+        description={`Periode ${from} sampai ${to} · ${scopeName}.`}
+        actions={<ExportButtons filename={`laporan-indotek-${from}-${to}`} rows={exportRows}/>} />
+
+      <form className="panel report-filter" method="get">
+        {params.store ? <input type="hidden" name="store" value={params.store}/> : null}
+        <label>Dari tanggal<input type="date" name="from" defaultValue={from}/></label>
+        <label>Sampai tanggal<input type="date" name="to" defaultValue={to}/></label>
+        <button className="button primary">Terapkan periode</button>
+      </form>
+
+      <div className="stats-grid">
+        <StatCard label="Penjualan bersih" value={formatCurrency(report.net_sales)} helper={`Omzet kotor ${formatCurrency(report.gross_sales)}`} icon={<CircleDollarSign size={22}/>} tone="blue"/>
+        <StatCard label="Retur" value={formatCurrency(report.refunds)} helper="Retur selesai dalam periode" icon={<RotateCcw size={22}/>} tone="orange"/>
+        <StatCard label="Laba kotor" value={formatCurrency(report.gross_profit)} helper={`HPP ${formatCurrency(report.cogs)}`} icon={<TrendingUp size={22}/>} tone="green"/>
+        <StatCard label="Transaksi & unit" value={`${report.transactions} transaksi`} helper={`${report.net_units} unit bersih`} icon={<ReceiptText size={22}/>} tone="purple"/>
+      </div>
+
+      <div className="dashboard-grid report-dashboard-grid">
+        <section className="panel">
+          <div className="panel-header"><div><h2>Ringkasan persediaan</h2><p>Nilai stok saat ini berdasarkan harga modal</p></div><Boxes size={20}/></div>
+          <div className="report-table">
+            <div className="report-row report-summary-row"><div><strong>Nilai persediaan</strong><span>{products.length} produk aktif</span></div><strong>{canViewProductCosts ? formatCurrency(report.inventory_value) : "Terlindungi"}</strong></div>
+            {products.slice(0, 12).map((product) => {
+              const relevantStocks = params.store ? [product.stocks[params.store]].filter(Boolean) : Object.values(product.stocks);
+              const critical = relevantStocks.filter((stock) => stock.quantity_available <= product.minimum_stock).length;
+              return <div className="report-row inventory-report-row" key={product.id}>
+                <div><strong>{product.name}</strong><span>{product.sku}</span></div>
+                <span>{product.total_stock} {product.unit}</span>
+                <strong>{canViewProductCosts ? formatCurrency(product.total_stock * product.cost_price) : "Terlindungi"}</strong>
+                <StatusBadge tone={critical ? "warning" : "success"}>{critical ? `${critical} cabang kritis` : "Aman"}</StatusBadge>
+              </div>;
+            })}
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-header"><div><h2>Transaksi terbaru</h2><p>Maksimal 10 transaksi pada periode terpilih</p></div><ReceiptText size={20}/></div>
+          <div className="report-table">{sales.slice(0, 10).map((sale) => <a className="report-row transaction-report-row" href={`/sales/${sale.id}/receipt`} key={sale.id}>
+            <div><strong>{sale.invoice_number}</strong><span>{sale.store_name} · {formatDateTime(sale.completed_at)}</span></div>
+            <strong>{formatCurrency(sale.grand_total)}</strong>
+            <StatusBadge tone={sale.status === "completed" ? "success" : sale.status === "voided" ? "danger" : "warning"}>{sale.status}</StatusBadge>
+          </a>)}{!sales.length ? <div className="empty-inline">Tidak ada transaksi pada periode ini.</div> : null}</div>
+        </section>
+      </div>
     </div>
-    <div className="dashboard-grid">
-      <section className="panel"><div className="panel-header"><div><h2>Ringkasan persediaan</h2><p>Nilai stok saat ini berdasarkan harga modal</p></div><Boxes size={20}/></div><div className="report-table"><div className="report-row report-summary-row"><div><strong>Nilai persediaan</strong><span>{products.length} produk aktif</span></div><strong>{formatCurrency(stockValue)}</strong></div>{products.slice(0, 10).map((product) => { const relevantStocks = params.store ? [product.stocks[params.store]].filter(Boolean) : Object.values(product.stocks); const critical = relevantStocks.filter((stock) => stock.quantity_available <= product.minimum_stock).length; return <div className="report-row inventory-report-row" key={product.id}><div><strong>{product.name}</strong><span>{product.sku}</span></div><span>{product.total_stock} {product.unit}</span><strong>{canViewProductCosts ? formatCurrency(product.total_stock * product.cost_price) : "Terlindungi"}</strong><StatusBadge tone={critical ? "warning" : "success"}>{critical ? `${critical} cabang kritis` : "Aman"}</StatusBadge></div>; })}</div></section>
-      <section className="panel"><div className="panel-header"><div><h2>Transaksi terbaru</h2><p>Maksimal 10 transaksi pada periode terpilih</p></div><ReceiptText size={20}/></div><div className="report-table">{sales.slice(0, 10).map((sale) => <a className="report-row transaction-report-row" href={`/sales/${sale.id}/receipt`} key={sale.id}><div><strong>{sale.invoice_number}</strong><span>{sale.store_name} · {formatDateTime(sale.completed_at)}</span></div><strong>{formatCurrency(sale.grand_total)}</strong><StatusBadge tone={sale.status === "completed" ? "success" : sale.status === "voided" ? "danger" : "warning"}>{sale.status}</StatusBadge></a>)}{!sales.length ? <div className="empty-inline">Tidak ada transaksi pada periode ini.</div> : null}</div></section>
-    </div>
-  </>;
+
+    <article className="report-print-document">
+      <header className="report-print-header">
+        <div className="report-print-brand">
+          {settings.logo_url ? <img src={settings.logo_url} alt={settings.company_name}/> : <div className="report-print-logo">IS</div>}
+          <div><h1>{settings.company_name}</h1><p>{settings.company_tagline}</p></div>
+        </div>
+        <div><strong>LAPORAN OPERASIONAL</strong><span>{from} s.d. {to}</span><span>{scopeName}</span></div>
+      </header>
+      <section className="report-print-summary">
+        <div><span>Penjualan bersih</span><strong>{formatCurrency(report.net_sales)}</strong></div>
+        <div><span>Retur</span><strong>{formatCurrency(report.refunds)}</strong></div>
+        <div><span>Laba kotor</span><strong>{formatCurrency(report.gross_profit)}</strong></div>
+        <div><span>Transaksi / unit</span><strong>{report.transactions} / {report.net_units}</strong></div>
+      </section>
+      <section className="report-print-section">
+        <h2>Ringkasan persediaan</h2>
+        <table><thead><tr><th>Produk</th><th>SKU</th><th className="number">Stok</th><th className="number">Nilai</th><th>Status</th></tr></thead>
+          <tbody>{products.slice(0, 40).map((product) => {
+            const relevantStocks = params.store ? [product.stocks[params.store]].filter(Boolean) : Object.values(product.stocks);
+            const critical = relevantStocks.some((stock) => stock.quantity_available <= product.minimum_stock);
+            return <tr key={product.id}><td>{product.name}</td><td>{product.sku}</td><td className="number">{product.total_stock} {product.unit}</td><td className="number">{canViewProductCosts ? formatCurrency(product.total_stock * product.cost_price) : "-"}</td><td>{critical ? "Perlu restok" : "Aman"}</td></tr>;
+          })}</tbody>
+        </table>
+      </section>
+      <section className="report-print-section">
+        <h2>Transaksi periode</h2>
+        <table><thead><tr><th>Invoice</th><th>Tanggal</th><th>Toko / Kasir</th><th className="number">Total</th><th>Status</th></tr></thead>
+          <tbody>{sales.slice(0, 80).map((sale) => <tr key={sale.id}><td>{sale.invoice_number}</td><td>{formatDateTime(sale.completed_at)}</td><td>{sale.store_name} / {sale.cashier_name}</td><td className="number">{formatCurrency(sale.grand_total)}</td><td>{sale.status}</td></tr>)}</tbody>
+        </table>
+      </section>
+      <footer className="report-print-footer">Dicetak dari {settings.company_name} Inventory & POS · {new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })}</footer>
+    </article>
+  </div>;
 }

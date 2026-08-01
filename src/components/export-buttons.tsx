@@ -29,7 +29,7 @@ export function CsvButton({ filename, rows, label = "Unduh CSV" }: { filename: s
 }
 
 export function ExportButtons({ filename, rows }: { filename: string; rows: Record<string, CsvValue>[] }) {
-  return <div className="page-actions">
+  return <div className="export-actions">
     <button type="button" className="button secondary" onClick={() => window.print()}><Printer size={16}/> Cetak / PDF</button>
     <button type="button" className="button primary" onClick={() => downloadRows(filename, rows)} disabled={!rows.length}><Download size={16}/> Unduh CSV</button>
   </div>;

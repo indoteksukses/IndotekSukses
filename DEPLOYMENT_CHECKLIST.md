@@ -1,31 +1,21 @@
-# Checklist Deployment Indotek Sukses v2.1.0
+# Deployment Checklist v2.2.0
 
-## Database lama
-
-1. Backup Supabase.
-2. Jalankan `supabase/migrations/202608010004_operational_ux.sql`.
-3. Pastikan query selesai tanpa error.
-
-## Source dan Vercel
-
-4. Ganti source repository dengan versi v2.1.0.
-5. Pastikan environment variables Supabase masih terpasang.
-6. Pastikan `NEXT_PUBLIC_DEMO_MODE=false`.
-7. Push ke branch yang dipakai Vercel.
-8. Pastikan `npm install` memasang `@zxing/browser`.
-9. Pastikan build Vercel selesai.
-10. Logout, login kembali, dan hard refresh.
-
-## Uji operasional
-
-11. Tambah dan edit kategori.
-12. Catat stok masuk sebanyak 1, lalu pastikan aktivitas langsung muncul.
-13. Ralat pergerakan uji dan periksa saldo kembali.
-14. Edit saldo stok dari tabel inventori.
-15. Buka satu shift toko dan login dengan kasir kedua untuk memastikan shift yang sama dapat dipakai.
-16. Scan barcode melalui kamera HTTPS dan scanner eksternal bila tersedia.
-17. Lakukan transaksi tunai, periksa kembalian dan stok.
-18. Buka invoice dari menu Transaksi.
-19. Cetak/simpan PDF dan pastikan hanya invoice yang tercetak.
-20. Buka dashboard, laporan, produk, stok, kasir, dan profil dari HP.
-21. Tambahkan URL gambar toko dan pilih avatar pengguna.
+- [ ] Backup database Supabase.
+- [ ] Jalankan `202608010005_mobile_batch_visuals.sql` sekali.
+- [ ] Pastikan query berakhir dengan `Success` dan tidak di-rollback.
+- [ ] Upload seluruh source v2.2.0 ke repository.
+- [ ] Pastikan environment variables Vercel masih lengkap.
+- [ ] Pastikan `NEXT_PUBLIC_DEMO_MODE=false`.
+- [ ] Tunggu deployment Vercel berstatus `Ready`.
+- [ ] Logout dan login kembali.
+- [ ] Atur URL logo melalui Pengaturan.
+- [ ] Buka Master Produk → Visual Produk dan periksa preset.
+- [ ] Uji produk dengan URL gambar serta visual kode.
+- [ ] Uji stok masuk minimal tiga produk sekaligus.
+- [ ] Uji stok keluar dan pencegahan stok minus.
+- [ ] Uji transfer berisi beberapa produk.
+- [ ] Uji PO berisi beberapa produk dan terima barang.
+- [ ] Uji retur dari invoice dan pastikan produk lain tidak muncul.
+- [ ] Uji laporan HP dan cetak/PDF.
+- [ ] Uji invoice lama melalui Transaksi → Detail → Cetak.
+- [ ] Uji scan barcode pada HTTPS dengan izin kamera.

@@ -6,6 +6,7 @@ import { Banknote, CreditCard, Minus, Plus, QrCode, ScanBarcode, Search, Shoppin
 import type { CartItem, Product, Store } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { ProductVisual } from "@/components/product-visual";
 
 const payments = [
   { id: "cash", label: "Tunai", icon: Banknote },
@@ -87,7 +88,7 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
       <div className="pos-search"><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk..." value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={21}/><span>Scan</span></button></div>
       <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => setCategory(name)}>{name}</button>)}</div>
       <div className="product-grid">{filtered.map((product) => <button className="pos-product" key={product.id} onClick={() => add(product)} disabled={(product.selected_stock ?? 0) <= 0}>
-        <div className="pos-product-image">{product.name.slice(0,2).toUpperCase()}</div><strong>{product.name}</strong><span>{product.sku}</span><div><b>{formatCurrency(product.selling_price)}</b><small>Stok {product.selected_stock ?? 0}</small></div>
+        <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="card"/><strong title={product.name}>{product.name}</strong><span title={product.sku}>{product.sku}</span><div><b>{formatCurrency(product.selling_price)}</b><small>Stok {product.selected_stock ?? 0}</small></div>
       </button>)}</div>
       {!filtered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
       {products.length > 160 && !query ? <div className="catalog-hint">Gunakan pencarian untuk menemukan produk dari katalog besar.</div> : null}

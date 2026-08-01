@@ -1,16 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Boxes } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
+import { ProductVisual } from "@/components/product-visual";
 import { StatusBadge } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { Product, ProductVisual as ProductVisualType } from "@/lib/types";
 
 type Category = { id: string; name: string };
 
-export function ProductTable({ products, categories, canEdit }: { products: Product[]; categories: Category[]; canEdit: boolean }) {
+export function ProductTable({ products, categories, visuals, canEdit }: { products: Product[]; categories: Category[]; visuals: ProductVisualType[]; canEdit: boolean }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
@@ -21,9 +21,9 @@ export function ProductTable({ products, categories, canEdit }: { products: Prod
   const rows = filtered.map((product) => ({ Nama: product.name, SKU: product.sku, Barcode: product.barcode ?? "", Kategori: product.category ?? "", Merek: product.brand ?? "", Satuan: product.unit, HargaJual: product.selling_price, StokTotal: product.total_stock, Status: product.is_active ? "Aktif" : "Nonaktif", ...(canEdit ? { HargaModal: product.cost_price } : {}) }));
 
   return <>
-    <div className="toolbar-card"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, SKU, atau barcode..."/></div><select className="select" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select><select className="select" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><CsvButton filename="master-produk-indotek" rows={rows} label="Ekspor produk"/></div>
+    <div className="toolbar-card"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, SKU, barcode, atau merek..."/></div><select className="select" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select><select className="select" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><CsvButton filename="master-produk-indotek" rows={rows} label="Ekspor produk"/></div>
     <div className="panel table-panel mobile-card-table"><table><thead><tr><th>Produk</th><th>SKU / Barcode</th><th>Kategori</th><th>Modal</th><th>Harga jual</th><th>Stok total</th><th>Status</th><th/></tr></thead><tbody>
-      {filtered.map((product) => <tr key={product.id}><td data-label="Produk"><div className="product-cell"><div className="product-thumb"><Boxes size={20}/></div><div><strong>{product.name}</strong><span>{product.brand || `Satuan: ${product.unit}`}</span></div></div></td><td data-label="SKU / Barcode"><strong>{product.sku}</strong><small>{product.barcode || "Tanpa barcode"}</small></td><td data-label="Kategori">{product.category || "—"}</td><td data-label="Modal" className="restricted-value">{canEdit ? formatCurrency(product.cost_price) : "Terkunci"}</td><td data-label="Harga jual"><strong>{formatCurrency(product.selling_price)}</strong></td><td data-label="Stok total"><strong>{product.total_stock}</strong> {product.unit}</td><td data-label="Status"><StatusBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "Aktif" : "Nonaktif"}</StatusBadge></td><td data-label="Aksi">{canEdit ? <ProductModal categories={categories} product={product}/> : null}</td></tr>)}
+      {filtered.map((product) => <tr key={product.id}><td data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><span>{product.brand || `Satuan: ${product.unit}`}</span></div></div></td><td data-label="SKU / Barcode"><strong>{product.sku}</strong><small>{product.barcode || "Tanpa barcode"}</small></td><td data-label="Kategori">{product.category || "—"}</td><td data-label="Modal" className="restricted-value">{canEdit ? formatCurrency(product.cost_price) : "Terkunci"}</td><td data-label="Harga jual"><strong>{formatCurrency(product.selling_price)}</strong></td><td data-label="Stok total"><strong>{product.total_stock}</strong> {product.unit}</td><td data-label="Status"><StatusBadge tone={product.is_active ? "success" : "neutral"}>{product.is_active ? "Aktif" : "Nonaktif"}</StatusBadge></td><td data-label="Aksi">{canEdit ? <ProductModal categories={categories} visuals={visuals} product={product}/> : null}</td></tr>)}
       {!filtered.length ? <tr><td colSpan={8}><div className="empty-inline">Produk tidak ditemukan.</div></td></tr> : null}
     </tbody></table></div>
   </>;

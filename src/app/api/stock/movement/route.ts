@@ -24,27 +24,36 @@ async function movementPayload(supabase: Awaited<ReturnType<typeof createClient>
 
 export async function POST(request: Request) {
   const body = await request.json();
-  if (!body.store_id || !body.product_id || !allowedTypes.has(body.movement_type)) {
-    return NextResponse.json({ error: "Data pergerakan stok tidak valid" }, { status: 400 });
+  const items = Array.isArray(body.items) ? body.items : body.product_id ? [{ product_id: body.product_id, quantity: body.quantity }] : [];
+  const direction = body.direction === "out" ? "out" : "in";
+  if (!body.store_id || !allowedTypes.has(body.movement_type) || !items.length) return NextResponse.json({ error: "Data pergerakan stok tidak valid" }, { status: 400 });
+  for (const item of items) {
+    const quantity = Number(item.quantity);
+    if (!item.product_id || !Number.isFinite(quantity) || quantity <= 0) return NextResponse.json({ error: "Setiap produk harus memiliki jumlah lebih dari nol" }, { status: 400 });
   }
-  const rawQuantity = Number(body.quantity);
-  if (!Number.isFinite(rawQuantity) || rawQuantity <= 0) return NextResponse.json({ error: "Jumlah harus lebih dari nol" }, { status: 400 });
-  const sign = ["supplier_return", "damage", "loss", "internal_use"].includes(body.movement_type) ? -1 : 1;
+  if (new Set(items.map((item: any) => String(item.product_id))).size !== items.length) return NextResponse.json({ error: "Produk duplikat tidak diperbolehkan" }, { status: 400 });
 
   if (isDemoMode || !hasSupabaseEnv) {
-    return NextResponse.json({ movement: { id: crypto.randomUUID(), time: new Date().toISOString(), store: "Toko demo", product: "Produk demo", type: body.movement_type, movement_type: body.movement_type, quantity: rawQuantity * sign, user: "Demo", reason: body.reason || null, store_id: body.store_id, product_id: body.product_id, stock_before: 0, stock_after: rawQuantity * sign, reversed_at: null } });
+    return NextResponse.json({ movements: items.map((item: any, index: number) => ({ id: crypto.randomUUID(), time: new Date().toISOString(), store: "Toko demo", product: `Produk demo ${index + 1}`, type: body.movement_type, movement_type: body.movement_type, quantity: Number(item.quantity) * (direction === "out" ? -1 : 1), user: "Demo", reason: body.reason || null, store_id: body.store_id, product_id: item.product_id, stock_before: 0, stock_after: Number(item.quantity), reversed_at: null })) });
   }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sesi login berakhir" }, { status: 401 });
 
-  const { data, error } = await supabase.rpc("post_stock_movement", {
-    p_store_id: body.store_id, p_product_id: body.product_id, p_type: body.movement_type, p_quantity: rawQuantity * sign,
-    p_reference_type: body.reference_type || null, p_reference_id: null, p_reason: body.reason || null, p_notes: body.notes || null,
+  const { data, error } = await supabase.rpc("post_stock_movement_batch", {
+    p_store_id: body.store_id,
+    p_type: body.movement_type,
+    p_direction: direction,
+    p_items: items.map((item: any) => ({ product_id: String(item.product_id), quantity: Number(item.quantity) })),
+    p_reference_label: body.reference_label || null,
+    p_reason: body.reason || null,
+    p_notes: body.notes || null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ id: data, movement: await movementPayload(supabase, String(data)) });
+  const ids = Array.isArray(data) ? data.map((row: any) => String(row.id)) : [];
+  const movements = (await Promise.all(ids.map((id) => movementPayload(supabase, id)))).filter(Boolean);
+  return NextResponse.json({ ids, movements });
 }
 
 export async function PATCH(request: Request) {

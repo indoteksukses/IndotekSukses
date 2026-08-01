@@ -2,7 +2,7 @@ import { demoMovements, demoProducts, demoProfile, demoSettings, demoStores } fr
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { FinancialReport, Movement, Product, SaleDetail, SaleSummary, Store, SystemSettings, UserProfile } from "@/lib/types";
+import type { FinancialReport, Movement, Product, ProductVisual, SaleDetail, SaleSummary, Store, SystemSettings, UserProfile } from "@/lib/types";
 
 const demo = isDemoMode || !hasSupabaseEnv;
 
@@ -44,7 +44,7 @@ export async function getStores(includeInactive = false): Promise<Store[]> {
 export async function getSystemSettings(): Promise<SystemSettings> {
   if (demo) return demoSettings;
   const supabase = await createClient();
-  const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer").eq("id", 1).maybeSingle();
+  const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer,logo_url").eq("id", 1).maybeSingle();
   return data ? { ...demoSettings, ...data } : demoSettings;
 }
 
@@ -65,7 +65,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
   const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
     supabase.from("inventory_overview").select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status"),
     supabase.rpc("admin_product_financials"),
-    supabase.from("products").select("id,category_id,brand,is_active,categories(name)").eq("is_active", true),
+    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,categories(name),product_visuals(id,name,code,is_builtin,is_active)").eq("is_active", true),
   ]);
 
   if (error || !catalog) return [];
@@ -90,6 +90,15 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       cost_price: finance.get(id) ?? 0,
       selling_price: Number(row.selling_price ?? 0),
       minimum_stock: Number(row.minimum_stock ?? 0),
+      image_url: productMeta?.image_url ?? null,
+      visual_id: productMeta?.visual_id ?? null,
+      visual: productMeta?.product_visuals ? {
+        id: String(productMeta.product_visuals.id),
+        name: String(productMeta.product_visuals.name),
+        code: productMeta.product_visuals.code,
+        is_builtin: Boolean(productMeta.product_visuals.is_builtin),
+        is_active: Boolean(productMeta.product_visuals.is_active),
+      } : null,
       is_active: productMeta?.is_active ?? true,
       stocks: {},
       total_stock: 0,
@@ -356,12 +365,28 @@ export async function getAuditLogs(limit = 100) {
   return (data ?? []).map((row: any) => ({ ...row, user_name: row.profiles?.full_name, store_name: row.stores?.name }));
 }
 
+
+export async function getProductVisuals(includeInactive = false): Promise<ProductVisual[]> {
+  if (demo) return [
+    { id: "visual-bolt", name: "Baut Hexagonal", code: { shape: "bolt", primary: "#334155", secondary: "#94a3b8", accent: "#f59e0b", background: "#eff6ff" }, is_builtin: true, is_active: true },
+    { id: "visual-nut", name: "Mur Hexagonal", code: { shape: "nut", primary: "#475569", secondary: "#cbd5e1", accent: "#2563eb", background: "#f8fafc" }, is_builtin: true, is_active: true },
+    { id: "visual-wrench", name: "Kunci Pas", code: { shape: "wrench", primary: "#334155", secondary: "#94a3b8", accent: "#2563eb", background: "#eef2ff" }, is_builtin: true, is_active: true },
+    { id: "visual-generic", name: "Perkakas Umum", code: { shape: "generic", primary: "#2563eb", secondary: "#93c5fd", accent: "#f59e0b", background: "#eff6ff" }, is_builtin: true, is_active: true },
+  ];
+  const supabase = await createClient();
+  let query = supabase.from("product_visuals").select("id,name,code,is_builtin,is_active").order("is_builtin", { ascending: false }).order("name");
+  if (!includeInactive) query = query.eq("is_active", true);
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []).map((row: any) => ({ ...row, code: row.code ?? { shape: "generic" } })) as ProductVisual[];
+}
+
 export async function getCategories(includeInactive = false) {
   const demoCategories = [
-    { id: "cat-1", name: "Aksesori Komputer", description: null, is_active: true },
-    { id: "cat-2", name: "Kabel", description: null, is_active: true },
-    { id: "cat-3", name: "Jaringan", description: null, is_active: true },
-    { id: "cat-4", name: "Power", description: null, is_active: true },
+    { id: "cat-1", name: "Baut & Mur", description: null, is_active: true },
+    { id: "cat-2", name: "Perkakas Tangan", description: null, is_active: true },
+    { id: "cat-3", name: "Mesin & Power Tools", description: null, is_active: true },
+    { id: "cat-4", name: "Aksesori Teknik", description: null, is_active: true },
   ];
   if (demo) return demoCategories;
   const supabase = await createClient();
