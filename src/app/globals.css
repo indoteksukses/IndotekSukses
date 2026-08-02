@@ -339,3 +339,70 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
   .document-line,.document-line.with-cost{display:grid!important;grid-template-columns:28px minmax(0,1fr) 42px!important;gap:8px!important;padding:10px!important;min-height:0!important}.document-line-head{display:none!important}.document-line .batch-number{grid-column:1;grid-row:1}.document-product-picker{grid-column:2;grid-row:1}.document-line .document-remove-line{grid-column:3;grid-row:1;width:40px!important;height:42px!important}.document-line .document-remove-line span{display:none!important}.document-line>.quantity-stepper{grid-column:1/-1}.document-line .batch-stock-info,.document-line .line-cost{grid-column:1/-1;text-align:left!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;min-height:38px}.document-line .product-combobox-menu{left:-38px!important;right:auto!important;width:calc(100vw - 40px)!important;min-width:0!important}.document-products-section{padding:9px!important}
   .stocktake-detail-summary{grid-template-columns:1fr 1fr}.stocktake-detail-toolbar{align-items:stretch;flex-direction:column}.stocktake-detail-row{grid-template-columns:1fr 1fr}.stocktake-detail-row>div:first-child,.stocktake-detail-row>div:last-child{grid-column:1/-1}.stocktake-detail-row>div:nth-child(4){text-align:right}.stocktake-detail-list{max-height:62vh}
 }
+
+
+/* v2.3.2 fixes: human avatars, safer chart tooltip, better product preview + inline units. */
+.avatar.avatar-person{background:transparent!important;box-shadow:none!important;border:1px solid #d3dbe7}
+.avatar.avatar-person .avatar-art{width:100%;height:100%;display:block}
+.avatar.avatar-person .avatar-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#334155;background:#f8fafc;border-radius:50%}
+.avatar-grid button{align-items:center;justify-content:flex-start;gap:10px}
+.avatar-grid button span{font-size:10px;font-weight:800}
+.avatar-grid .avatar{width:44px;height:44px}
+.profile-hero .avatar.avatar-xl{width:82px;height:82px}
+
+.product-form-modal{width:min(860px,96vw)!important}
+.product-appearance-editor-v231{grid-template-columns:minmax(0,1fr) 220px!important;align-items:start!important}
+.product-preview-panel-v231{padding:14px 12px!important;min-height:220px!important;justify-content:flex-start!important}
+.product-preview-panel-v231 .product-visual-preview{width:165px!important;height:170px!important;margin:12px auto 8px!important}
+
+.quantity-stepper-inline-unit label{display:flex!important;align-items:center;justify-content:center;padding:0 10px;gap:6px}
+.quantity-stepper-inline-unit input{padding:0!important;height:100%!important;max-width:74px}
+.quantity-stepper-inline-unit small{position:static!important;font-size:11px!important;font-weight:800;color:#52657e}
+
+.chart-tooltip-positioned.chart-tooltip-aside{left:var(--tooltip-anchor)!important;top:14px!important;transform:none!important;width:min(228px,calc(100% - 20px))!important}
+.chart-tooltip-positioned.chart-tooltip-aside.align-right{transform:translateX(14px)!important}
+.chart-tooltip-positioned.chart-tooltip-aside.align-left{transform:translateX(calc(-100% - 14px))!important}
+.chart-tooltip-positioned.chart-tooltip-aside dl{grid-template-columns:1fr!important}
+.interactive-chart-column.active::after{content:"";position:absolute;left:50%;top:22px;bottom:26px;width:1px;background:rgba(37,99,235,.15);transform:translateX(-50%)}
+
+@media (min-width:768px) and (max-width:1179px){
+  .product-appearance-editor-v231{grid-template-columns:minmax(0,1fr) 200px!important}
+  .product-preview-panel-v231 .product-visual-preview{width:150px!important;height:156px!important}
+}
+@media (max-width:767px){
+  .avatar-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .avatar-grid button{padding:8px!important}
+  .product-appearance-editor-v231{grid-template-columns:1fr!important}
+  .product-preview-panel-v231{order:-1;min-height:196px!important}
+  .product-preview-panel-v231 .product-visual-preview{width:150px!important;height:155px!important}
+  .chart-tooltip-positioned.chart-tooltip-aside{width:min(210px,calc(100% - 16px))!important}
+  .chart-tooltip-positioned.chart-tooltip-aside.align-right{transform:translateX(10px)!important}
+  .chart-tooltip-positioned.chart-tooltip-aside.align-left{transform:translateX(calc(-100% - 10px))!important}
+}
+
+
+/* v2.3.3 tablet fixes for transfer / stock document item list and popup selector. */
+@media (min-width:768px) and (max-width:1179px){
+  .document-products-section{padding:10px!important;overflow:hidden}
+  .document-products-header{align-items:flex-start!important;gap:8px!important;flex-direction:column!important}
+  .document-products-header>b{align-self:flex-start}
+  .document-line,.document-line.with-cost{display:grid!important;grid-template-columns:28px minmax(0,1fr) 42px!important;gap:8px!important;padding:10px!important;min-height:0!important;align-items:start!important}
+  .document-line-head{display:none!important}
+  .document-line .batch-number{grid-column:1;grid-row:1;align-self:center}
+  .document-line .document-product-picker{grid-column:2;grid-row:1;min-width:0}
+  .document-line .document-remove-line{grid-column:3;grid-row:1;width:42px!important;min-width:42px!important;height:42px!important;padding:0!important;overflow:hidden}
+  .document-line .document-remove-line span{display:none!important}
+  .document-line>.quantity-stepper{grid-column:1/-1}
+  .document-line .batch-stock-info,.document-line .line-cost{grid-column:1/-1;text-align:left!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;min-height:40px}
+  .document-line .product-combobox-menu{position:fixed!important;left:16px!important;right:16px!important;top:84px!important;bottom:16px!important;width:auto!important;min-width:0!important;max-width:none!important;display:flex!important;flex-direction:column!important;border-radius:16px!important;z-index:120!important}
+  .document-line .combobox-search{min-height:52px!important}
+  .document-line .combobox-results{max-height:none!important;flex:1!important}
+  .document-line .combobox-results>button{min-height:62px!important;padding:14px 15px!important}
+  .document-line .combobox-results strong{font-size:13px!important;white-space:normal!important;line-height:1.25}
+  .document-line .combobox-results span{font-size:10px!important}
+  .document-line .combobox-stock{font-size:12px!important;align-self:flex-start;padding-top:2px}
+}
+@media (max-width:1179px){
+  .document-line .combobox-results>button>div:first-child{min-width:0}
+  .document-line .combobox-results strong{overflow:visible;text-overflow:unset}
+}

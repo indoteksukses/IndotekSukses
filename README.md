@@ -1,3 +1,7 @@
+Indotek Sukses v2.3.3
+
+Indotek Sukses v2.3.2
+
 # Indotek Sukses Inventory & POS v2.3.1
 
 Aplikasi manajemen multi-toko untuk toko mur, baut, perkakas, mesin, dan perlengkapan teknik. Dibangun dengan Next.js, TypeScript, Vercel, Supabase, PostgreSQL RLS, dan transaksi stok atomik.
