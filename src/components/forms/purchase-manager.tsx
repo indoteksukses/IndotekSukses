@@ -13,6 +13,20 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 type AllocationMap = Record<string, number>;
 type PurchaseLine = { key: string; product_id: string; unit_cost: number; allocations: AllocationMap };
 
+
+async function parsePurchaseResponse(response: Response) {
+  const raw = await response.text();
+  try {
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {
+      error: raw.trim().startsWith("<!DOCTYPE") || raw.trim().startsWith("<html")
+        ? "Server pembelian mengembalikan halaman error. Pastikan migration v2.4.1 sudah dijalankan dan periksa log Vercel."
+        : raw || "Respons penyimpanan PO tidak valid.",
+    };
+  }
+}
+
 const lineKey = () => `${Date.now()}-${Math.random()}`;
 const blankLine = (storeIds: string[]): PurchaseLine => ({ key: lineKey(), product_id: "", unit_cost: 0, allocations: Object.fromEntries(storeIds.map((id) => [id, 1])) });
 
@@ -87,8 +101,11 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
           if (items.some((item) => !item.allocations.length)) throw new Error("Setiap produk harus memiliki jumlah pada minimal satu cabang.");
           if (scope === "all" && items.some((item) => item.allocations.length !== stores.length)) throw new Error("Mode semua cabang membutuhkan jumlah lebih dari nol pada setiap cabang.");
           const response = await fetch("/api/purchases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: editing ? "update" : "create", purchase_order_id: purchase?.id, supplier_id: form.get("supplier_id"), receiving_scope: scope, items, shipping_cost: shipping, discount, notes: form.get("notes") }) });
-          const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal menyimpan pembelian");
-          setSuccess(`${result.po_number || purchase?.po_number || "PO"} berhasil ${editing ? "diperbarui" : "dibuat"}.`); router.refresh(); window.setTimeout(close, 1100);
+          const result = await parsePurchaseResponse(response); if (!response.ok) throw new Error(result.error || "Gagal menyimpan pembelian");
+          if (!result.id) throw new Error("PO belum tersimpan. Server tidak mengembalikan ID pesanan.");
+          setSuccess(`${result.po_number || purchase?.po_number || "PO"} berhasil ${editing ? "diperbarui" : "dibuat"}.`);
+          router.refresh();
+          window.setTimeout(() => { close(); router.refresh(); }, 900);
         } catch (err) { setError(err instanceof Error ? err.message : "Gagal menyimpan pembelian"); } finally { setSaving(false); }
       }}>
         <SectionCard title="Supplier dan cabang penerima" description="Pilih seluruh cabang atau tentukan cabang tertentu." icon={<Building2 size={19}/>} tone="blue">
@@ -134,5 +151,5 @@ export function PurchaseDetailButton({ purchase }: { purchase: any }) {
 
 export function ReceivePurchaseButton({ id }: { id: string }) {
   const router = useRouter(); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
-  return <div><button className="table-action" disabled={saving} onClick={async () => { if(!window.confirm("Terima seluruh barang dan tambahkan stok ke cabang yang dialokasikan?")) return; setSaving(true); setError(""); try { const response = await fetch("/api/purchases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive", purchase_order_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal menerima barang"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? <><LoadingSpinner size={14}/><span>Memproses...</span></> : "Terima barang"}</button>{error ? <small className="negative">{error}</small> : null}</div>;
+  return <div><button className="table-action" disabled={saving} onClick={async () => { if(!window.confirm("Terima seluruh barang dan tambahkan stok ke cabang yang dialokasikan?")) return; setSaving(true); setError(""); try { const response = await fetch("/api/purchases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive", purchase_order_id: id }) }); const result = await parsePurchaseResponse(response); if (!response.ok) throw new Error(result.error || "Gagal menerima barang"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? <><LoadingSpinner size={14}/><span>Memproses...</span></> : "Terima barang"}</button>{error ? <small className="negative">{error}</small> : null}</div>;
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 
@@ -40,11 +41,14 @@ export async function POST(request: Request) {
         p_notes: String(body.notes ?? "").trim() || null,
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      revalidatePath("/purchases");
       return NextResponse.json(data, { status: body.action === "create" ? 201 : 200 });
     }
     if (body.action === "receive") {
       const { data, error } = await auth.supabase.rpc("receive_purchase_order", { p_purchase_order_id: body.purchase_order_id });
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      revalidatePath("/purchases");
+      revalidatePath("/inventory");
       return NextResponse.json(data);
     }
     return NextResponse.json({ error: "Aksi pembelian tidak dikenal" }, { status: 400 });

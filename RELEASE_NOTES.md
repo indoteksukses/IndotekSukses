@@ -1,26 +1,10 @@
-# Release Notes v2.4.0
+# Indotek Sukses v2.4.1
 
-## Stok jaringan
-- Stok semua cabang dapat dilihat oleh kasir untuk rekomendasi pelanggan.
-- Hak tulis tetap mengikuti akses cabang dan role.
-- Visual produk tampil pada tabel dan kartu stok.
-- Permintaan transfer dapat dibuat dari cabang tujuan ke cabang sumber yang memiliki stok.
+Perbaikan khusus penyimpanan Pesanan Pembelian (PO).
 
-## Pemilih produk
-- Menggunakan portal agar tidak terpotong card atau modal.
-- Desktop menentukan posisi atas/bawah secara otomatis.
-- Tablet dan HP memakai popup tetap di dalam viewport.
-
-## Supplier
-- Edit supplier.
-- Hapus supplier yang belum memiliki transaksi.
-- Supplier dengan riwayat pembelian diarsipkan agar integritas data tetap terjaga.
-
-## Pembelian multi-cabang
-- Semua cabang atau cabang terpilih.
-- Jumlah per produk dan per cabang.
-- Total unit dan nilai otomatis.
-- Detail, edit, penerimaan, dan cetak/PDF.
-
-## Database
-- Migration baru: `202608030007_network_stock_purchase_workflow.sql`.
+- Fungsi SQL `save_purchase_order_multi` dibuat ulang dengan loop JSONB yang lebih stabil.
+- Memastikan sequence, kolom multi-cabang, tabel alokasi, indeks, dan grant tersedia.
+- Halaman `/purchases` direvalidasi setelah PO dibuat, diedit, atau diterima.
+- Form PO memeriksa bahwa server benar-benar mengembalikan ID pesanan sebelum menampilkan sukses.
+- Respons HTML/error server tidak lagi dibaca sebagai JSON mentah.
+- Tidak menghapus PO, supplier, produk, stok, atau data lama.
