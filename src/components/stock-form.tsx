@@ -26,6 +26,7 @@ const outReasons = [
 type Line = { key: string; product_id: string; quantity: number };
 const newLine = (): Line => ({ key: `${Date.now()}-${Math.random()}`, product_id: "", quantity: 1 });
 
+import { LoadingSpinner } from "@/components/loading-spinner";
 export function StockForm({
   products,
   stores,
@@ -172,7 +173,7 @@ export function StockForm({
           <div className="document-summary-message"><span>Status</span><strong className={message ? "negative" : "positive"}>{message || "Siap disimpan secara atomik"}</strong></div>
           <div className="stock-form-actions">
             <button type="button" className="button secondary" onClick={reset}><RotateCcw size={16}/> Reset</button>
-            <button className="button primary" disabled={saving || !stores.length || !validLines.length}><Save size={16}/>{saving ? "Menyimpan..." : "Simpan pergerakan"}</button>
+            <button className="button primary" disabled={saving || !stores.length || !validLines.length}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan pergerakan"}</span></button>
           </div>
         </section>
       </form>

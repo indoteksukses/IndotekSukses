@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { formatCurrency } from "@/lib/format";
 
 export type SalesChartPoint = {
@@ -13,18 +13,24 @@ export type SalesChartPoint = {
 
 export function InteractiveSalesChart({ points }: { points: SalesChartPoint[] }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [tooltipLeft, setTooltipLeft] = useState(0);
   const chartRef = useRef<HTMLDivElement>(null);
   const max = useMemo(() => Math.max(...points.map((point) => point.revenue), 1), [points]);
   const active = activeIndex == null ? null : points[activeIndex];
 
+  const activate = (index: number, target: HTMLElement) => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const chartRect = chart.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    setTooltipLeft(targetRect.left - chartRect.left + targetRect.width / 2);
+    setActiveIndex(index);
+  };
+
+  const tooltipStyle = { "--tooltip-left": `${tooltipLeft}px` } as CSSProperties;
+
   return (
-    <div
-      className="interactive-chart"
-      ref={chartRef}
-      onPointerDown={(event) => {
-        if (event.target === chartRef.current) setActiveIndex(null);
-      }}
-    >
+    <div className="interactive-chart" ref={chartRef} onPointerDown={(event) => { if (event.target === chartRef.current) setActiveIndex(null); }}>
       <div className="interactive-chart-grid" aria-label="Grafik omzet 7 hari terakhir">
         {points.map((point, index) => {
           const height = Math.max((point.revenue / max) * 100, point.revenue ? 7 : 2);
@@ -36,11 +42,11 @@ export function InteractiveSalesChart({ points }: { points: SalesChartPoint[] })
               key={point.date}
               aria-label={`${point.date}, omzet ${formatCurrency(point.revenue)}`}
               aria-pressed={activeIndex === index}
-              onMouseEnter={() => setActiveIndex(index)}
+              onMouseEnter={(event) => activate(index, event.currentTarget)}
               onMouseLeave={() => setActiveIndex(null)}
-              onFocus={() => setActiveIndex(index)}
+              onFocus={(event) => activate(index, event.currentTarget)}
               onBlur={() => setActiveIndex(null)}
-              onClick={() => setActiveIndex((current) => (current === index ? null : index))}
+              onClick={(event) => activeIndex === index ? setActiveIndex(null) : activate(index, event.currentTarget)}
             >
               <span className="interactive-chart-value">{point.revenue ? formatCurrency(point.revenue) : "Rp 0"}</span>
               <span className="interactive-chart-track"><i style={{ height: `${height}%` }} /></span>
@@ -50,7 +56,7 @@ export function InteractiveSalesChart({ points }: { points: SalesChartPoint[] })
         })}
       </div>
       {active ? (
-        <div className="chart-tooltip" role="status">
+        <div className="chart-tooltip chart-tooltip-positioned" role="status" style={tooltipStyle}>
           <strong>{new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" }).format(new Date(`${active.date}T12:00:00+07:00`))}</strong>
           <dl>
             <div><dt>Omzet</dt><dd>{formatCurrency(active.revenue)}</dd></div>

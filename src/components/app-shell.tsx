@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BarChart3, Boxes, Building2, ChevronDown, ClipboardCheck, FileBarChart,
-  History, LayoutDashboard, LogOut, Menu, PackagePlus, ReceiptText, Settings,
+  History, LayoutDashboard, LoaderCircle, LogOut, Menu, PackagePlus, ReceiptText, Settings,
   ShoppingCart, Store, Truck, Users, WalletCards, X, RotateCcw,
 } from "lucide-react";
 import type { Store as StoreType, SystemSettings, UserProfile } from "@/lib/types";
@@ -55,21 +55,36 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
+  const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
   const selectedStoreId = searchParams.get("store") ?? "";
   const selectedStore = stores.find((store) => store.id === selectedStoreId);
+
+  useEffect(() => {
+    setNavigatingHref(null);
+    setMobileOpen(false);
+  }, [pathname, searchKey]);
+
+  const beginNavigation = (href: string) => {
+    setNavigatingHref(href);
+    window.setTimeout(() => setNavigatingHref((current) => current === href ? null : current), 1800);
+  };
 
   const selectStore = (storeId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (storeId) params.set("store", storeId); else params.delete("store");
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    const destination = query ? `${pathname}?${query}` : pathname;
+    beginNavigation(destination);
+    router.push(destination);
     setStoreOpen(false);
   };
 
   return (
     <div className="app-shell">
+      {navigatingHref ? <div className="route-loading-bar" aria-label="Membuka halaman"><span /></div> : null}
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="brand">
           {settings.logo_url ? <img className="brand-logo" src={settings.logo_url} alt={settings.company_name}/> : <div className="brand-mark">IS</div>}
@@ -83,7 +98,17 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
               {group.items.filter((item) => item.roles.includes(profile.role)).map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
-                return <Link key={item.href} href={selectedStoreId ? `${item.href}?store=${selectedStoreId}` : item.href} className={`nav-item ${active ? "active" : ""}`} onClick={() => setMobileOpen(false)}><Icon size={19}/><span>{item.label}</span></Link>;
+                const href = selectedStoreId ? `${item.href}?store=${selectedStoreId}` : item.href;
+                const loading = navigatingHref === href;
+                return <Link
+                  key={item.href}
+                  href={href}
+                  className={`nav-item ${active ? "active" : ""} ${loading ? "is-loading" : ""}`}
+                  aria-busy={loading}
+                  onClick={() => { beginNavigation(href); setMobileOpen(false); }}
+                >
+                  {loading ? <LoaderCircle className="loading-spinner nav-loading-spinner" size={19}/> : <Icon size={19}/>}<span>{item.label}</span>
+                </Link>;
               })}
             </div>
           ))}
@@ -100,16 +125,18 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Buka menu"><Menu size={22}/></button>
           <div className="store-selector-wrap">
-            <button className="store-selector" onClick={() => setStoreOpen((value) => !value)}>{selectedStore?.image_url ? <img className="store-selector-image" src={selectedStore.image_url} alt=""/> : <Store size={18}/>}<span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/></button>
+            <button className="store-selector" onClick={() => setStoreOpen((value) => !value)}>
+              {navigatingHref?.startsWith(pathname) ? <LoaderCircle className="loading-spinner" size={18}/> : selectedStore?.image_url ? <img className="store-selector-image" src={selectedStore.image_url} alt=""/> : <Store size={18}/>}<span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/>
+            </button>
             {storeOpen ? <div className="store-menu">
               <button className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko</button>
               {stores.map((store) => <button className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}>{store.image_url ? <img className="store-menu-image" src={store.image_url} alt=""/> : null}<span><strong>{store.name}</strong><small>{store.code}</small></span></button>)}
-              {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" className="store-manage-link">+ Kelola cabang</Link> : null}
+              {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" className="store-manage-link" onClick={() => beginNavigation("/stores")}>+ Kelola cabang</Link> : null}
             </div> : null}
           </div>
           <div className="topbar-right">
             <div className="system-status"><span/> Sistem aktif</div>
-            <Link className="icon-button" href="/reports" title="Ringkasan laporan"><BarChart3 size={19}/></Link>
+            <Link className="icon-button" href="/reports" title="Ringkasan laporan" onClick={() => beginNavigation("/reports")}>{navigatingHref === "/reports" ? <LoaderCircle className="loading-spinner" size={19}/> : <BarChart3 size={19}/>}</Link>
             <ProfileMenu profile={profile} stores={stores}/>
           </div>
         </header>

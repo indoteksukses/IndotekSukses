@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import type { Store, UserProfile } from "@/lib/types";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 const roleLabels = { admin: "Admin", manager: "Kepala Toko", cashier: "Kasir", warehouse: "Petugas Gudang" };
 
@@ -15,7 +16,7 @@ export function UserManager({ stores, users, canCreateAdmin }: { stores: Store[]
         <label>Nama lengkap<input name="full_name" required/></label><label>Nomor telepon<input name="phone"/></label><label>Email<input name="email" type="email" required/></label><label>Password awal<input name="password" type="password" minLength={8} required/></label>
         <label>Role<select name="role">{Object.entries(roleLabels).filter(([role]) => canCreateAdmin || role !== "admin").map(([role,label]) => <option value={role} key={role}>{label}</option>)}</select></label><label>Toko utama<select name="primary_store_id"><option value="">Tanpa toko utama</option>{stores.map((store) => <option value={store.id} key={store.id}>{store.name}</option>)}</select></label>
         <fieldset className="span-2 store-access-field"><legend>Akses toko</legend><div>{stores.map((store) => <label className="checkbox-field" key={store.id}><input type="checkbox" name="store_ids" value={store.id}/><span>{store.name} <small>{store.code}</small></span></label>)}</div></fieldset>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? "Membuat akun..." : "Buat akun"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <><LoadingSpinner/><span>Membuat akun...</span></> : "Buat akun"}</button></div>
       </form>
     </div></div> : null}
   </>;
@@ -32,7 +33,7 @@ export function EditUserButton({ stores, user, canAssignAdmin }: { stores: Store
         <label>Role<select name="role" defaultValue={user.role}>{Object.entries(roleLabels).filter(([role]) => canAssignAdmin || role !== "admin").map(([role, label]) => <option value={role} key={role}>{label}</option>)}</select></label><label>Toko utama<select name="primary_store_id" defaultValue={user.primary_store_id ?? ""}><option value="">Tanpa toko utama</option>{stores.map((store) => <option value={store.id} key={store.id}>{store.name}</option>)}</select></label>
         <fieldset className="span-2 store-access-field"><legend>Akses toko</legend><div>{stores.map((store) => <label className="checkbox-field" key={store.id}><input type="checkbox" name="store_ids" value={store.id} defaultChecked={user.store_ids?.includes(store.id)}/><span>{store.name} <small>{store.code}</small></span></label>)}</div></fieldset>
         <label className="checkbox-field span-2"><input type="checkbox" name="is_active" defaultChecked={user.is_active}/><span>Akun aktif dan dapat login</span></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan perubahan"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <><LoadingSpinner/><span>Menyimpan...</span></> : "Simpan perubahan"}</button></div>
       </form>
     </div></div> : null}
   </>;

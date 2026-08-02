@@ -9,6 +9,7 @@ import type { Movement, Product, Store } from "@/lib/types";
 
 const nonReversible = new Set(["sale", "sale_reversal", "transfer_out", "transfer_in"]);
 
+import { LoadingSpinner } from "@/components/loading-spinner";
 export function StockMovementWorkspace({ initialMovements, products, stores, defaultStoreId, canCorrect }: { initialMovements: Movement[]; products: Product[]; stores: Store[]; defaultStoreId?: string; canCorrect: boolean }) {
   const [movements, setMovements] = useState(initialMovements);
   const [query, setQuery] = useState("");
@@ -62,7 +63,7 @@ export function StockMovementWorkspace({ initialMovements, products, stores, def
         {error ? <div className="alert error">{error}</div> : null}
         <form className="operational-dialog-form" onSubmit={async (event) => { event.preventDefault(); setSaving(true); setError(""); const form = new FormData(event.currentTarget); try { const response = await fetch("/api/stock/movement", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ movement_id: correcting.id, reason: form.get("reason") }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal meralat stok"); setMovements((rows) => { const updated = rows.map((row) => row.id === correcting.id ? { ...row, reversed_at: new Date().toISOString(), correction_reason: String(form.get("reason")) } : row); return result.movement ? [result.movement as Movement, ...updated].slice(0, 60) : updated; }); setCorrecting(null); notify("Ralat berhasil dibuat dan saldo stok telah disesuaikan."); } catch (err) { setError(err instanceof Error ? err.message : "Gagal meralat stok"); } finally { setSaving(false); } }}>
           <label>Alasan ralat<textarea name="reason" rows={4} required autoFocus placeholder="Contoh: Salah input jumlah, seharusnya 10 bukan 100"/></label>
-          <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setCorrecting(null)}>Batal</button><button className="button danger" disabled={saving}>{saving ? "Memproses..." : "Buat ralat"}</button></div>
+          <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setCorrecting(null)}>Batal</button><button className="button danger" disabled={saving}>{saving ? <><LoadingSpinner/><span>Memproses...</span></> : "Buat ralat"}</button></div>
         </form>
       </div></div> : null}
     </>

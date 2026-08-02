@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, FileText, PackageSearch, Plus, Send, X } from "lucide-react";
 import { createDocumentLine, DocumentItemLines, type DocumentLine } from "@/components/document-item-lines";
 import { SectionCard } from "@/components/section-card";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Product, Store } from "@/lib/types";
 
 export function TransferManager({ stores, products }: { stores: Store[]; products: Product[] }) {
@@ -51,7 +52,7 @@ export function TransferManager({ stores, products }: { stores: Store[]; product
           <label className="document-notes">Catatan<textarea name="notes" rows={3} placeholder="Contoh: Pemenuhan stok cabang pusat"/></label>
         </SectionCard>
         <div className="document-route-summary"><div><span>Asal</span><strong>{source?.name ?? "—"}</strong></div><ArrowRight size={20}/><div><span>Tujuan</span><strong>{destination?.name ?? "—"}</strong></div><div><span>Total</span><strong>{selectedLines.length} produk / {totalQuantity} unit</strong></div></div>
-        <div className="modal-actions document-actions sticky-modal-actions"><button type="button" className="button secondary" onClick={close}>Batal</button><button className="button primary" disabled={saving || !selectedLines.length}><Send size={16}/>{saving ? "Membuat..." : "Buat transfer"}</button></div>
+        <div className="modal-actions document-actions sticky-modal-actions"><button type="button" className="button secondary" onClick={close}>Batal</button><button className="button primary" disabled={saving || !selectedLines.length}>{saving ? <LoadingSpinner/> : <Send size={16}/>}<span>{saving ? "Membuat..." : "Buat transfer"}</span></button></div>
       </form>
     </div></div> : null}
   </>;
@@ -59,5 +60,5 @@ export function TransferManager({ stores, products }: { stores: Store[]; product
 
 export function TransferAction({ id, action, label }: { id: string; action: "send" | "receive"; label: string }) {
   const router = useRouter(); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
-  return <div><button className="table-action" disabled={saving} onClick={async () => { setSaving(true); setError(""); try { const response = await fetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, transfer_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal memproses transfer"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? "Memproses..." : label}</button>{error ? <small className="negative">{error}</small> : null}</div>;
+  return <div><button className="table-action" disabled={saving} onClick={async () => { setSaving(true); setError(""); try { const response = await fetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, transfer_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal memproses transfer"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? <><LoadingSpinner size={14}/><span>Memproses...</span></> : label}</button>{error ? <small className="negative">{error}</small> : null}</div>;
 }

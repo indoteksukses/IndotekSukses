@@ -1,12 +1,13 @@
-# Verification — Indotek Sukses v2.3.0
+# Verification v2.3.1
 
-Pemeriksaan yang dilakukan pada paket ini:
+Pemeriksaan yang dijalankan pada paket source:
 
-- 92 file TypeScript/TSX berhasil diparsing: tidak ada syntax error.
-- Pemeriksaan semantic terfokus pada seluruh file baru dan file yang direvisi: lulus.
-- Seluruh import lokal `@/...` ditemukan: 0 import hilang.
-- Kurung CSS seimbang: 1.411 pembuka dan 1.411 penutup.
-- Migration v2.3.0 hanya menambah indeks dan tidak menghapus data.
-- Tidak ada `node_modules`, `.next`, `.vercel`, atau `.env.local` di dalam paket.
+- Parsing TypeScript/TSX: 93 file, tidak ada syntax error.
+- Resolusi import lokal: 92 file, tidak ada import lokal yang hilang.
+- Pemeriksaan semantic dengan stub dependency: lulus.
+- Keseimbangan CSS: jumlah kurung pembuka dan penutup sama.
+- API visual memiliki POST, PATCH, dan DELETE.
+- API stok opname memiliki GET rincian dan POST proses.
+- Tidak ada `node_modules`, `.next`, `.vercel`, `.env.local`, atau cache build dalam paket.
 
-Build Next.js penuh tidak dapat dijalankan di lingkungan pembuatan paket karena registry npm internal tidak menyediakan `@supabase/ssr`, sedangkan registry publik mengalami timeout. Vercel harus menunjukkan status **Ready** sebelum dipakai pada transaksi produksi.
+`npm install` dan `next build` penuh tidak dapat dijalankan di lingkungan pembuatan karena registry npm internal tidak menyediakan `@supabase/ssr`, sedangkan akses registry publik mengalami timeout. Build final harus dikonfirmasi melalui status **Ready** pada Vercel.

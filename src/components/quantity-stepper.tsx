@@ -25,7 +25,7 @@ export function QuantityStepper({
   };
 
   return (
-    <div className="quantity-stepper">
+    <div className="quantity-stepper quantity-stepper-inline-unit">
       <button type="button" aria-label={`Kurangi ${ariaLabel}`} onClick={() => onChange(normalize(value - step))} disabled={value <= min}>
         <Minus size={17} />
       </button>

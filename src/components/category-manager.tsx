@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Edit3, FolderPlus, Plus, Search, Tags, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 type Category = { id: string; name: string; description?: string | null; is_active?: boolean };
 
@@ -66,7 +67,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
         <label className="span-2">Nama kategori<input name="name" defaultValue={editing.name} autoFocus required placeholder="Contoh: Baut & Mur"/></label>
         <label className="span-2">Deskripsi<textarea name="description" defaultValue={editing.description ?? ""} rows={3} placeholder="Keterangan opsional"/></label>
         <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={editing.is_active !== false}/><span>Kategori aktif dan dapat dipilih pada produk baru</span></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => { setEditing(null); setError(""); }}>Kembali</button><button className="button primary" disabled={saving}><Plus size={16}/>{saving ? "Menyimpan..." : "Simpan kategori"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => { setEditing(null); setError(""); }}>Kembali</button><button className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Plus size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan kategori"}</span></button></div>
       </form>}
     </div></div> : null}
   </>;

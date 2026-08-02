@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Store as StoreIcon, X } from "lucide-react";
 import type { Store, UserRole } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 export function ShiftManager({ stores, shifts, defaultStoreId, profileId, role }: { stores: Store[]; shifts: any[]; defaultStoreId?: string; profileId: string; role: UserRole }) {
   const router = useRouter();
@@ -32,7 +33,7 @@ export function ShiftManager({ stores, shifts, defaultStoreId, profileId, role }
       }}>
         {!activeShift ? <label className="span-2">Kas awal<input name="opening_cash" type="number" min="0" step="1" defaultValue="0" required/></label> : canClose ? <label className="span-2">Kas fisik saat ditutup<input name="actual_cash" type="number" min="0" step="1" required/></label> : <div className="alert info span-2">Shift ini dibuka oleh {activeShift.cashier_name}. Hanya pembuka shift, kepala toko, admin, atau owner yang dapat menutupnya.</div>}
         <label className="span-2">Catatan<textarea name="notes" rows={3} placeholder="Opsional"/></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button>{!activeShift || canClose ? <button className={`button ${activeShift ? "danger" : "primary"}`} disabled={saving}>{saving ? "Memproses..." : activeShift ? "Tutup shift toko" : "Buka shift toko"}</button> : null}</div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button>{!activeShift || canClose ? <button className={`button ${activeShift ? "danger" : "primary"}`} disabled={saving}>{saving ? <><LoadingSpinner/><span>Memproses...</span></> : activeShift ? "Tutup shift toko" : "Buka shift toko"}</button> : null}</div>
       </form>
     </div></div> : null}
   </>;

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Image, X } from "lucide-react";
+import { Image, Save, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Product, ProductVisual as ProductVisualType } from "@/lib/types";
 
 export function ProductModal({ categories, visuals, product, label }: { categories: Array<{ id: string; name: string }>; visuals: ProductVisualType[]; product?: Product; label?: string }) {
@@ -36,9 +37,17 @@ export function ProductModal({ categories, visuals, product, label }: { categori
         <label>Merek<input name="brand" defaultValue={product?.brand ?? ""} placeholder="Opsional"/></label>
         <label>Harga modal<input name="cost_price" type="number" min="0" step="1" defaultValue={product?.cost_price ?? 0} required/></label><label>Harga jual<input name="selling_price" type="number" min="0" step="1" defaultValue={product?.selling_price ?? 0} required/></label>
         <label>Satuan<select name="unit" defaultValue={product?.unit ?? "pcs"}><option value="pcs">Pcs</option><option value="box">Box</option><option value="unit">Unit</option><option value="meter">Meter</option><option value="pack">Pack</option><option value="set">Set</option><option value="kg">Kg</option></select></label><label>Minimum stok<input name="minimum_stock" type="number" min="0" step="1" defaultValue={product?.minimum_stock ?? 5}/></label>
-        <div className="span-2 product-appearance-editor"><div className="product-appearance-fields"><label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://... (opsional)"/></label><label>Visual ringan berbasis kode<select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="">Tanpa visual</option>{visuals.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select></label><small><Image size={13}/> URL gambar diprioritaskan. Bila kosong, sistem memakai ilustrasi kode yang ringan dan memiliki bayangan lembut.</small></div><ProductVisual name={product?.name || "Produk"} imageUrl={imageUrl || null} definition={selectedVisual?.code} size="preview"/></div>
+        <section className="span-2 product-appearance-editor-v231">
+          <div className="product-appearance-fields-v231">
+            <div className="appearance-heading"><Image size={17}/><div><strong>Gambar & visual produk</strong><span>Gunakan URL gambar atau ilustrasi ringan bawaan.</span></div></div>
+            <label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://... (opsional)"/></label>
+            <label>Visual ringan berbasis kode<select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="">Tanpa visual</option>{visuals.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select></label>
+            <small><Image size={13}/> URL gambar diprioritaskan. Jika kosong, sistem memakai ilustrasi kode yang ringan.</small>
+          </div>
+          <div className="product-preview-panel-v231"><span>Pratinjau</span><ProductVisual name={product?.name || "Produk"} imageUrl={imageUrl || null} definition={selectedVisual?.code} size="preview"/><small>{imageUrl ? "Menggunakan URL gambar" : selectedVisual?.name ?? "Visual umum"}</small></div>
+        </section>
         <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true}/><span>Produk aktif dan dapat dijual di semua toko</span></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan produk"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
       </form>
     </div></div> : null}
   </>;

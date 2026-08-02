@@ -1,17 +1,44 @@
-# Indotek Sukses v2.3.0
+# Indotek Sukses v2.3.1
 
-## Revisi utama
+## Perbaikan visual produk
 
-- Tampilan Stok Masuk & Keluar dibuat lebih tegas, tersegmentasi, dan tidak lagi terlalu putih.
-- Baris produk stok diperbaiki agar tidak bertumpuk atau keluar dari card pada desktop, tablet, dan HP.
-- Ringkasan dokumen stok menampilkan jumlah produk, total unit, status, reset, dan simpan.
-- Aktivitas stok tampil sebagai kartu audit yang lebih mudah dibaca dan langsung diperbarui setelah penyimpanan.
-- Form Transfer, Pembelian, Stok Opname, dan Retur menggunakan visual hierarchy dan border yang lebih jelas.
-- Transfer dan pembelian tetap mendukung beberapa produk dalam satu dokumen.
-- Stok opname memiliki pencarian, filter kategori, penghitung selisih, dan input yang tidak hilang saat filter berubah.
-- Grafik dashboard dapat disentuh, diklik, difokuskan, atau diarahkan kursor untuk melihat tanggal, omzet, transaksi, dan unit.
-- Definisi Penjualan Bersih, Retur, HPP Bersih, Laba Kotor, serta Transaksi & Unit diperjelas.
-- Tombol Cetak/PDF pada laporan menampilkan checklist bagian yang ingin disertakan.
-- Pilihan cetak meliputi ringkasan utama, persediaan, transaksi, logo, nama kasir, dan HPP/harga modal.
-- HPP dan harga modal tetap hanya tersedia untuk owner dan admin.
-- Ditambahkan indeks database untuk mempercepat laporan dan aktivitas stok saat data membesar.
+- Galeri visual produk sekarang memiliki tombol Edit dan Hapus.
+- Visual buatan admin dapat dihapus permanen; relasi produk otomatis kembali kosong karena database menggunakan `ON DELETE SET NULL`.
+- Visual bawaan tidak dihapus permanen, tetapi dapat disembunyikan atau ditampilkan kembali.
+- Editor produk menggunakan susunan field di kiri dan preview gambar di kanan.
+- Preview berubah menjadi satu kolom pada layar HP.
+
+## Kasir HP dan tablet
+
+- Ditambahkan tombol keranjang tetap di bagian bawah layar.
+- Tombol menampilkan jumlah item dan total transaksi.
+- Keranjang dibuka sebagai bottom sheet.
+- Kartu dan gambar produk dirapikan untuk grid tiga kolom pada tablet dan dua kolom pada HP.
+
+## Grafik
+
+- Tooltip omzet mengikuti posisi batang tanggal yang aktif.
+- Mendukung hover, fokus keyboard, klik, dan sentuhan.
+
+## Transfer dan dokumen multi-produk
+
+- Baris produk diperbesar dan diberi kontras lebih jelas.
+- Hasil pencarian produk dibuat lebih tinggi dan mudah dibaca.
+- Jumlah dan satuan ditampilkan dalam satu baris, misalnya `10 pcs`.
+- Layout tetap berubah menjadi card pada HP.
+
+## Stok opname
+
+- Ditambahkan modal Rincian untuk draft maupun opname selesai.
+- Rincian menampilkan nama produk, SKU, stok sistem, stok fisik, selisih, dan catatan.
+- Pencarian tersedia di dalam rincian.
+
+## Loading state
+
+- Spinner ditambahkan pada tombol simpan, buat, proses, terima, finalisasi, ralat, dan pembayaran.
+- Ikon navigasi sidebar berubah menjadi spinner saat route sedang dimuat.
+- Ditambahkan progress bar tipis di bagian paling atas halaman.
+
+## Database
+
+Tidak ada migration baru untuk upgrade dari v2.3.0 ke v2.3.1.

@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/section-card";
 import { formatCurrency } from "@/lib/format";
 import type { Product, Store } from "@/lib/types";
 
+import { LoadingSpinner } from "@/components/loading-spinner";
 export function PurchaseManager({ stores, products, suppliers }: { stores: Store[]; products: Product[]; suppliers: any[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,7 +53,7 @@ export function PurchaseManager({ stores, products, suppliers }: { stores: Store
         <SectionCard title="Catatan pembelian" description="Nomor invoice supplier, termin, atau keterangan penerimaan." icon={<FileText size={19}/>}>
           <label className="document-notes">Catatan<textarea name="notes" rows={3} placeholder="Nomor invoice supplier, termin, atau keterangan lain..."/></label>
         </SectionCard>
-        <div className="modal-actions document-actions sticky-modal-actions"><button type="button" className="button secondary" onClick={close}>Batal</button><button className="button primary" disabled={saving || !selectedLines.length}>{saving ? "Membuat..." : `Buat PO · ${formatCurrency(total)}`}</button></div>
+        <div className="modal-actions document-actions sticky-modal-actions"><button type="button" className="button secondary" onClick={close}>Batal</button><button className="button primary" disabled={saving || !selectedLines.length}>{saving ? <><LoadingSpinner/><span>Membuat...</span></> : `Buat PO · ${formatCurrency(total)}`}</button></div>
       </form>
     </div></div> : null}
   </>;
@@ -60,5 +61,5 @@ export function PurchaseManager({ stores, products, suppliers }: { stores: Store
 
 export function ReceivePurchaseButton({ id }: { id: string }) {
   const router = useRouter(); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
-  return <div><button className="table-action" disabled={saving} onClick={async () => { setSaving(true); setError(""); try { const response = await fetch("/api/purchases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive", purchase_order_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal menerima barang"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? "Memproses..." : "Terima barang"}</button>{error ? <small className="negative">{error}</small> : null}</div>;
+  return <div><button className="table-action" disabled={saving} onClick={async () => { setSaving(true); setError(""); try { const response = await fetch("/api/purchases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive", purchase_order_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal menerima barang"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? <><LoadingSpinner size={14}/><span>Memproses...</span></> : "Terima barang"}</button>{error ? <small className="negative">{error}</small> : null}</div>;
 }

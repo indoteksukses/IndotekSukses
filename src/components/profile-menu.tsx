@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Mail, MapPin, Phone, ShieldCheck, X } from "lucide-react";
 import { UserAvatar, avatarPresets } from "@/components/user-avatar";
 import type { Store, UserProfile } from "@/lib/types";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 const roleLabels: Record<string, string> = { owner: "Owner", admin: "Admin", manager: "Kepala Toko", cashier: "Kasir", warehouse: "Gudang" };
 
@@ -33,7 +34,7 @@ export function ProfileMenu({ profile, stores, className = "" }: { profile: User
         {!canEditDetails ? <div className="profile-readonly"><Phone size={16}/><span>Detail akun hanya dapat diubah oleh owner atau admin. Anda tetap dapat mengganti avatar sendiri.</span></div> : null}
         <div className="avatar-section"><div><strong>Pilih avatar</strong><span>Avatar tersimpan pada akun dan tampil di semua perangkat.</span></div><div className="avatar-grid">{avatarPresets.map((preset) => <button type="button" key={preset.key} className={avatarKey === preset.key ? "selected" : ""} onClick={() => setAvatarKey(preset.key)}><UserAvatar name={profile.full_name} avatarKey={preset.key}/><span>{preset.label}</span>{avatarKey === preset.key ? <Check size={14}/> : null}</button>)}</div></div>
         {message ? <div className={message.includes("berhasil") ? "alert success" : "alert error"}>{message}</div> : null}
-        <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Tutup</button><button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan profil"}</button></div>
+        <div className="modal-actions"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Tutup</button><button className="button primary" disabled={saving}>{saving ? <><LoadingSpinner/><span>Menyimpan...</span></> : "Simpan profil"}</button></div>
       </form>
     </div></div> : null}
   </>;

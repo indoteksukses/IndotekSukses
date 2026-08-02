@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Image as ImageIcon } from "lucide-react";
 import type { SystemSettings } from "@/lib/types";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 export function SettingsForm({ settings }: { settings: SystemSettings }) {
   const router = useRouter();
@@ -87,7 +88,7 @@ export function SettingsForm({ settings }: { settings: SystemSettings }) {
         </label>
         <div className="form-footer span-2">
           <span className={success ? "positive" : message ? "negative" : ""}>{message || "Perubahan hanya dapat dilakukan owner atau admin."}</span>
-          <button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan pengaturan"}</button>
+          <button className="button primary" disabled={saving}>{saving ? <><LoadingSpinner/><span>Menyimpan...</span></> : "Simpan pengaturan"}</button>
         </div>
       </div>
     </form>

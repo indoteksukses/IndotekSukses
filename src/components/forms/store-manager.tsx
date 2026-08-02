@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Edit3, MapPin, Phone, Plus, X } from "lucide-react";
 import type { Store } from "@/lib/types";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 export function StoreManager({ stores }: { stores: Store[] }) {
   const router = useRouter();
@@ -44,7 +45,7 @@ export function StoreManager({ stores }: { stores: Store[] }) {
         <label>Penanggung jawab<input name="manager_name" defaultValue={editing?.manager_name ?? ""} placeholder="Nama kepala toko"/></label>
         <label className="span-2">URL gambar profil toko<input name="image_url" type="url" defaultValue={editing?.image_url ?? ""} placeholder="https://.../logo-toko.png"/><small>Gunakan URL gambar HTTPS. Gambar akan tampil di daftar cabang dan invoice.</small></label>
         {editing ? <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={editing.is_active !== false}/><span>Toko aktif dan dapat digunakan untuk transaksi</span></label> : <input type="hidden" name="is_active" value="on"/>}
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? "Menyimpan..." : "Simpan toko"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <><LoadingSpinner/><span>Menyimpan...</span></> : "Simpan toko"}</button></div>
       </form>
     </div></div> : null}
   </>;
