@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Braces, CheckCircle2, Copy, Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Braces, CheckCircle2, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { ProductVisual as ProductVisualType, ProductVisualDefinition } from "@/lib/types";
@@ -46,7 +46,7 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
     setEditing(visual);
     setName(visual.name);
     setCode(JSON.stringify(visual.code, null, 2));
-    setMessage(visual.is_builtin ? "Visual bawaan hanya dapat ditampilkan atau disembunyikan. Kodenya tetap dilindungi." : "Mode edit visual aktif.");
+    setMessage(visual.is_builtin ? "Visual bawaan tidak dapat diedit, tetapi dapat dihapus dari galeri." : "Mode edit visual aktif.");
   };
 
   const save = async () => {
@@ -67,9 +67,7 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
   };
 
   const remove = async (visual: ProductVisualType) => {
-    const text = visual.is_builtin
-      ? `Sembunyikan visual bawaan “${visual.name}” dari pilihan produk?`
-      : `Hapus visual “${visual.name}”? Produk yang menggunakannya akan kembali ke visual umum.`;
+    const text = `Hapus visual “${visual.name}”? Produk yang menggunakannya akan kembali ke visual umum.`;
     if (!window.confirm(text)) return;
     setDeletingId(visual.id); setMessage("");
     try {
@@ -77,39 +75,26 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Gagal menghapus visual");
       if (editing?.id === visual.id) resetEditor();
-      setMessage(result.hidden ? "Visual bawaan disembunyikan dari daftar pilihan." : "Visual berhasil dihapus.");
+      setMessage("Visual berhasil dihapus dari galeri.");
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal menghapus visual"); }
     finally { setDeletingId(null); }
   };
 
-  const toggleBuiltin = async (visual: ProductVisualType) => {
-    setDeletingId(visual.id); setMessage("");
-    try {
-      const response = await fetch("/api/product-visuals", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: visual.id, name: visual.name, code: visual.code, is_active: !visual.is_active }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Gagal mengubah status visual");
-      setMessage(!visual.is_active ? "Visual kembali ditampilkan." : "Visual disembunyikan dari pilihan produk.");
-      router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal mengubah status visual"); }
-    finally { setDeletingId(null); }
-  };
+
 
   return <>
     <button className="button secondary" onClick={() => setOpen(true)}><Braces size={16}/> Visual Produk</button>
     {open ? <div className="modal-backdrop"><div className="modal-card visual-manager-modal">
-      <div className="modal-header"><div><h2>Galeri visual produk</h2><p>Edit, sembunyikan, atau hapus ilustrasi ringan berbasis kode. Visual bawaan dapat disembunyikan, sedangkan visual buatan admin dapat dihapus permanen.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
+      <div className="modal-header"><div><h2>Galeri visual produk</h2><p>Edit visual buatan admin atau hapus visual apa pun dari galeri. Produk yang memakai visual terhapus otomatis kembali ke visual umum.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="visual-manager-layout">
         <section className="visual-library"><div className="visual-section-title"><strong>Pilihan tersimpan</strong><span>{visuals.filter((visual) => visual.is_active).length} aktif · {visuals.length} total</span></div>
           <div className="visual-library-grid">{visuals.map((visual) => <article key={visual.id} className={`visual-library-card ${visual.is_active ? "" : "is-inactive"}`}>
             <ProductVisual name={visual.name} definition={visual.code} size="preview"/>
             <div className="visual-library-meta"><strong>{visual.name}</strong><span>{visual.is_builtin ? "Bawaan sistem" : "Visual buatan admin"}{visual.is_active ? "" : " · disembunyikan"}</span></div>
             <div className="visual-card-actions">
-              {!visual.is_builtin ? <button type="button" title="Edit visual" onClick={() => startEdit(visual)}><Pencil size={14}/><span>Edit</span></button> : <button type="button" title={visual.is_active ? "Sembunyikan" : "Tampilkan"} onClick={() => toggleBuiltin(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={14}/> : visual.is_active ? <EyeOff size={14}/> : <Eye size={14}/>}<span>{visual.is_active ? "Sembunyikan" : "Tampilkan"}</span></button>}
-              {!visual.is_builtin ? <button type="button" className="danger" title="Hapus visual" onClick={() => remove(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={14}/> : <Trash2 size={14}/>}<span>Hapus</span></button> : null}
+              {!visual.is_builtin ? <button type="button" title="Edit visual" onClick={() => startEdit(visual)}><Pencil size={14}/><span>Edit</span></button> : <span className="visual-builtin-label">Bawaan</span>}
+              <button type="button" className="danger" title="Hapus visual" onClick={() => remove(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={14}/> : <Trash2 size={14}/>}<span>Hapus</span></button>
             </div>
           </article>)}</div>
         </section>

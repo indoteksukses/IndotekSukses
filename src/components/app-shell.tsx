@@ -59,7 +59,11 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
   const [mobileOpen, setMobileOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
-  const selectedStoreId = searchParams.get("store") ?? "";
+  const requestedStoreId = searchParams.get("store") ?? "";
+  const restrictedToOneStore = !["owner", "admin"].includes(profile.role) && stores.length === 1;
+  const selectedStoreId = stores.some((store) => store.id === requestedStoreId)
+    ? requestedStoreId
+    : restrictedToOneStore ? stores[0]?.id ?? "" : "";
   const selectedStore = stores.find((store) => store.id === selectedStoreId);
 
   useEffect(() => {
@@ -129,7 +133,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
               {navigatingHref?.startsWith(pathname) ? <LoaderCircle className="loading-spinner" size={18}/> : selectedStore?.image_url ? <img className="store-selector-image" src={selectedStore.image_url} alt=""/> : <Store size={18}/>}<span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/>
             </button>
             {storeOpen ? <div className="store-menu">
-              <button className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko</button>
+              {!restrictedToOneStore ? <button className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko yang Diakses</button> : null}
               {stores.map((store) => <button className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}>{store.image_url ? <img className="store-menu-image" src={store.image_url} alt=""/> : null}<span><strong>{store.name}</strong><small>{store.code}</small></span></button>)}
               {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" className="store-manage-link" onClick={() => beginNavigation("/stores")}>+ Kelola cabang</Link> : null}
             </div> : null}

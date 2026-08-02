@@ -24,6 +24,26 @@ export function InventoryTable({ products, stores, canEditStock = false }: { pro
 
   return <>
     <div className="toolbar-card"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari produk atau SKU..."/></div><select className="select" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}</select><select className="select" value={condition} onChange={(event) => setCondition(event.target.value)}><option value="">Semua kondisi stok</option><option value="safe">Aman</option><option value="low">Menipis</option><option value="out">Habis</option></select><CsvButton filename="stok-indotek-sukses" rows={rows} label="Ekspor stok"/></div>
+
+    <div className="inventory-mobile-list">
+      {filtered.map((product) => {
+        const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
+        const total = quantities.reduce((sum, value) => sum + value, 0);
+        const conditionValue = state(product);
+        const tone = conditionValue === "out" ? "danger" : conditionValue === "low" ? "warning" : "success";
+        return <article className="inventory-mobile-card" key={product.id}>
+          <header><div className="product-thumb"><Boxes size={18}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div></header>
+          <div className="inventory-mobile-metrics">
+            <div><span>Minimum</span><strong>{product.minimum_stock} <small>{product.unit}</small></strong></div>
+            <div><span>Total</span><strong>{total} <small>{product.unit}</small></strong></div>
+            <div className="inventory-condition"><span>Kondisi</span><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></div>
+          </div>
+          <div className="inventory-mobile-branches">{stores.map((store) => { const row = product.stocks[store.id]; return <div className="inventory-mobile-branch" key={store.id}><div><strong>{store.name}</strong><span>{store.code}</span></div><div className="inventory-mobile-stock"><strong>{row?.quantity_on_hand ?? 0} <small>{product.unit}</small></strong>{row?.quantity_reserved ? <span>{row.quantity_reserved} dipesan</span> : <span>Stok tersedia</span>}</div>{canEditStock ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div>; })}</div>
+        </article>;
+      })}
+      {!filtered.length ? <div className="empty-inline">Stok tidak ditemukan.</div> : null}
+    </div>
+
     <div className="panel table-panel inventory-table"><table><thead><tr><th className="sticky-col">Produk</th><th>Minimum</th>{stores.map((store) => <th key={store.id}><div className="store-head"><strong>{store.name}</strong><span>{store.code}</span></div></th>)}<th>Total</th><th>Kondisi</th></tr></thead><tbody>{filtered.map((product) => {
       const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
       const conditionValue = state(product);

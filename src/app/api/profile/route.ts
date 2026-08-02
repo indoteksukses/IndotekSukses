@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 
-const avatars = new Set(["ocean","indigo","emerald","sunset","rose","violet","slate","cyan","amber","forest","berry","night","male-navy","male-brown","male-cap","female-rose","female-gold","hijab-blue","hijab-green","hijab-violet"]);
+const avatars = new Set(["ocean","indigo","emerald","sunset","rose","violet","slate","cyan","amber","forest","berry","night","male-navy","male-brown","male-cap","female-rose","female-gold","hijab-blue","hijab-green","hijab-violet","male-beard","female-stripe","male-glasses","male-dark","hijab-teal","female-pony","male-green","female-bob","female-teal","male-orange","female-blonde","male-suit","female-afro","female-glasses","female-blazer","hijab-navy","hijab-rose"]);
 
 export async function PATCH(request: Request) {
   const body = await request.json();

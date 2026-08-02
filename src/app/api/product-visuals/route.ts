@@ -121,11 +121,6 @@ export async function DELETE(request: Request) {
   const { data: existing, error: readError } = await auth.supabase.from("product_visuals").select("id,name,is_builtin").eq("id", id).maybeSingle();
   if (readError) return NextResponse.json({ error: readError.message }, { status: 400 });
   if (!existing) return NextResponse.json({ error: "Visual tidak ditemukan" }, { status: 404 });
-  if (existing.is_builtin) {
-    const { error } = await auth.supabase.from("product_visuals").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json({ success: true, hidden: true });
-  }
   const { error } = await auth.supabase.from("product_visuals").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ success: true, deleted: true });

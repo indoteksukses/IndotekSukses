@@ -31,14 +31,27 @@ export async function getCurrentProfile(): Promise<UserProfile> {
   return { ...profile, store_ids: (access ?? []).map((row: any) => String(row.store_id)) } as UserProfile;
 }
 
+function permittedStoreIds(profile: UserProfile) {
+  if (profile.role === "owner" || profile.role === "admin") return null;
+  const ids = new Set((profile.store_ids ?? []).filter(Boolean));
+  if (profile.primary_store_id) ids.add(profile.primary_store_id);
+  return ids;
+}
+
 export async function getStores(includeInactive = false): Promise<Store[]> {
-  if (demo) return includeInactive ? demoStores : demoStores.filter((store) => store.is_active !== false);
-  const supabase = await createClient();
+  if (demo) {
+    const rows = includeInactive ? demoStores : demoStores.filter((store) => store.is_active !== false);
+    const allowed = permittedStoreIds(demoProfile);
+    return allowed ? rows.filter((store) => allowed.has(store.id)) : rows;
+  }
+  const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
   let query = supabase.from("stores").select("id,code,name,address,phone,manager_name,image_url,is_active").order("name");
   if (!includeInactive) query = query.eq("is_active", true);
   const { data, error } = await query;
   if (error) return [];
-  return (data ?? []) as Store[];
+  const rows = (data ?? []) as Store[];
+  const allowed = permittedStoreIds(profile);
+  return allowed ? rows.filter((store) => allowed.has(store.id)) : rows;
 }
 
 export async function getSystemSettings(): Promise<SystemSettings> {
@@ -61,7 +74,9 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
     }));
   }
 
-  const supabase = await createClient();
+  const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
+  const allowedStoreIds = permittedStoreIds(profile);
+  if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return [];
   const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
     supabase.from("inventory_overview").select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status"),
     supabase.rpc("admin_product_financials"),
@@ -76,6 +91,8 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
   const grouped = new Map<string, Product>();
 
   for (const row of catalog as any[]) {
+    const rowStoreId = String(row.store_id);
+    if (allowedStoreIds && !allowedStoreIds.has(rowStoreId)) continue;
     const id = String(row.product_id);
     const productMeta = meta.get(id);
     const current: Product = grouped.get(id) ?? {
@@ -103,7 +120,6 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       stocks: {},
       total_stock: 0,
     };
-    const rowStoreId = String(row.store_id);
     current.stocks[rowStoreId] = {
       store_id: rowStoreId,
       store_code: String(row.store_code),
