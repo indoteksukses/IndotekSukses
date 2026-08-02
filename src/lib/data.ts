@@ -190,7 +190,12 @@ export async function getDashboardSnapshot(storeId?: string | null) {
   if (demo) {
     const scoped = storeId ? demoProducts.map((p) => ({ ...p, total_stock: p.stocks[storeId]?.quantity_on_hand ?? 0 })) : demoProducts;
     const storeStats = stores.map((store, index) => ({ store, revenue: [2_500_000, 1_850_000, 1_125_000][index] ?? 0, transactions: [35, 27, 16][index] ?? 0, units: [58, 39, 21][index] ?? 0 }));
-    const dailyTrend = dayKeys.map((date, index) => ({ date, revenue: [1_200_000, 1_750_000, 1_450_000, 2_350_000, 1_900_000, 2_800_000, 4_350_000][index] }));
+    const dailyTrend = dayKeys.map((date, index) => ({
+      date,
+      revenue: [1_200_000, 1_750_000, 1_450_000, 2_350_000, 1_900_000, 2_800_000, 4_350_000][index],
+      transactions: [12, 17, 15, 24, 20, 29, 42][index],
+      units: [18, 25, 21, 39, 31, 48, 67][index],
+    }));
     return { products: scoped, movements, stores, storeStats, dailyTrend, revenue: storeId ? storeStats.find((row) => row.store.id === storeId)?.revenue ?? 0 : storeStats.reduce((sum, row) => sum + row.revenue, 0), transactions: storeId ? storeStats.find((row) => row.store.id === storeId)?.transactions ?? 0 : storeStats.reduce((sum, row) => sum + row.transactions, 0), units: storeId ? storeStats.find((row) => row.store.id === storeId)?.units ?? 0 : storeStats.reduce((sum, row) => sum + row.units, 0) };
   }
 
@@ -212,10 +217,15 @@ export async function getDashboardSnapshot(storeId?: string | null) {
       units: rows.reduce((sum: number, sale: any) => sum + (sale.sale_items ?? []).reduce((itemSum: number, item: any) => itemSum + Number(item.quantity), 0), 0),
     };
   });
-  const dailyTrend = dayKeys.map((date) => ({
-    date,
-    revenue: (sales ?? []).filter((sale: any) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(sale.completed_at)) === date).reduce((sum: number, sale: any) => sum + Number(sale.grand_total), 0),
-  }));
+  const dailyTrend = dayKeys.map((date) => {
+    const rows = (sales ?? []).filter((sale: any) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(sale.completed_at)) === date);
+    return {
+      date,
+      revenue: rows.reduce((sum: number, sale: any) => sum + Number(sale.grand_total), 0),
+      transactions: rows.length,
+      units: rows.reduce((sum: number, sale: any) => sum + (sale.sale_items ?? []).reduce((itemSum: number, item: any) => itemSum + Number(item.quantity), 0), 0),
+    };
+  });
   return { products, movements, stores, storeStats, dailyTrend, revenue, transactions: todaySales.length, units };
 }
 

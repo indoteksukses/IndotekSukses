@@ -1,21 +1,14 @@
-# Deployment Checklist v2.2.0
+# Deployment Checklist v2.3.0
 
-- [ ] Backup database Supabase.
-- [ ] Jalankan `202608010005_mobile_batch_visuals.sql` sekali.
-- [ ] Pastikan query berakhir dengan `Success` dan tidak di-rollback.
-- [ ] Upload seluruh source v2.2.0 ke repository.
-- [ ] Pastikan environment variables Vercel masih lengkap.
-- [ ] Pastikan `NEXT_PUBLIC_DEMO_MODE=false`.
-- [ ] Tunggu deployment Vercel berstatus `Ready`.
-- [ ] Logout dan login kembali.
-- [ ] Atur URL logo melalui Pengaturan.
-- [ ] Buka Master Produk → Visual Produk dan periksa preset.
-- [ ] Uji produk dengan URL gambar serta visual kode.
-- [ ] Uji stok masuk minimal tiga produk sekaligus.
-- [ ] Uji stok keluar dan pencegahan stok minus.
-- [ ] Uji transfer berisi beberapa produk.
-- [ ] Uji PO berisi beberapa produk dan terima barang.
-- [ ] Uji retur dari invoice dan pastikan produk lain tidak muncul.
-- [ ] Uji laporan HP dan cetak/PDF.
-- [ ] Uji invoice lama melalui Transaksi → Detail → Cetak.
-- [ ] Uji scan barcode pada HTTPS dengan izin kamera.
+1. Backup database Supabase.
+2. Jalankan `supabase/migrations/202608020006_v23_reports_ui_support.sql` pada SQL Editor.
+3. Salin seluruh source v2.3.0 ke repository GitHub Desktop.
+4. Jangan unggah `.env.local`, `node_modules`, `.next`, atau `.vercel`.
+5. Commit dan Push origin.
+6. Pastikan Vercel Environment Variables tetap tersedia.
+7. Tunggu deployment berstatus Ready.
+8. Logout, login kembali, lalu hard refresh.
+9. Uji Stok Masuk/Keluar dengan beberapa produk.
+10. Uji Transfer, Pembelian, Opname, dan Retur.
+11. Sentuh grafik dashboard dan pastikan tooltip muncul.
+12. Buka Laporan → Cetak/PDF dan uji setiap checklist.

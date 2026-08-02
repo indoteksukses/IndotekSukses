@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Boxes, CircleDollarSign, ReceiptText, ShoppingBag, TriangleAlert } from "lucide-react";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { InteractiveSalesChart } from "@/components/interactive-sales-chart";
 import { getDashboardSnapshot } from "@/lib/data";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 
@@ -8,7 +9,6 @@ export const metadata = { title: "Dashboard" };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ store?: string }> }) {
   const params = await searchParams;
   const { products, movements, revenue, transactions, units, storeStats, dailyTrend } = await getDashboardSnapshot(params.store);
-  const maxTrend = Math.max(...dailyTrend.map((row) => row.revenue), 1);
   const relevantStocks = (product: (typeof products)[number]) => params.store ? [product.stocks[params.store]].filter(Boolean) : Object.values(product.stocks);
   const lowProducts = products.filter((product) => relevantStocks(product).some((stock) => stock.quantity_available <= product.minimum_stock));
   const today = new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" }).format(new Date());
@@ -25,9 +25,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <div className="dashboard-grid">
         <section className="panel sales-chart-panel">
           <div className="panel-header"><div><h2>Performa penjualan</h2><p>Visual ringkasan 7 hari terakhir</p></div><a href="/reports">Laporan lengkap</a></div>
-          <div className="chart-placeholder">
-            {dailyTrend.map((row) => <div className="chart-column" key={row.date} title={`${row.date}: ${formatCurrency(row.revenue)}`}><div className="chart-bar" style={{height:`${Math.max((row.revenue / maxTrend) * 100, row.revenue ? 5 : 1)}%`}}/><span>{new Intl.DateTimeFormat("id-ID", { weekday: "short", timeZone: "Asia/Jakarta" }).format(new Date(`${row.date}T12:00:00+07:00`))}</span></div>)}
-          </div>
+          <InteractiveSalesChart points={dailyTrend}/>
+
         </section>
         <section className="panel branch-panel">
           <div className="panel-header"><div><h2>Performa cabang</h2><p>Penjualan hari ini</p></div><a href="/stores">Kelola cabang</a></div>

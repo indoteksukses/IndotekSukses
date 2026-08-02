@@ -1,20 +1,15 @@
-# Implementation Status v2.2.0
+# Implementation Status v2.3.0
 
 Selesai diterapkan:
 
-- Responsive tablet dan HP untuk kasir, transaksi, laporan, transfer, pembelian, dan retur.
-- Batch stok masuk/keluar.
-- Batch transfer dan pembelian.
-- Retur berbasis invoice.
-- Logo URL perusahaan.
-- URL gambar produk.
-- Preset dan vector custom berbasis kode.
-- Print layout laporan padat.
-- Validasi API dokumen batch.
-
-Perlu divalidasi pada lingkungan pengguna:
-
-- Build Vercel dengan dependency publik.
-- Eksekusi migration pada database Supabase pengguna.
-- Izin kamera dan dukungan barcode pada perangkat pengguna.
-- Printer dan ukuran kertas sesuai perangkat kasir pengguna.
+- Redesign Stok Masuk & Keluar.
+- Multi-produk, jumlah, validasi stok keluar, ringkasan, reset, toast, dan aktivitas langsung.
+- Ralat stok berbasis transaksi pembalik.
+- Redesign Transfer dan Pembelian multi-produk.
+- Redesign Stok Opname dengan pencarian, kategori, selisih, dan finalisasi.
+- Redesign Retur berbasis invoice.
+- Grafik dashboard interaktif mouse, keyboard, dan sentuhan.
+- Definisi laporan diperjelas.
+- Checklist Cetak/PDF untuk ringkasan, persediaan, transaksi, logo, kasir, dan HPP.
+- Responsive styling desktop, tablet, HP, dan HP kecil.
+- Migration indeks performa v2.3.0.

@@ -12,7 +12,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   );
 }
 
-export function StatCard({ label, value, helper, icon, tone = "blue" }: { label: string; value: string; helper?: string; icon?: ReactNode; tone?: "blue" | "green" | "orange" | "red" | "purple" }) {
+export function StatCard({ label, value, helper, icon, tone = "blue" }: { label: ReactNode; value: string; helper?: string; icon?: ReactNode; tone?: "blue" | "green" | "orange" | "red" | "purple" }) {
   return (
     <article className={`stat-card tone-${tone}`}>
       <div className="stat-icon">{icon ?? "•"}</div>

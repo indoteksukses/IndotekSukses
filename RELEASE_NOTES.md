@@ -1,37 +1,17 @@
-# Release Notes — v2.2.0
+# Indotek Sukses v2.3.0
 
-## Antarmuka
+## Revisi utama
 
-- Memperbaiki skala tampilan transaksi pada HP yang sebelumnya tampak terlalu kecil.
-- Kasir tablet menggunakan grid tiga kolom agar kartu tidak terlalu sempit.
-- Kasir HP menggunakan dua kolom dengan nama, SKU, harga, dan stok yang tetap terbaca.
-- Tabel transaksi, retur, transfer, dan pembelian berubah menjadi kartu pada layar kecil.
-- Modal dokumen batch diubah menjadi panel bawah yang ramah sentuhan.
-
-## Laporan
-
-- Tombol Cetak/PDF dan Unduh CSV sejajar.
-- Tanggal awal dan akhir sejajar; tombol periode menggunakan satu baris penuh.
-- Cetak laporan menggunakan dokumen khusus, bukan menangkap halaman dashboard.
-- Ringkasan, persediaan, dan transaksi dirapatkan agar tidak menghasilkan halaman kosong yang besar.
-
-## Stok dan dokumen
-
-- Batch stok masuk/keluar atomik.
-- Batch transfer antartoko.
-- Batch pembelian supplier dengan harga beli per produk.
-- Validasi produk duplikat, jumlah, harga, toko asal/tujuan, ongkir, dan diskon.
-
-## Retur
-
-- Pencarian invoice berdasarkan nomor, pelanggan, atau toko.
-- Pencarian produk hanya di dalam invoice terpilih.
-- Menampilkan jumlah dibeli, jumlah sudah diretur, dan sisa yang dapat diretur.
-
-## Branding dan visual produk
-
-- URL logo perusahaan untuk website, login, laporan, dan invoice.
-- URL gambar untuk setiap produk.
-- 12 preset vector alat teknik.
-- Editor JSON dan pratinjau visual.
-- Dukungan vector custom aman dengan maksimum 30 elemen.
+- Tampilan Stok Masuk & Keluar dibuat lebih tegas, tersegmentasi, dan tidak lagi terlalu putih.
+- Baris produk stok diperbaiki agar tidak bertumpuk atau keluar dari card pada desktop, tablet, dan HP.
+- Ringkasan dokumen stok menampilkan jumlah produk, total unit, status, reset, dan simpan.
+- Aktivitas stok tampil sebagai kartu audit yang lebih mudah dibaca dan langsung diperbarui setelah penyimpanan.
+- Form Transfer, Pembelian, Stok Opname, dan Retur menggunakan visual hierarchy dan border yang lebih jelas.
+- Transfer dan pembelian tetap mendukung beberapa produk dalam satu dokumen.
+- Stok opname memiliki pencarian, filter kategori, penghitung selisih, dan input yang tidak hilang saat filter berubah.
+- Grafik dashboard dapat disentuh, diklik, difokuskan, atau diarahkan kursor untuk melihat tanggal, omzet, transaksi, dan unit.
+- Definisi Penjualan Bersih, Retur, HPP Bersih, Laba Kotor, serta Transaksi & Unit diperjelas.
+- Tombol Cetak/PDF pada laporan menampilkan checklist bagian yang ingin disertakan.
+- Pilihan cetak meliputi ringkasan utama, persediaan, transaksi, logo, nama kasir, dan HPP/harga modal.
+- HPP dan harga modal tetap hanya tersedia untuk owner dan admin.
+- Ditambahkan indeks database untuk mempercepat laporan dan aktivitas stok saat data membesar.
