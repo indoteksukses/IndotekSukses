@@ -1,19 +1,19 @@
-Indotek Sukses v2.3.3
+# Implementation Status v2.4.0
 
-# Implementation Status v2.3.1
+Selesai diimplementasikan:
 
-## Selesai
+- stok jaringan read-only untuk seluruh user terautentikasi;
+- hak edit stok tetap per cabang;
+- permintaan transfer stok;
+- popup produk portal responsif;
+- visual produk pada inventori;
+- edit/hapus/arsip supplier;
+- PO multi-cabang dan alokasi per cabang;
+- detail, edit, penerimaan, dan cetak/PDF PO;
+- migration Supabase v007.
 
-- Edit, hapus, sembunyikan, dan tampilkan visual produk.
-- Preview produk di kanan pada desktop/tablet dan stack pada HP.
-- Tooltip grafik mengikuti posisi batang.
-- Bottom cart kasir untuk tablet dan HP.
-- Baris produk transfer/pembelian diperbesar.
-- Satuan jumlah tampil inline.
-- Rincian stok opname melalui API dan modal.
-- Spinner tombol proses dan navigasi menu.
-- Progress bar navigasi global.
+Wajib dilakukan pengguna:
 
-## Tidak memerlukan migration baru
-
-Versi v2.3.1 menggunakan tabel dan kolom yang sudah tersedia pada v2.3.0. Database v2.2.0 tetap perlu migration v2.3.0 (`202608020006_v23_reports_ui_support.sql`).
+1. Jalankan migration v007.
+2. Deploy source v2.4.0.
+3. Uji dengan data nyata sebelum operasional penuh.

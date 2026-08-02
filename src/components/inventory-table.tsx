@@ -1,19 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Boxes, CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { StatusBadge } from "@/components/ui";
 import { StockEditButton } from "@/components/stock-edit-button";
+import { ProductVisual } from "@/components/product-visual";
+import { TransferRequestButton } from "@/components/transfer-request-button";
 import type { Product, Store } from "@/lib/types";
 
-export function InventoryTable({ products, stores, canEditStock = false }: { products: Product[]; stores: Store[]; canEditStock?: boolean }) {
+export function InventoryTable({ products, stores, editableStoreIds = [], requestDestinationStoreIds = [] }: { products: Product[]; stores: Store[]; editableStoreIds?: string[]; requestDestinationStoreIds?: string[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("");
   const [toast, setToast] = useState("");
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 3500); };
   const categories = useMemo(() => [...new Set(products.map((product) => product.category).filter(Boolean) as string[])].sort(), [products]);
+  const editable = useMemo(() => new Set(editableStoreIds), [editableStoreIds]);
   const state = (product: Product) => {
     const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
     const minimum = quantities.length ? Math.min(...quantities) : 0;
@@ -32,24 +35,25 @@ export function InventoryTable({ products, stores, canEditStock = false }: { pro
         const conditionValue = state(product);
         const tone = conditionValue === "out" ? "danger" : conditionValue === "low" ? "warning" : "success";
         return <article className="inventory-mobile-card" key={product.id}>
-          <header><div className="product-thumb"><Boxes size={18}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div></header>
+          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><span>{product.sku}</span></div></header>
           <div className="inventory-mobile-metrics">
             <div><span>Minimum</span><strong>{product.minimum_stock} <small>{product.unit}</small></strong></div>
             <div><span>Total</span><strong>{total} <small>{product.unit}</small></strong></div>
             <div className="inventory-condition"><span>Kondisi</span><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></div>
           </div>
-          <div className="inventory-mobile-branches">{stores.map((store) => { const row = product.stocks[store.id]; return <div className="inventory-mobile-branch" key={store.id}><div><strong>{store.name}</strong><span>{store.code}</span></div><div className="inventory-mobile-stock"><strong>{row?.quantity_on_hand ?? 0} <small>{product.unit}</small></strong>{row?.quantity_reserved ? <span>{row.quantity_reserved} dipesan</span> : <span>Stok tersedia</span>}</div>{canEditStock ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div>; })}</div>
+          <div className="inventory-mobile-branches">{stores.map((store) => { const row = product.stocks[store.id]; return <div className="inventory-mobile-branch" key={store.id}><div><strong>{store.name}</strong><span>{store.code}</span></div><div className="inventory-mobile-stock"><strong>{row?.quantity_on_hand ?? 0} <small>{product.unit}</small></strong>{row?.quantity_reserved ? <span>{row.quantity_reserved} dipesan</span> : <span>Stok tersedia</span>}</div>{editable.has(store.id) ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div>; })}</div>
+          {requestDestinationStoreIds.length ? <div className="inventory-mobile-request"><TransferRequestButton product={product} stores={stores} destinationStoreIds={requestDestinationStoreIds}/></div> : null}
         </article>;
       })}
       {!filtered.length ? <div className="empty-inline">Stok tidak ditemukan.</div> : null}
     </div>
 
-    <div className="panel table-panel inventory-table"><table><thead><tr><th className="sticky-col">Produk</th><th>Minimum</th>{stores.map((store) => <th key={store.id}><div className="store-head"><strong>{store.name}</strong><span>{store.code}</span></div></th>)}<th>Total</th><th>Kondisi</th></tr></thead><tbody>{filtered.map((product) => {
+    <div className="panel table-panel inventory-table"><table><thead><tr><th className="sticky-col">Produk</th><th>Minimum</th>{stores.map((store) => <th key={store.id}><div className="store-head"><strong>{store.name}</strong><span>{store.code}</span></div></th>)}<th>Total</th><th>Kondisi</th><th>Permintaan</th></tr></thead><tbody>{filtered.map((product) => {
       const quantities = stores.map((store) => product.stocks[store.id]?.quantity_available ?? 0);
       const conditionValue = state(product);
       const tone = conditionValue === "out" ? "danger" : conditionValue === "low" ? "warning" : "success";
-      return <tr key={product.id}><td className="sticky-col" data-label="Produk"><div className="product-cell"><div className="product-thumb"><Boxes size={20}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => { const row = product.stocks[store.id]; return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}{row?.quantity_reserved ? ` · ${row.quantity_reserved} dipesan` : ""}</span></div>{canEditStock ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div></td>; })}<td data-label="Total"><strong>{quantities.reduce((sum, value) => sum + value, 0)}</strong></td><td data-label="Kondisi"><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></td></tr>;
-    })}{!filtered.length ? <tr><td colSpan={stores.length + 4}><div className="empty-inline">Stok tidak ditemukan.</div></td></tr> : null}</tbody></table></div>
+      return <tr key={product.id}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><span>{product.sku}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => { const row = product.stocks[store.id]; return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}{row?.quantity_reserved ? ` · ${row.quantity_reserved} dipesan` : ""}</span></div>{editable.has(store.id) ? <StockEditButton product={product} store={store} onSaved={(quantity) => notify(`Stok ${product.name} di ${store.name} berhasil diubah menjadi ${quantity} ${product.unit}.`)}/> : null}</div></td>; })}<td data-label="Total"><strong>{quantities.reduce((sum, value) => sum + value, 0)}</strong></td><td data-label="Kondisi"><StatusBadge tone={tone}>{conditionValue === "out" ? "Ada yang habis" : conditionValue === "low" ? "Perlu restok" : "Aman"}</StatusBadge></td><td data-label="Permintaan">{requestDestinationStoreIds.length ? <TransferRequestButton product={product} stores={stores} destinationStoreIds={requestDestinationStoreIds}/> : "—"}</td></tr>;
+    })}{!filtered.length ? <tr><td colSpan={stores.length + 5}><div className="empty-inline">Stok tidak ditemukan.</div></td></tr> : null}</tbody></table></div>
     {toast ? <div className="toast success"><CheckCircle2 size={20}/><div><strong>Stok berhasil diperbarui</strong><span>{toast}</span></div><button onClick={() => setToast("")}><X size={16}/></button></div> : null}
   </>;
 }

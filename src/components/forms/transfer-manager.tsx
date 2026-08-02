@@ -62,3 +62,15 @@ export function TransferAction({ id, action, label }: { id: string; action: "sen
   const router = useRouter(); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
   return <div><button className="table-action" disabled={saving} onClick={async () => { setSaving(true); setError(""); try { const response = await fetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, transfer_id: id }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal memproses transfer"); router.refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Gagal"); } finally { setSaving(false); } }}>{saving ? <><LoadingSpinner size={14}/><span>Memproses...</span></> : label}</button>{error ? <small className="negative">{error}</small> : null}</div>;
 }
+
+export function ApproveTransferRequestButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  return <div><button className="table-action" disabled={saving} onClick={async()=>{
+    if(!window.confirm("Buat dokumen transfer dari permintaan ini?"))return;
+    setSaving(true);setError("");
+    try{const response=await fetch("/api/transfer-requests",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,action:"approve"})});const result=await response.json();if(!response.ok)throw new Error(result.error||"Gagal memproses permintaan");router.refresh();}
+    catch(err){setError(err instanceof Error?err.message:"Gagal memproses permintaan");}finally{setSaving(false);}
+  }}>{saving?<><LoadingSpinner size={14}/><span>Memproses...</span></>:"Buat transfer"}</button>{error?<small className="negative">{error}</small>:null}</div>;
+}

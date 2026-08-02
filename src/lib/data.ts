@@ -54,6 +54,75 @@ export async function getStores(includeInactive = false): Promise<Store[]> {
   return allowed ? rows.filter((store) => allowed.has(store.id)) : rows;
 }
 
+export async function getNetworkInventoryStores(): Promise<Store[]> {
+  if (demo) return demoStores.filter((store) => store.is_active !== false);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("inventory_network_stores");
+  if (error) return [];
+  return (data ?? []).map((row: any) => ({
+    id: String(row.id), code: String(row.code), name: String(row.name),
+    address: row.address ?? null, phone: row.phone ?? null,
+    manager_name: row.manager_name ?? null, image_url: row.image_url ?? null,
+    is_active: Boolean(row.is_active),
+  })) as Store[];
+}
+
+export async function getProductsWithNetworkStocks(): Promise<Product[]> {
+  if (demo) return demoProducts;
+  const supabase = await createClient();
+  const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
+    supabase.rpc("inventory_network_snapshot"),
+    supabase.rpc("admin_product_financials"),
+    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,categories(name),product_visuals(id,name,code,is_builtin,is_active)").eq("is_active", true),
+  ]);
+  if (error || !catalog) return [];
+  const finance = new Map<string, number>();
+  for (const row of (financials ?? []) as any[]) finance.set(String(row.product_id), Number(row.cost_price ?? 0));
+  const meta = new Map<string, any>();
+  for (const row of (productRows ?? []) as any[]) meta.set(String(row.id), row);
+  const grouped = new Map<string, Product>();
+  for (const row of catalog as any[]) {
+    const id = String(row.product_id);
+    const rowStoreId = String(row.store_id);
+    const productMeta = meta.get(id);
+    const current: Product = grouped.get(id) ?? {
+      id,
+      sku: String(row.sku),
+      barcode: row.barcode ? String(row.barcode) : null,
+      name: String(row.name),
+      category: productMeta?.categories?.name ?? null,
+      category_id: productMeta?.category_id ?? null,
+      brand: productMeta?.brand ?? null,
+      unit: String(row.unit),
+      cost_price: finance.get(id) ?? 0,
+      selling_price: Number(row.selling_price ?? 0),
+      minimum_stock: Number(row.minimum_stock ?? 0),
+      image_url: productMeta?.image_url ?? null,
+      visual_id: productMeta?.visual_id ?? null,
+      visual: productMeta?.product_visuals ? {
+        id: String(productMeta.product_visuals.id), name: String(productMeta.product_visuals.name),
+        code: productMeta.product_visuals.code, is_builtin: Boolean(productMeta.product_visuals.is_builtin),
+        is_active: Boolean(productMeta.product_visuals.is_active),
+      } : null,
+      is_active: productMeta?.is_active ?? true,
+      stocks: {},
+      total_stock: 0,
+    };
+    current.stocks[rowStoreId] = {
+      store_id: rowStoreId,
+      store_code: String(row.store_code),
+      store_name: String(row.store_name),
+      quantity_on_hand: Number(row.quantity_on_hand ?? 0),
+      quantity_reserved: Number(row.quantity_reserved ?? 0),
+      quantity_available: Number(row.quantity_available ?? 0),
+      stock_status: row.stock_status as "safe" | "low" | "out",
+    };
+    current.total_stock += Number(row.quantity_on_hand ?? 0);
+    grouped.set(id, current);
+  }
+  return [...grouped.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
+}
+
 export async function getSystemSettings(): Promise<SystemSettings> {
   if (demo) return demoSettings;
   const supabase = await createClient();
@@ -357,13 +426,51 @@ export async function getTransfers(storeId?: string | null) {
   return (data ?? []).map((row: any) => ({ ...row, source_name: row.source?.name, destination_name: row.destination?.name }));
 }
 
-export async function getPurchases(storeId?: string | null) {
-  if (demo) return [{ id: "po-1", po_number: "PO-20260731-001", supplier_name: "PT Sumber Teknologi", store_name: demoStores[0].name, status: "pending", total: 3250000, created_at: "2026-07-31T09:00:00+07:00" }];
+export async function getTransferRequests(storeId?: string | null) {
+  if (demo) return [];
   const supabase = await createClient();
-  let query = supabase.from("purchase_orders").select("id,po_number,status,total,created_at,destination_store_id,suppliers(name),stores(name)").order("created_at", { ascending: false });
-  if (storeId) query = query.eq("destination_store_id", storeId);
+  let query = supabase.from("stock_transfer_requests").select("id,request_number,status,quantity,notes,created_at,source_store_id,destination_store_id,product_id,products(name,sku,unit),source:stores!stock_transfer_requests_source_store_id_fkey(name,code),destination:stores!stock_transfer_requests_destination_store_id_fkey(name,code),profiles!stock_transfer_requests_requested_by_fkey(full_name)").order("created_at", { ascending: false }).limit(100);
+  if (storeId) query = query.or(`source_store_id.eq.${storeId},destination_store_id.eq.${storeId}`);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, supplier_name: row.suppliers?.name, store_name: row.stores?.name }));
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    product_name: row.products?.name ?? "Produk",
+    product_sku: row.products?.sku ?? "",
+    product_unit: row.products?.unit ?? "pcs",
+    source_name: row.source?.name ?? "Toko asal",
+    destination_name: row.destination?.name ?? "Toko tujuan",
+    requester_name: row.profiles?.full_name ?? "Karyawan",
+  }));
+}
+
+export async function getPurchases(storeId?: string | null) {
+  if (demo) return [{ id: "po-1", po_number: "PO-20260731-001", supplier_id: "sup-1", supplier_name: "PT Sumber Teknologi", store_name: demoStores[0].name, store_names: [demoStores[0].name], receiving_scope: "single", status: "pending", subtotal: 3250000, discount: 0, shipping_cost: 0, total: 3250000, notes: null, created_at: "2026-07-31T09:00:00+07:00", items: [] }];
+  const supabase = await createClient();
+  let query = supabase.from("purchase_orders").select("id,po_number,supplier_id,destination_store_id,receiving_scope,status,subtotal,discount,shipping_cost,total,notes,created_at,received_at,suppliers(name),stores(name,code),purchase_order_items(id,product_id,quantity_ordered,quantity_received,unit_cost,subtotal,products(name,sku,unit),purchase_order_allocations(id,store_id,quantity,quantity_received,stores(name,code)))").order("created_at", { ascending: false });
+  // Multi-branch orders may have destinations outside the legacy destination_store_id.
+  // RLS already limits the rows to branches the user may access, so no nested URL filter is applied here.
+  const { data } = await query;
+  return (data ?? []).map((row: any) => {
+    const items = (row.purchase_order_items ?? []).map((item: any) => ({
+      id: String(item.id), product_id: String(item.product_id), name: item.products?.name ?? "Produk",
+      sku: item.products?.sku ?? "", unit: item.products?.unit ?? "pcs",
+      quantity_ordered: Number(item.quantity_ordered ?? 0), quantity_received: Number(item.quantity_received ?? 0),
+      unit_cost: Number(item.unit_cost ?? 0), subtotal: Number(item.subtotal ?? 0),
+      allocations: (item.purchase_order_allocations ?? []).map((allocation: any) => ({
+        id: String(allocation.id), store_id: String(allocation.store_id), store_name: allocation.stores?.name ?? "Toko",
+        store_code: allocation.stores?.code ?? "", quantity: Number(allocation.quantity ?? 0), quantity_received: Number(allocation.quantity_received ?? 0),
+      })),
+    }));
+    const storeNames = [...new Set(items.flatMap((item: any) => item.allocations.map((allocation: any) => allocation.store_name)))];
+    return {
+      ...row,
+      supplier_name: row.suppliers?.name ?? "Supplier",
+      store_name: row.stores?.name ?? storeNames[0] ?? "Toko",
+      store_names: storeNames.length ? storeNames : [row.stores?.name ?? "Toko"],
+      items,
+      subtotal: Number(row.subtotal ?? 0), discount: Number(row.discount ?? 0), shipping_cost: Number(row.shipping_cost ?? 0), total: Number(row.total ?? 0),
+    };
+  });
 }
 
 export async function getStocktakes(storeId?: string | null) {
