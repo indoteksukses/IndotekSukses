@@ -64,6 +64,8 @@ export type Product = {
   visual_id?: string | null;
   visual?: ProductVisual | null;
   is_active: boolean;
+  sales_scope?: "all" | "selected";
+  sales_store_ids?: string[];
   stocks: Record<string, StockLevel>;
   total_stock: number;
   selected_stock?: number;

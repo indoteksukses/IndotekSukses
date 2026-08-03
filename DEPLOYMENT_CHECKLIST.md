@@ -1,12 +1,12 @@
-# Deployment Checklist v2.4.1
+# Deployment Checklist v2.4.2
 
-- [ ] Backup Supabase
-- [ ] Jalankan `202608030008_fix_purchase_order_save.sql`
-- [ ] Pastikan SQL selesai tanpa error
-- [ ] Push source v2.4.1 ke GitHub
-- [ ] Pastikan Vercel berstatus Ready
-- [ ] Logout dan login ulang
-- [ ] Buat satu PO uji
-- [ ] Pastikan nomor PO muncul di daftar Pembelian
-- [ ] Buka Detail dan Cetak/PDF
-- [ ] Terima barang hanya setelah PO terlihat benar
+- [ ] Backup database Supabase.
+- [ ] Jalankan migration `202608030009_purchase_listing_product_branches.sql`.
+- [ ] Pastikan SQL selesai tanpa error.
+- [ ] Salin source v2.4.2 ke repository GitHub.
+- [ ] Commit dan Push Origin.
+- [ ] Pastikan Vercel berstatus Ready.
+- [ ] Buat PO uji dan pastikan langsung muncul pada daftar.
+- [ ] Edit satu produk menjadi Cabang Tertentu.
+- [ ] Pastikan produk hanya muncul di kasir cabang yang dipilih.
+- [ ] Periksa dua tombol dashboard pada layar HP.

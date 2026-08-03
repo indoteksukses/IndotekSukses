@@ -73,7 +73,7 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
   const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
     supabase.rpc("inventory_network_snapshot"),
     supabase.rpc("admin_product_financials"),
-    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,categories(name),product_visuals(id,name,code,is_builtin,is_active)").eq("is_active", true),
+    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope,categories(name),product_visuals(id,name,code,is_builtin,is_active),product_store_sales(store_id)").eq("is_active", true),
   ]);
   if (error || !catalog) return [];
   const finance = new Map<string, number>();
@@ -105,6 +105,8 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
         is_active: Boolean(productMeta.product_visuals.is_active),
       } : null,
       is_active: productMeta?.is_active ?? true,
+      sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
+      sales_store_ids: (productMeta?.product_store_sales ?? []).map((row: any) => String(row.store_id)),
       stocks: {},
       total_stock: 0,
     };
@@ -149,7 +151,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
   const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
     supabase.from("inventory_overview").select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status"),
     supabase.rpc("admin_product_financials"),
-    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,categories(name),product_visuals(id,name,code,is_builtin,is_active)").eq("is_active", true),
+    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope,categories(name),product_visuals(id,name,code,is_builtin,is_active),product_store_sales(store_id)").eq("is_active", true),
   ]);
 
   if (error || !catalog) return [];
@@ -186,6 +188,8 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
         is_active: Boolean(productMeta.product_visuals.is_active),
       } : null,
       is_active: productMeta?.is_active ?? true,
+      sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
+      sales_store_ids: (productMeta?.product_store_sales ?? []).map((row: any) => String(row.store_id)),
       stocks: {},
       total_stock: 0,
     };
@@ -207,7 +211,9 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
 
 export async function getStoreCatalog(storeId: string): Promise<Product[]> {
   const products = await getProductsWithStocks(storeId);
-  return products.map((product) => ({ ...product, selected_stock: product.stocks[storeId]?.quantity_available ?? 0 }));
+  return products
+    .filter((product) => product.sales_scope !== "selected" || (product.sales_store_ids ?? []).includes(storeId))
+    .map((product) => ({ ...product, selected_stock: product.stocks[storeId]?.quantity_available ?? 0 }));
 }
 
 export async function getRecentMovements(storeId?: string | null, limit = 30): Promise<Movement[]> {
@@ -446,10 +452,46 @@ export async function getTransferRequests(storeId?: string | null) {
 export async function getPurchases(storeId?: string | null) {
   if (demo) return [{ id: "po-1", po_number: "PO-20260731-001", supplier_id: "sup-1", supplier_name: "PT Sumber Teknologi", store_name: demoStores[0].name, store_names: [demoStores[0].name], receiving_scope: "single", status: "pending", subtotal: 3250000, discount: 0, shipping_cost: 0, total: 3250000, notes: null, created_at: "2026-07-31T09:00:00+07:00", items: [] }];
   const supabase = await createClient();
+
+  const normalize = (row: any) => {
+    const value = row?.payload ?? row;
+    const items = Array.isArray(value?.items) ? value.items.map((item: any) => ({
+      ...item,
+      id: String(item.id),
+      product_id: String(item.product_id),
+      quantity_ordered: Number(item.quantity_ordered ?? 0),
+      quantity_received: Number(item.quantity_received ?? 0),
+      unit_cost: Number(item.unit_cost ?? 0),
+      subtotal: Number(item.subtotal ?? 0),
+      allocations: Array.isArray(item.allocations) ? item.allocations.map((allocation: any) => ({
+        ...allocation,
+        id: String(allocation.id),
+        store_id: String(allocation.store_id),
+        quantity: Number(allocation.quantity ?? 0),
+        quantity_received: Number(allocation.quantity_received ?? 0),
+      })) : [],
+    })) : [];
+    return {
+      ...value,
+      id: String(value.id),
+      supplier_id: String(value.supplier_id),
+      destination_store_id: value.destination_store_id ? String(value.destination_store_id) : null,
+      store_names: Array.isArray(value.store_names) ? value.store_names.map(String) : [String(value.store_name ?? "Toko")],
+      items,
+      subtotal: Number(value.subtotal ?? 0),
+      discount: Number(value.discount ?? 0),
+      shipping_cost: Number(value.shipping_cost ?? 0),
+      total: Number(value.total ?? 0),
+    };
+  };
+
+  const { data: overview, error: overviewError } = await supabase.rpc("purchase_orders_overview", { p_store_id: storeId || null });
+  if (!overviewError && overview) return (overview as any[]).map(normalize);
+
+  // Compatibility fallback for databases where migration 009 has not yet run.
   let query = supabase.from("purchase_orders").select("id,po_number,supplier_id,destination_store_id,receiving_scope,status,subtotal,discount,shipping_cost,total,notes,created_at,received_at,suppliers(name),stores(name,code),purchase_order_items(id,product_id,quantity_ordered,quantity_received,unit_cost,subtotal,products(name,sku,unit),purchase_order_allocations(id,store_id,quantity,quantity_received,stores(name,code)))").order("created_at", { ascending: false });
-  // Multi-branch orders may have destinations outside the legacy destination_store_id.
-  // RLS already limits the rows to branches the user may access, so no nested URL filter is applied here.
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) return [];
   return (data ?? []).map((row: any) => {
     const items = (row.purchase_order_items ?? []).map((item: any) => ({
       id: String(item.id), product_id: String(item.product_id), name: item.products?.name ?? "Produk",
@@ -461,15 +503,14 @@ export async function getPurchases(storeId?: string | null) {
         store_code: allocation.stores?.code ?? "", quantity: Number(allocation.quantity ?? 0), quantity_received: Number(allocation.quantity_received ?? 0),
       })),
     }));
-    const storeNames = [...new Set(items.flatMap((item: any) => item.allocations.map((allocation: any) => allocation.store_name)))];
-    return {
+    const storeNames = [...new Set(items.flatMap((item: any) => item.allocations.map((allocation: any) => allocation.store_name)))] as string[];
+    return normalize({
       ...row,
       supplier_name: row.suppliers?.name ?? "Supplier",
       store_name: row.stores?.name ?? storeNames[0] ?? "Toko",
       store_names: storeNames.length ? storeNames : [row.stores?.name ?? "Toko"],
       items,
-      subtotal: Number(row.subtotal ?? 0), discount: Number(row.discount ?? 0), shipping_cost: Number(row.shipping_cost ?? 0), total: Number(row.total ?? 0),
-    };
+    });
   });
 }
 

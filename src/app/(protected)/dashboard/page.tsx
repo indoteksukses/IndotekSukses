@@ -14,7 +14,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const today = new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" }).format(new Date());
   return (
     <>
-      <PageHeader title="Dashboard" description={`Ringkasan operasional ${params.store ? "cabang terpilih" : "seluruh toko"} · ${today}.`} actions={<><a className="button secondary" href="/reports">Unduh laporan</a><a className="button primary" href={params.store ? `/pos?store=${params.store}` : "/pos"}>Buka kasir</a></>} />
+      <PageHeader title="Dashboard" description={`Ringkasan operasional ${params.store ? "cabang terpilih" : "seluruh toko"} · ${today}.`} actions={<div className="dashboard-header-actions"><a className="button secondary" href="/reports">Unduh laporan</a><a className="button primary" href={params.store ? `/pos?store=${params.store}` : "/pos"}>Buka kasir</a></div>} />
       <div className="stats-grid">
         <StatCard label="Omzet hari ini" value={formatCurrency(revenue)} helper="Transaksi selesai hari ini" icon={<CircleDollarSign size={22}/>} tone="blue" />
         <StatCard label="Transaksi" value={String(transactions)} helper={transactions ? `Rata-rata ${formatCurrency(revenue / transactions)}` : "Belum ada transaksi"} icon={<ReceiptText size={22}/>} tone="green" />

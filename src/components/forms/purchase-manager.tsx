@@ -104,8 +104,7 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
           const result = await parsePurchaseResponse(response); if (!response.ok) throw new Error(result.error || "Gagal menyimpan pembelian");
           if (!result.id) throw new Error("PO belum tersimpan. Server tidak mengembalikan ID pesanan.");
           setSuccess(`${result.po_number || purchase?.po_number || "PO"} berhasil ${editing ? "diperbarui" : "dibuat"}.`);
-          router.refresh();
-          window.setTimeout(() => { close(); router.refresh(); }, 900);
+          window.setTimeout(() => { window.location.assign(`/purchases?po=${encodeURIComponent(String(result.id))}&updated=${Date.now()}`); }, 650);
         } catch (err) { setError(err instanceof Error ? err.message : "Gagal menyimpan pembelian"); } finally { setSaving(false); }
       }}>
         <SectionCard title="Supplier dan cabang penerima" description="Pilih seluruh cabang atau tentukan cabang tertentu." icon={<Building2 size={19}/>} tone="blue">

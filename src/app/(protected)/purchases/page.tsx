@@ -5,6 +5,8 @@ import { getProductsWithStocks, getPurchases, getStores, getSuppliers } from "@/
 import { formatCurrency, formatDateTime } from "@/lib/format";
 
 export const metadata={title:"Pembelian"};
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export default async function PurchasesPage({searchParams}:{searchParams:Promise<{store?:string}>}){
   const params=await searchParams;
   const[purchases,stores,products,suppliers]=await Promise.all([getPurchases(params.store),getStores(),getProductsWithStocks(),getSuppliers()]);
