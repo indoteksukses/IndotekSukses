@@ -579,3 +579,18 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
   .hero-login-brand .login-logo-image,.hero-login-brand>span{width:68px;height:68px;border-radius:20px}
   .hero-login-brand strong{font-size:20px}
 }
+
+
+/* v2.4.4 add-product visibility and operational modal fixes */
+.section-card-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+.section-card-header-actions .button.compact-button{min-height:38px;padding:0 12px;white-space:nowrap;box-shadow:0 4px 12px rgba(32,86,170,.08)}
+.document-products-section,.purchase-line-list,.stock-line-list{padding-bottom:6px}
+.document-add-line{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:10px;position:relative;z-index:1}
+.document-line-list,.purchase-line-list,.stock-line-list{position:relative;z-index:1}
+.purchase-line-list{display:grid;gap:9px;margin-bottom:10px}
+.purchase-line-card,.document-line,.stock-line-card{position:relative}
+.operational-modal .section-card{overflow:visible}
+.operational-modal .section-card-body{overflow:visible}
+.operational-modal .product-combobox-menu{z-index:90}
+@media(max-width:900px){.section-card-header-actions{width:100%;justify-content:space-between}.section-card-header-actions .compact-button{margin-left:auto}}
+@media(max-width:780px){.section-card-header-actions{width:100%}.section-card-header-actions .button.compact-button{width:100%;justify-content:center}.document-add-line{min-height:42px}}

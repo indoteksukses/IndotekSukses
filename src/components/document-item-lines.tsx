@@ -9,7 +9,7 @@ import type { Product } from "@/lib/types";
 export type DocumentLine = { key: string; product_id: string; quantity: number; unit_cost?: number };
 export const createDocumentLine = (unitCost = 0): DocumentLine => ({ key: `${Date.now()}-${Math.random()}`, product_id: "", quantity: 1, unit_cost: unitCost });
 
-export function DocumentItemLines({ products, lines, onChange, storeId, showUnitCost = false }: { products: Product[]; lines: DocumentLine[]; onChange: (lines: DocumentLine[]) => void; storeId?: string; showUnitCost?: boolean }) {
+export function DocumentItemLines({ products, lines, onChange, storeId, showUnitCost = false, hideAddButton = false }: { products: Product[]; lines: DocumentLine[]; onChange: (lines: DocumentLine[]) => void; storeId?: string; showUnitCost?: boolean; hideAddButton?: boolean }) {
   const selected = new Set(lines.map((line) => line.product_id).filter(Boolean));
   const patch = (key: string, values: Partial<DocumentLine>) => onChange(lines.map((line) => line.key === key ? { ...line, ...values } : line));
   const selectedCount = lines.filter((line) => line.product_id).length;
@@ -34,6 +34,6 @@ export function DocumentItemLines({ products, lines, onChange, storeId, showUnit
         </div>;
       })}
     </div>
-    <button type="button" className="document-add-line" onClick={() => onChange([...lines, createDocumentLine()])}><Plus size={15}/> Tambah produk lain</button>
+    {!hideAddButton ? <button type="button" className="document-add-line" onClick={() => onChange([...lines, createDocumentLine()])}><Plus size={15}/> Tambah produk lain</button> : null}
   </section>;
 }

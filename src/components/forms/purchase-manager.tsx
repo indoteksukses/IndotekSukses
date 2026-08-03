@@ -112,7 +112,7 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
           <div className="purchase-store-grid">{stores.map((store) => <label className={`purchase-store-option ${selectedStoreIds.includes(store.id) ? "selected" : ""}`} key={store.id}><input type="checkbox" checked={selectedStoreIds.includes(store.id)} disabled={scope === "all"} onChange={() => toggleStore(store.id)}/><span><strong>{store.name}</strong><small>{store.code}</small></span></label>)}</div>
         </SectionCard>
 
-        <SectionCard title="Produk dan pembagian jumlah" description="Isi jumlah masing-masing cabang. Total produk dihitung otomatis." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalUnits} unit</span>}>
+        <SectionCard title="Produk dan pembagian jumlah" description="Isi jumlah masing-masing cabang. Total produk dihitung otomatis." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalUnits} unit</span>} actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, blankLine(selectedStoreIds)])}><Plus size={15}/> Tambah produk</button>}>
           <div className="purchase-line-list">{lines.map((line, index) => {
             const product = products.find((item) => item.id === line.product_id);
             const quantity = lineQuantity(line);
