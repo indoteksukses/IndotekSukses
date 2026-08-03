@@ -1,3 +1,5 @@
+Indotek Sukses v2.4.3
+
 # Release Notes v2.4.2
 
 - Memperbaiki PO baru agar tersimpan dan langsung muncul pada daftar Pembelian.

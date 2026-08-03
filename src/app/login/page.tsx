@@ -8,7 +8,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="login-page">
       <section className="login-brand-panel">
-        <div className="login-brand">{mark}<div><strong>{settings.company_name}</strong><small>{settings.company_tagline}</small></div></div>
+        <div className="login-brand hero-login-brand">{mark}<div><strong>{settings.company_name}</strong><small>{settings.company_tagline}</small></div></div>
         <div className="login-copy"><span className="eyebrow">SISTEM OPERASIONAL TOKO TEKNIK</span><h1>Kelola mur, baut, perkakas, stok, dan kasir seluruh cabang.</h1><p>Tambah toko tanpa batas, pantau stok per cabang, jalankan pembelian, transfer, retur, laporan, dan audit aktivitas dalam satu pusat kendali.</p></div>
         <div className="login-feature-grid"><div>✓ Multi-cabang dinamis</div><div>✓ Kasir & satu shift toko</div><div>✓ Stok alat teknik</div><div>✓ Audit lengkap</div></div>
       </section>

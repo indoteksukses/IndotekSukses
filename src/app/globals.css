@@ -546,3 +546,36 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
   .page-header .page-actions>.dashboard-header-actions{grid-column:1/-1!important;display:grid!important;grid-template-columns:1fr 1fr!important}
   .product-sales-store-grid{grid-template-columns:1fr}
 }
+
+
+/* v2.4.3 modal visibility, dashboard media, stock visuals, and login brand polish */
+.modal-backdrop{overflow:auto;align-items:center;justify-items:center}
+.modal-card{max-height:min(92vh,calc(100dvh - 24px));display:flex;flex-direction:column;overflow:hidden}
+.modal-card>form,.modal-card>.form-grid,.modal-card>.operational-document-form,.modal-card>.operational-dialog-form,.modal-card>.return-form,.modal-card>.profile-body,.modal-card>.category-manager-layout,.modal-card>.visual-manager-layout{overflow-y:auto;min-height:0;scrollbar-width:thin}
+.modal-card .modal-header{position:sticky;top:0;z-index:4;background:#fff;flex:none}
+.modal-card .alert{margin:14px 18px 0}
+.modal-card .modal-actions{position:sticky;bottom:0;z-index:4;background:rgba(255,255,255,.98);padding-top:10px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.product-form-modal,.purchase-multi-modal,.visual-manager-modal,.store-modal,.profile-modal,.report-options-modal,.scanner-modal,.payment-sheet,.return-modal,.transfer-request-modal,.category-modal{max-height:min(94vh,calc(100dvh - 18px))}
+.hero-login-brand{align-items:center;gap:16px;margin-bottom:18px}
+.hero-login-brand .login-logo-image,.hero-login-brand>span{width:84px;height:84px;border-radius:24px;padding:8px;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+.hero-login-brand strong{font-size:24px;line-height:1.1;display:block}
+.hero-login-brand small{font-size:13px;line-height:1.4;color:#ccdaef;display:block;margin-top:6px}
+.mobile-login-logo .login-logo-image,.mobile-login-logo>span{width:58px;height:58px;border-radius:18px;padding:6px}
+.branch-icon{overflow:hidden}
+.branch-icon img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.stock-alert .product-thumb{padding:0;background:transparent;overflow:hidden}
+.stock-alert .product-thumb .product-visual{width:38px;height:38px}
+.stock-alert .product-thumb .product-visual-card{width:38px;height:38px;border-radius:10px;margin:0}
+.inventory-mobile-branch .product-visual{width:34px;height:34px}
+@media (max-width:900px){
+  .modal-backdrop{padding:10px}
+  .modal-card{width:min(720px,100%)}
+}
+@media (max-width:720px){
+  .modal-backdrop{padding:0;align-items:end}
+  .modal-card{width:100%;max-height:min(96vh,calc(100dvh - 6px));border-radius:18px 18px 0 0}
+  .modal-card .modal-header{padding:16px 16px 14px}
+  .modal-card .modal-actions{padding-left:16px;padding-right:16px}
+  .hero-login-brand .login-logo-image,.hero-login-brand>span{width:68px;height:68px;border-radius:20px}
+  .hero-login-brand strong{font-size:20px}
+}

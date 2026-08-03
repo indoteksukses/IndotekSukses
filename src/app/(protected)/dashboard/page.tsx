@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Boxes, CircleDollarSign, ReceiptText, ShoppingBag, TriangleAlert } from "lucide-react";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { ProductVisual } from "@/components/product-visual";
 import { InteractiveSalesChart } from "@/components/interactive-sales-chart";
 import { getDashboardSnapshot } from "@/lib/data";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -30,7 +31,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </section>
         <section className="panel branch-panel">
           <div className="panel-header"><div><h2>Performa cabang</h2><p>Penjualan hari ini</p></div><a href="/stores">Kelola cabang</a></div>
-          {storeStats.length ? storeStats.slice(0, 6).map(({ store, revenue: storeRevenue, transactions: storeTransactions, units: storeUnits }, index) => <div className="branch-card" key={store.id}><div className={`branch-icon ${index % 2 ? "alt" : ""}`}>{store.code.slice(-2)}</div><div><strong>{store.name}</strong><span>{storeTransactions} transaksi · {storeUnits} unit</span></div><div className="branch-value"><strong>{formatCurrency(storeRevenue)}</strong><span className="positive"><ArrowUpRight size={14}/> Aktif</span></div></div>) : <div className="empty-inline">Belum ada toko aktif.</div>}
+          {storeStats.length ? storeStats.slice(0, 6).map(({ store, revenue: storeRevenue, transactions: storeTransactions, units: storeUnits }, index) => <div className="branch-card" key={store.id}><div className={`branch-icon ${index % 2 ? "alt" : ""}`}>{store.image_url ? <img src={store.image_url} alt={store.name}/> : store.code.slice(-2)}</div><div><strong>{store.name}</strong><span>{storeTransactions} transaksi · {storeUnits} unit</span></div><div className="branch-value"><strong>{formatCurrency(storeRevenue)}</strong><span className="positive"><ArrowUpRight size={14}/> Aktif</span></div></div>) : <div className="empty-inline">Belum ada toko aktif.</div>}
         </section>
       </div>
 
@@ -41,7 +42,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             {lowProducts.slice(0, 8).map((product) => {
               const critical = relevantStocks(product).filter((stock) => stock.quantity_available <= product.minimum_stock).sort((a,b) => a.quantity_available - b.quantity_available);
               const lowest = critical[0];
-              return <div className="stock-alert" key={product.id}><div className="product-thumb"><Boxes size={20}/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div><div className="stock-split"><span>{lowest?.store_code ?? "—"} <b>{lowest?.quantity_available ?? 0}</b></span><small>{critical.length} cabang</small></div><StatusBadge tone={(lowest?.quantity_available ?? 0) === 0 ? "danger" : "warning"}>{(lowest?.quantity_available ?? 0) === 0 ? "Habis" : "Menipis"}</StatusBadge></div>;
+              return <div className="stock-alert" key={product.id}><div className="product-thumb"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/></div><div><strong>{product.name}</strong><span>{product.sku}</span></div><div className="stock-split"><span>{lowest?.store_code ?? "—"} <b>{lowest?.quantity_available ?? 0}</b></span><small>{critical.length} cabang</small></div><StatusBadge tone={(lowest?.quantity_available ?? 0) === 0 ? "danger" : "warning"}>{(lowest?.quantity_available ?? 0) === 0 ? "Habis" : "Menipis"}</StatusBadge></div>;
             })}
             {!lowProducts.length ? <div className="empty-inline">Semua stok berada di atas batas minimum.</div> : null}
           </div>
