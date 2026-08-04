@@ -1,13 +1,15 @@
-# Checklist Deployment v2.5.2
+# Deployment Checklist v2.6.0
 
-- [ ] Backup Supabase.
-- [ ] Migration v2.5.0 sudah terpasang.
-- [ ] Jalankan `202608040011_product_category_visual_save_fix.sql`.
-- [ ] Hasil SQL: `fungsi_simpan_tersedia = true`.
-- [ ] Deploy source v2.5.2 ke Vercel.
-- [ ] Vercel berstatus Ready.
-- [ ] Logout dan login kembali.
-- [ ] Edit produk dan pilih kategori.
-- [ ] Pilih Visual kode dan simpan.
-- [ ] Buka kembali produk; kategori dan visual harus tetap sama.
-- [ ] Jalankan SQL verifikasi bila perlu.
+- [ ] Backup database Supabase.
+- [ ] Jalankan `202608040012_product_variants.sql` sampai selesai.
+- [ ] Pastikan `product_variants_ready` dan `sale_variant_ready` bernilai `true`.
+- [ ] Deploy seluruh source v2.6.0.
+- [ ] Pastikan Vercel menggunakan Node.js 24.x.
+- [ ] Pastikan `SUPABASE_SERVICE_ROLE_KEY` tersedia di Vercel.
+- [ ] Logout dan login kembali setelah deployment.
+- [ ] Uji membuat produk dengan dua varian.
+- [ ] Uji harga modal dan harga jual tersimpan setelah produk dibuka ulang.
+- [ ] Uji pemilihan varian di kasir.
+- [ ] Uji scan SKU/barcode varian.
+- [ ] Uji invoice menampilkan nama varian.
+- [ ] Uji retur membedakan dua varian dari produk yang sama.

@@ -25,8 +25,9 @@ export async function POST(request: Request) {
     p_store_id: body.store_id,
     p_shift_id: body.shift_id || null,
     p_customer_name: body.customer_name || null,
-    p_items: body.items.map((item: { product_id: string; quantity: number }) => ({
+    p_items: body.items.map((item: { product_id: string; variant_id?: string | null; quantity: number }) => ({
       product_id: item.product_id,
+      variant_id: item.variant_id || null,
       quantity: Number(item.quantity),
     })),
     p_payments: body.payments,

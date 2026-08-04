@@ -4,9 +4,33 @@ import { requireAdmin } from "@/lib/auth";
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+type NormalizedVariant = {
+  id?: string;
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  cost_price: number;
+  selling_price: number;
+  is_active: boolean;
+  sort_order: number;
+};
+
 function normalize(body: any) {
   const salesScope = body.sales_scope === "selected" ? "selected" : "all";
   const salesStoreIds = [...new Set<string>((Array.isArray(body.sales_store_ids) ? body.sales_store_ids : []).filter(Boolean).map(String))];
+  const variants: NormalizedVariant[] = (Array.isArray(body.variants) ? body.variants : []).map((variant: any, index: number) => ({
+    id: variant.id ? String(variant.id) : undefined,
+    name: String(variant.name ?? "").trim(),
+    sku: String(variant.sku ?? "").trim().toUpperCase() || null,
+    barcode: String(variant.barcode ?? "").trim() || null,
+    cost_price: Number(variant.cost_price ?? 0),
+    selling_price: Number(variant.selling_price ?? 0),
+    is_active: variant.is_active !== false,
+    sort_order: Number.isFinite(Number(variant.sort_order)) ? Number(variant.sort_order) : index,
+  }));
+  const hasVariants = body.has_variants === true && variants.length > 0;
+  const activeVariants = variants.filter((variant) => variant.is_active);
+  const fallback = activeVariants[0] ?? variants[0];
   return {
     product: {
       sku: String(body.sku ?? "").trim().toUpperCase(),
@@ -15,8 +39,8 @@ function normalize(body: any) {
       category_id: String(body.category_id ?? "").trim(),
       brand: String(body.brand ?? "").trim() || "Tanpa Merek",
       unit: String(body.unit ?? "pcs").trim() || "pcs",
-      cost_price: Number(body.cost_price ?? 0),
-      selling_price: Number(body.selling_price ?? 0),
+      cost_price: hasVariants ? Number(fallback?.cost_price ?? 0) : Number(body.cost_price ?? 0),
+      selling_price: hasVariants ? Number(fallback?.selling_price ?? 0) : Number(body.selling_price ?? 0),
       minimum_stock: Number(body.minimum_stock ?? 0),
       image_url: String(body.image_url ?? "").trim() || null,
       visual_id: body.visual_id ? String(body.visual_id).trim() : null,
@@ -24,175 +48,166 @@ function normalize(body: any) {
       sales_scope: salesScope as "all" | "selected",
     },
     salesStoreIds,
+    hasVariants,
+    variants: hasVariants ? variants : [],
   };
 }
 
-function validateProduct(product: ReturnType<typeof normalize>["product"], storeIds: string[]) {
+function validateProduct(normalized: ReturnType<typeof normalize>) {
+  const { product, salesStoreIds, hasVariants, variants } = normalized;
   if (!product.name || !product.sku || !product.category_id || !product.brand) return "Nama, SKU, kategori, dan merek wajib diisi";
   if (![product.cost_price, product.selling_price, product.minimum_stock].every(Number.isFinite)) return "Harga atau minimum stok tidak valid";
   if (product.selling_price < 0 || product.cost_price < 0 || product.minimum_stock < 0) return "Harga dan minimum stok tidak boleh negatif";
-  if (product.sales_scope === "selected" && !storeIds.length) return "Pilih minimal satu cabang penjualan";
+  if (product.sales_scope === "selected" && !salesStoreIds.length) return "Pilih minimal satu cabang penjualan";
+  if (hasVariants) {
+    if (!variants.length) return "Tambahkan minimal satu varian";
+    if (!variants.some((variant) => variant.is_active)) return "Minimal satu varian harus aktif";
+    if (variants.some((variant) => !variant.name)) return "Nama setiap varian wajib diisi";
+    if (variants.some((variant) => ![variant.cost_price, variant.selling_price].every(Number.isFinite) || variant.cost_price < 0 || variant.selling_price < 0)) return "Harga varian tidak valid";
+    const names = variants.map((variant) => variant.name.toLowerCase());
+    if (new Set(names).size !== names.length) return "Nama varian tidak boleh sama";
+    const skus = variants.map((variant) => variant.sku).filter(Boolean);
+    if (new Set(skus).size !== skus.length) return "SKU varian tidak boleh sama";
+    const barcodes = variants.map((variant) => variant.barcode).filter(Boolean);
+    if (new Set(barcodes).size !== barcodes.length) return "Barcode varian tidak boleh sama";
+  }
   return null;
 }
 
 function databaseMessage(message: string) {
-  if (message.includes("duplicate key") || message.includes("products_sku")) return "SKU sudah digunakan produk lain.";
+  if (message.includes('relation "product_variants" does not exist')) return "Migration varian produk v2.6.0 belum dijalankan di Supabase.";
+  if (message.includes("products_sku")) return "SKU produk sudah digunakan.";
+  if (message.includes("product_variants_sku")) return "SKU varian sudah digunakan.";
+  if (message.includes("product_variants_barcode")) return "Barcode varian sudah digunakan.";
+  if (message.includes("duplicate key")) return "SKU, barcode, atau nama varian sudah digunakan.";
   if (message.includes("foreign key") && message.includes("category")) return "Kategori produk tidak valid.";
   if (message.includes("foreign key") && message.includes("visual")) return "Visual produk tidak valid.";
   return message;
 }
 
+async function saveVariants(admin: ReturnType<typeof createAdminClient>, productId: string, variants: NormalizedVariant[]) {
+  const { data: existing, error: existingError } = await admin.from("product_variants").select("id").eq("product_id", productId);
+  if (existingError) throw new Error(databaseMessage(existingError.message));
+  const existingIds = new Set((existing ?? []).map((row: any) => String(row.id)));
+  for (const variant of variants) {
+    if (variant.id && !existingIds.has(variant.id)) throw new Error("Salah satu varian tidak terhubung ke produk ini.");
+  }
+  const keptIds = new Set(variants.map((variant) => variant.id).filter(Boolean) as string[]);
+  const removedIds = [...existingIds].filter((id) => !keptIds.has(id));
+  if (removedIds.length) {
+    const { error } = await admin.from("product_variants").delete().eq("product_id", productId).in("id", removedIds);
+    if (error) throw new Error(databaseMessage(error.message));
+  }
+  for (const variant of variants) {
+    const row = {
+      product_id: productId,
+      name: variant.name,
+      sku: variant.sku,
+      barcode: variant.barcode,
+      cost_price: variant.cost_price,
+      selling_price: variant.selling_price,
+      is_active: variant.is_active,
+      sort_order: variant.sort_order,
+      updated_at: new Date().toISOString(),
+    };
+    if (variant.id) {
+      const { error } = await admin.from("product_variants").update(row).eq("id", variant.id).eq("product_id", productId);
+      if (error) throw new Error(databaseMessage(error.message));
+    } else {
+      const { error } = await admin.from("product_variants").insert(row);
+      if (error) throw new Error(databaseMessage(error.message));
+    }
+  }
+  const { data, error } = await admin.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").eq("product_id", productId).order("sort_order").order("name");
+  if (error) throw new Error(databaseMessage(error.message));
+  return (data ?? []).map((variant: any) => ({
+    ...variant,
+    id: String(variant.id), product_id: String(variant.product_id),
+    cost_price: Number(variant.cost_price ?? 0), selling_price: Number(variant.selling_price ?? 0),
+    is_active: Boolean(variant.is_active), sort_order: Number(variant.sort_order ?? 0),
+  }));
+}
+
 async function persistProduct(body: any, productId: string | null) {
-  const { product, salesStoreIds } = normalize(body);
-  const invalid = validateProduct(product, salesStoreIds);
+  const normalized = normalize(body);
+  const { product, salesStoreIds, variants } = normalized;
+  const invalid = validateProduct(normalized);
   if (invalid) return { ok: false as const, status: 400, error: invalid };
 
   if (isDemoMode || !hasSupabaseEnv) {
-    return {
-      ok: true as const,
-      status: productId ? 200 : 201,
-      product: { id: productId ?? crypto.randomUUID(), ...product, category_name: "Kategori demo", visual_name: null, sales_store_ids: salesStoreIds },
-      demo: true,
-    };
+    return { ok: true as const, status: productId ? 200 : 201, product: { id: productId ?? crypto.randomUUID(), ...product, category_name: "Kategori demo", visual_name: null, sales_store_ids: salesStoreIds, variants }, demo: true };
   }
 
   const auth = await requireAdmin();
   if (!auth.ok) return { ok: false as const, status: auth.status, error: auth.error };
-
   const admin = createAdminClient();
 
   const [{ data: category, error: categoryError }, visualResult] = await Promise.all([
     admin.from("categories").select("id,name,is_active").eq("id", product.category_id).maybeSingle(),
-    product.visual_id
-      ? admin.from("product_visuals").select("id,name,is_active").eq("id", product.visual_id).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    product.visual_id ? admin.from("product_visuals").select("id,name,is_active").eq("id", product.visual_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
-
   if (categoryError) return { ok: false as const, status: 400, error: databaseMessage(categoryError.message) };
-  if (!category?.id || category.is_active === false) return { ok: false as const, status: 400, error: "Kategori tidak ditemukan atau sudah nonaktif." };
+  if (!category?.id || category.is_active === false) return { ok: false as const, status: 400, error: "Kategori tidak ditemukan atau nonaktif." };
   if (visualResult.error) return { ok: false as const, status: 400, error: databaseMessage(visualResult.error.message) };
-  if (product.visual_id && (!visualResult.data?.id || visualResult.data.is_active === false)) {
-    return { ok: false as const, status: 400, error: "Visual produk tidak ditemukan atau sudah nonaktif." };
-  }
+  if (product.visual_id && (!visualResult.data?.id || visualResult.data.is_active === false)) return { ok: false as const, status: 400, error: "Visual produk tidak ditemukan atau nonaktif." };
 
   if (product.sales_scope === "selected") {
-    const { data: validStores, error: storesError } = await admin.from("stores").select("id").in("id", salesStoreIds).eq("is_active", true);
-    if (storesError) return { ok: false as const, status: 400, error: databaseMessage(storesError.message) };
-    if ((validStores ?? []).length !== salesStoreIds.length) return { ok: false as const, status: 400, error: "Salah satu cabang penjualan tidak valid atau nonaktif." };
+    const { data: validStores, error } = await admin.from("stores").select("id").in("id", salesStoreIds).eq("is_active", true);
+    if (error) return { ok: false as const, status: 400, error: databaseMessage(error.message) };
+    if ((validStores ?? []).length !== salesStoreIds.length) return { ok: false as const, status: 400, error: "Salah satu cabang penjualan tidak valid." };
   }
 
-  const productRow = {
-    ...product,
-    // Visual kode dan URL gambar tidak boleh aktif bersamaan.
-    image_url: product.visual_id ? null : product.image_url,
-    visual_id: product.image_url ? null : product.visual_id,
-    updated_at: new Date().toISOString(),
-  };
+  const productRow = { ...product, image_url: product.visual_id ? null : product.image_url, visual_id: product.image_url ? null : product.visual_id, updated_at: new Date().toISOString() };
+  const result = productId
+    ? await admin.from("products").update(productRow).eq("id", productId).select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").single()
+    : await admin.from("products").insert({ ...productRow, created_by: auth.user.id }).select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").single();
+  if (result.error) return { ok: false as const, status: 400, error: databaseMessage(result.error.message) };
+  if (!result.data?.id) return { ok: false as const, status: 500, error: "Produk gagal disimpan." };
+  const savedId = String(result.data.id);
 
-  let savedRow: any = null;
-  let saveError: { message: string } | null = null;
-  if (productId) {
-    const result = await admin
-      .from("products")
-      .update(productRow)
-      .eq("id", productId)
-      .select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope")
-      .single();
-    savedRow = result.data;
-    saveError = result.error;
-  } else {
-    const result = await admin
-      .from("products")
-      .insert({ ...productRow, created_by: auth.user.id })
-      .select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope")
-      .single();
-    savedRow = result.data;
-    saveError = result.error;
-  }
-
-  if (saveError) return { ok: false as const, status: 400, error: databaseMessage(saveError.message) };
-  if (!savedRow?.id) return { ok: false as const, status: 500, error: "Produk tidak ditemukan atau gagal disimpan." };
-
-  const savedId = String(savedRow.id);
-
-  const { error: clearSalesError } = await admin.from("product_store_sales").delete().eq("product_id", savedId);
-  if (clearSalesError) return { ok: false as const, status: 400, error: databaseMessage(clearSalesError.message) };
-
-  if (product.sales_scope === "selected") {
-    const { error: salesError } = await admin.from("product_store_sales").insert(
-      salesStoreIds.map((storeId) => ({ product_id: savedId, store_id: storeId })),
-    );
-    if (salesError) return { ok: false as const, status: 400, error: databaseMessage(salesError.message) };
-  }
-
-  if (!productId) {
-    const { data: stores, error: inventoryStoresError } = await admin.from("stores").select("id").eq("is_active", true);
-    if (inventoryStoresError) return { ok: false as const, status: 400, error: databaseMessage(inventoryStoresError.message) };
-    if (stores?.length) {
-      const { error: inventoryError } = await admin.from("store_inventory").upsert(
-        stores.map((store) => ({ store_id: store.id, product_id: savedId, quantity_on_hand: 0, quantity_reserved: 0 })),
-        { onConflict: "store_id,product_id", ignoreDuplicates: true },
-      );
-      if (inventoryError) return { ok: false as const, status: 400, error: databaseMessage(inventoryError.message) };
+  try {
+    const savedVariants = await saveVariants(admin, savedId, variants);
+    const { error: clearSalesError } = await admin.from("product_store_sales").delete().eq("product_id", savedId);
+    if (clearSalesError) throw new Error(databaseMessage(clearSalesError.message));
+    if (product.sales_scope === "selected") {
+      const { error } = await admin.from("product_store_sales").insert(salesStoreIds.map((storeId) => ({ product_id: savedId, store_id: storeId })));
+      if (error) throw new Error(databaseMessage(error.message));
     }
+    if (!productId) {
+      const { data: stores, error } = await admin.from("stores").select("id").eq("is_active", true);
+      if (error) throw new Error(databaseMessage(error.message));
+      if (stores?.length) {
+        const { error: inventoryError } = await admin.from("store_inventory").upsert(stores.map((store) => ({ store_id: store.id, product_id: savedId, quantity_on_hand: 0, quantity_reserved: 0 })), { onConflict: "store_id,product_id", ignoreDuplicates: true });
+        if (inventoryError) throw new Error(databaseMessage(inventoryError.message));
+      }
+    }
+    const [{ data: verified, error: verifyError }, { data: savedSales, error: savedSalesError }] = await Promise.all([
+      admin.from("products").select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("id", savedId).single(),
+      admin.from("product_store_sales").select("store_id").eq("product_id", savedId).order("store_id"),
+    ]);
+    if (verifyError || !verified) throw new Error(databaseMessage(verifyError?.message ?? "Produk gagal diverifikasi."));
+    if (savedSalesError) throw new Error(databaseMessage(savedSalesError.message));
+    if (String(verified.category_id ?? "") !== product.category_id) throw new Error("Kategori gagal tersimpan.");
+    if (String(verified.brand ?? "").trim() !== product.brand) throw new Error("Merek gagal tersimpan.");
+    if ((verified.visual_id ?? null) !== (productRow.visual_id ?? null)) throw new Error("Visual kode gagal tersimpan.");
+    if (savedVariants.length !== variants.length) throw new Error("Jumlah varian yang tersimpan tidak lengkap.");
+
+    const saved = { ...verified, category_name: category.name, visual_name: visualResult.data?.name ?? null, sales_store_ids: (savedSales ?? []).map((row) => String(row.store_id)), variants: savedVariants };
+    for (const path of ["/products", "/inventory", "/dashboard", "/pos"]) revalidatePath(path, "page");
+    return { ok: true as const, status: productId ? 200 : 201, product: saved, demo: false };
+  } catch (error) {
+    return { ok: false as const, status: 400, error: error instanceof Error ? error.message : "Gagal menyimpan varian produk" };
   }
-
-  // Read back with the service-role client. This verifies the actual database row,
-  // independent of RLS and column-level grants used by browser sessions.
-  const [{ data: verified, error: verifyError }, { data: savedSales, error: savedSalesError }] = await Promise.all([
-    admin.from("products").select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("id", savedId).single(),
-    admin.from("product_store_sales").select("store_id").eq("product_id", savedId).order("store_id"),
-  ]);
-
-  if (verifyError || !verified) return { ok: false as const, status: 500, error: databaseMessage(verifyError?.message ?? "Produk gagal dibaca kembali setelah disimpan.") };
-  if (savedSalesError) return { ok: false as const, status: 500, error: databaseMessage(savedSalesError.message) };
-
-  const expectedImage = productRow.image_url ?? null;
-  const expectedVisual = productRow.visual_id ?? null;
-  if (String(verified.category_id ?? "") !== product.category_id) return { ok: false as const, status: 500, error: "Kategori gagal tersimpan ke database." };
-  if (String(verified.brand ?? "").trim() !== product.brand) return { ok: false as const, status: 500, error: "Merek gagal tersimpan ke database." };
-  if ((verified.visual_id ?? null) !== expectedVisual) return { ok: false as const, status: 500, error: "Visual kode gagal tersimpan ke database." };
-  if ((verified.image_url ?? null) !== expectedImage) return { ok: false as const, status: 500, error: "Sumber gambar gagal tersimpan ke database." };
-
-  const saved = {
-    ...verified,
-    category_name: category.name,
-    visual_name: visualResult.data?.name ?? null,
-    sales_store_ids: (savedSales ?? []).map((row) => String(row.store_id)),
-  };
-
-  revalidatePath("/products", "page");
-  revalidatePath("/inventory", "page");
-  revalidatePath("/dashboard", "page");
-  revalidatePath("/pos", "page");
-  return { ok: true as const, status: productId ? 200 : 201, product: saved, demo: false };
 }
 
-function json(body: unknown, status = 200) {
-  return NextResponse.json(body, {
-    status,
-    headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" },
-  });
-}
+function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } }); }
 
 export async function POST(request: Request) {
-  try {
-    const result = await persistProduct(await request.json(), null);
-    if (!result.ok) return json({ error: result.error }, result.status);
-    return json({ product: result.product, ...(result.demo ? { demo: true } : {}) }, result.status);
-  } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Gagal menyimpan produk" }, 500);
-  }
+  try { const result = await persistProduct(await request.json(), null); return result.ok ? json({ product: result.product, ...(result.demo ? { demo: true } : {}) }, result.status) : json({ error: result.error }, result.status); }
+  catch (error) { return json({ error: error instanceof Error ? error.message : "Gagal menyimpan produk" }, 500); }
 }
 
 export async function PATCH(request: Request) {
-  try {
-    const body = await request.json();
-    if (!body.id) return json({ error: "ID produk tidak ditemukan" }, 400);
-    const result = await persistProduct(body, String(body.id));
-    if (!result.ok) return json({ error: result.error }, result.status);
-    return json({ product: result.product, ...(result.demo ? { demo: true } : {}) }, result.status);
-  } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Gagal memperbarui produk" }, 500);
-  }
+  try { const body = await request.json(); if (!body.id) return json({ error: "ID produk tidak ditemukan" }, 400); const result = await persistProduct(body, String(body.id)); return result.ok ? json({ product: result.product, ...(result.demo ? { demo: true } : {}) }, result.status) : json({ error: result.error }, result.status); }
+  catch (error) { return json({ error: error instanceof Error ? error.message : "Gagal memperbarui produk" }, 500); }
 }

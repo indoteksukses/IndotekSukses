@@ -40,15 +40,16 @@ function permittedStoreIds(profile: UserProfile) {
   return ids;
 }
 
-async function loadProductMetadata(sessionClient?: any) {
+async function loadProductMetadata(sessionClient?: any, includeVariantCosts = false) {
   let reader = sessionClient;
   try { reader = createAdminClient(); } catch { /* Fall back to the authenticated server client. */ }
   if (!reader) reader = await createClient();
-  const [productsResult, categoriesResult, visualsResult, salesResult] = await Promise.all([
+  const [productsResult, categoriesResult, visualsResult, salesResult, variantsResult] = await Promise.all([
     reader.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("is_active", true),
     reader.from("categories").select("id,name,is_active"),
     reader.from("product_visuals").select("id,name,code,is_builtin,is_active"),
     reader.from("product_store_sales").select("product_id,store_id"),
+    reader.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").order("sort_order").order("name"),
   ]);
 
   const categories = new Map<string, any>();
@@ -59,6 +60,17 @@ async function loadProductMetadata(sessionClient?: any) {
   for (const row of (salesResult.data ?? []) as any[]) {
     const productId = String(row.product_id);
     salesByProduct.set(productId, [...(salesByProduct.get(productId) ?? []), String(row.store_id)]);
+  }
+
+  const variantsByProduct = new Map<string, any[]>();
+  for (const row of (variantsResult.data ?? []) as any[]) {
+    const productId = String(row.product_id);
+    variantsByProduct.set(productId, [...(variantsByProduct.get(productId) ?? []), {
+      id: String(row.id), product_id: productId, name: String(row.name),
+      sku: row.sku ? String(row.sku) : null, barcode: row.barcode ? String(row.barcode) : null,
+      cost_price: includeVariantCosts ? Number(row.cost_price ?? 0) : 0, selling_price: Number(row.selling_price ?? 0),
+      is_active: Boolean(row.is_active), sort_order: Number(row.sort_order ?? 0),
+    }]);
   }
 
   const metadata = new Map<string, any>();
@@ -76,6 +88,7 @@ async function loadProductMetadata(sessionClient?: any) {
         is_active: Boolean(visual.is_active),
       } : null,
       sales_store_ids: salesByProduct.get(String(row.id)) ?? [],
+      variants: variantsByProduct.get(String(row.id)) ?? [],
     });
   }
   return metadata;
@@ -112,11 +125,12 @@ export async function getNetworkInventoryStores(): Promise<Store[]> {
 
 export async function getProductsWithNetworkStocks(): Promise<Product[]> {
   if (demo) return demoProducts;
-  const supabase = await createClient();
+  const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
+  const canViewCosts = profile.role === "owner" || profile.role === "admin";
   const [{ data: catalog, error }, { data: financials }, meta] = await Promise.all([
     supabase.rpc("inventory_network_snapshot"),
     supabase.rpc("admin_product_financials"),
-    loadProductMetadata(supabase),
+    loadProductMetadata(supabase, canViewCosts),
   ]);
   if (error || !catalog) return [];
   const finance = new Map<string, number>();
@@ -144,6 +158,7 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
       sales_store_ids: productMeta?.sales_store_ids ?? [],
+      variants: productMeta?.variants ?? [],
       stocks: {},
       total_stock: 0,
     };
@@ -188,7 +203,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
   const [{ data: catalog, error }, { data: financials }, meta] = await Promise.all([
     supabase.from("inventory_overview").select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status"),
     supabase.rpc("admin_product_financials"),
-    loadProductMetadata(supabase),
+    loadProductMetadata(supabase, profile.role === "owner" || profile.role === "admin"),
   ]);
 
   if (error || !catalog) return [];
@@ -219,6 +234,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
       sales_store_ids: productMeta?.sales_store_ids ?? [],
+      variants: productMeta?.variants ?? [],
       stocks: {},
       total_stock: 0,
     };
@@ -403,7 +419,7 @@ export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> 
   const supabase = await createClient();
   const { data: sale, error } = await supabase
     .from("sales")
-    .select("id,invoice_number,customer_name,subtotal,discount,tax,grand_total,status,notes,completed_at,stores(code,name,address,phone,image_url),profiles!sales_cashier_id_fkey(full_name),sale_items(id,product_id,product_name_snapshot,sku_snapshot,quantity,selling_price_snapshot,discount,subtotal),payments(id,method,amount,reference_number)")
+    .select("id,invoice_number,customer_name,subtotal,discount,tax,grand_total,status,notes,completed_at,stores(code,name,address,phone,image_url),profiles!sales_cashier_id_fkey(full_name),sale_items(id,product_id,variant_id,variant_name_snapshot,variant_sku_snapshot,product_name_snapshot,sku_snapshot,quantity,selling_price_snapshot,discount,subtotal),payments(id,method,amount,reference_number)")
     .eq("id", saleId)
     .maybeSingle();
   if (error || !sale) return null;
@@ -426,7 +442,10 @@ export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> 
     customer_name: row.customer_name,
     notes: row.notes,
     items: (row.sale_items ?? []).map((item: any) => ({
-      id: String(item.id), product_id: String(item.product_id), name: String(item.product_name_snapshot), sku: String(item.sku_snapshot),
+      id: String(item.id), product_id: String(item.product_id), variant_id: item.variant_id ? String(item.variant_id) : null,
+      variant_name: item.variant_name_snapshot ? String(item.variant_name_snapshot) : null,
+      variant_sku: item.variant_sku_snapshot ? String(item.variant_sku_snapshot) : null,
+      name: String(item.product_name_snapshot), sku: String(item.sku_snapshot),
       quantity: Number(item.quantity ?? 0), unit_price: Number(item.selling_price_snapshot ?? 0), discount: Number(item.discount ?? 0), subtotal: Number(item.subtotal ?? 0),
     })),
     payments: (row.payments ?? []).map((payment: any) => ({ id: String(payment.id), method: String(payment.method), amount: Number(payment.amount ?? 0), reference_number: payment.reference_number })),

@@ -48,6 +48,18 @@ export type ProductVisual = {
   is_active: boolean;
 };
 
+export type ProductVariant = {
+  id: string;
+  product_id: string;
+  name: string;
+  sku?: string | null;
+  barcode?: string | null;
+  cost_price: number;
+  selling_price: number;
+  is_active: boolean;
+  sort_order: number;
+};
+
 export type Product = {
   id: string;
   sku: string;
@@ -69,10 +81,14 @@ export type Product = {
   stocks: Record<string, StockLevel>;
   total_stock: number;
   selected_stock?: number;
+  variants?: ProductVariant[];
 };
 
 export type CartItem = {
+  key: string;
   product_id: string;
+  variant_id?: string | null;
+  variant_name?: string | null;
   sku: string;
   name: string;
   price: number;
@@ -147,6 +163,9 @@ export type FinancialReport = {
 export type SaleItemDetail = {
   id: string;
   product_id: string;
+  variant_id?: string | null;
+  variant_name?: string | null;
+  variant_sku?: string | null;
   name: string;
   sku: string;
   quantity: number;
