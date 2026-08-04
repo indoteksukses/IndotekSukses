@@ -17,13 +17,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const fullName = String(body.full_name ?? "").trim();
     const email = String(body.email ?? "").trim().toLowerCase();
+    const username = String(body.username ?? "").trim().toLowerCase();
     const password = String(body.password ?? "");
     const companyName = String(body.company_name ?? "Indotek Sukses").trim();
     const storeName = String(body.store_name ?? "").trim();
     const storeCode = String(body.store_code ?? "IDS-01").trim().toUpperCase();
 
-    if (!fullName || !email || password.length < 8 || !storeName || !storeCode) {
-      return NextResponse.json({ error: "Lengkapi data. Password minimal 8 karakter." }, { status: 400 });
+    if (!fullName || !email || !/^[a-z0-9._-]{3,32}$/.test(username) || password.length < 8 || !storeName || !storeCode) {
+      return NextResponse.json({ error: "Lengkapi data. Username 3–32 karakter dan password minimal 8 karakter." }, { status: 400 });
     }
 
     const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "owner");
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName },
+      user_metadata: { full_name: fullName, username },
     });
     if (authError || !authData.user) throw new Error(authError?.message ?? "Gagal membuat owner");
 
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
 
     const { error: profileError } = await admin.from("profiles").update({
       full_name: fullName,
+      username,
       email,
       role: "owner",
       primary_store_id: storeId,
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
       receipt_footer: `Terima kasih telah berbelanja di ${companyName}.`,
     });
 
-    return NextResponse.json({ success: true, email, store_id: storeId }, { status: 201 });
+    return NextResponse.json({ success: true, username, email, store_id: storeId }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Setup gagal" }, { status: 500 });
   }

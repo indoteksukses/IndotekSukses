@@ -34,7 +34,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && path === "/login") {
+  let activeProfile = true;
+  if (user && !demo) {
+    const { data: profile } = await supabase.from("profiles").select("is_active,deleted_at").eq("id", user.id).maybeSingle();
+    activeProfile = Boolean(profile?.is_active) && !profile?.deleted_at;
+    if (!activeProfile) {
+      await supabase.auth.signOut();
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.searchParams.set("error", "Akun sudah dinonaktifkan. Hubungi owner.");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (user && activeProfile && path === "/login") {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     return NextResponse.redirect(dashboardUrl);

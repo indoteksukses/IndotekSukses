@@ -1,16 +1,13 @@
-Indotek Sukses v2.4.4
-
-Indotek Sukses v2.4.3
-
-# Deployment Checklist v2.4.2
+# Deployment Checklist v2.5.0
 
 - [ ] Backup database Supabase.
-- [ ] Jalankan migration `202608030009_purchase_listing_product_branches.sql`.
-- [ ] Pastikan SQL selesai tanpa error.
-- [ ] Salin source v2.4.2 ke repository GitHub.
-- [ ] Commit dan Push Origin.
-- [ ] Pastikan Vercel berstatus Ready.
-- [ ] Buat PO uji dan pastikan langsung muncul pada daftar.
-- [ ] Edit satu produk menjadi Cabang Tertentu.
-- [ ] Pastikan produk hanya muncul di kasir cabang yang dipilih.
-- [ ] Periksa dua tombol dashboard pada layar HP.
+- [ ] Jalankan migration `202608040010_professional_accounts_visual_import.sql`.
+- [ ] Hasil verifikasi: kategori kosong 0, merek kosong 0.
+- [ ] Push source v2.5.0 ke GitHub.
+- [ ] Tunggu Vercel berstatus Ready.
+- [ ] Logout, hard refresh, lalu login dengan username dan password.
+- [ ] Uji perubahan visual produk.
+- [ ] Uji tambah karyawan dengan username.
+- [ ] Uji reset password karyawan.
+- [ ] Uji hapus karyawan dan pastikan akun tidak dapat login.
+- [ ] Uji edit produk dan pastikan kategori serta merek wajib terisi.

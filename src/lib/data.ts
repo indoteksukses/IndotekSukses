@@ -12,7 +12,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const [{ data: profile }, { data: access }] = await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active,avatar_key").eq("id", user.id).single(),
+    supabase.from("profiles").select("id,full_name,email,username,phone,role,primary_store_id,is_active,avatar_key,deleted_at").eq("id", user.id).single(),
     supabase.from("user_store_access").select("store_id").eq("user_id", user.id),
   ]);
   if (!profile) {
@@ -20,6 +20,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
       id: user.id,
       full_name: String(user.user_metadata?.full_name ?? user.email ?? "Pengguna"),
       email: user.email ?? null,
+      username: user.email ? user.email.split("@")[0] : null,
       phone: null,
       role: "cashier",
       primary_store_id: null,
@@ -405,10 +406,10 @@ export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> 
 }
 
 export async function getUsers(): Promise<UserProfile[]> {
-  if (demo) return [demoProfile, { id: "u2", full_name: "Rina Kasir", email: "rina@example.com", phone: null, role: "cashier", primary_store_id: demoStores[0].id, is_active: true, store_ids: [demoStores[0].id] } as UserProfile];
+  if (demo) return [demoProfile, { id: "u2", full_name: "Rina Kasir", email: "rina@example.com", username: "rina", phone: null, role: "cashier", primary_store_id: demoStores[0].id, is_active: true, store_ids: [demoStores[0].id] } as UserProfile];
   const supabase = await createClient();
   const [{ data: profiles }, { data: access }] = await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,phone,role,primary_store_id,is_active,avatar_key").order("full_name"),
+    supabase.from("profiles").select("id,full_name,email,username,phone,role,primary_store_id,is_active,avatar_key,deleted_at").is("deleted_at", null).order("full_name"),
     supabase.from("user_store_access").select("user_id,store_id"),
   ]);
   return (profiles ?? []).map((profile: any) => ({ ...profile, store_ids: (access ?? []).filter((row: any) => row.user_id === profile.id).map((row: any) => row.store_id) })) as UserProfile[];

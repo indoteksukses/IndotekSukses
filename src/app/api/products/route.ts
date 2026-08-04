@@ -11,14 +11,14 @@ function normalize(body: any) {
       sku: String(body.sku ?? "").trim().toUpperCase(),
       barcode: String(body.barcode ?? "").trim() || null,
       name: String(body.name ?? "").trim(),
-      category_id: body.category_id || null,
-      brand: String(body.brand ?? "").trim() || null,
+      category_id: String(body.category_id ?? "").trim(),
+      brand: String(body.brand ?? "").trim() || "Tanpa Merek",
       unit: String(body.unit ?? "pcs"),
       cost_price: Number(body.cost_price ?? 0),
       selling_price: Number(body.selling_price ?? 0),
       minimum_stock: Number(body.minimum_stock ?? 0),
       image_url: String(body.image_url ?? "").trim() || null,
-      visual_id: body.visual_id || null,
+      visual_id: body.visual_id ? String(body.visual_id) : null,
       is_active: body.is_active !== false,
       sales_scope: salesScope,
     },
@@ -26,11 +26,19 @@ function normalize(body: any) {
   };
 }
 
-async function validateStores(admin: ReturnType<typeof createAdminClient>, salesScope: string, storeIds: string[]) {
-  if (salesScope !== "selected") return true;
-  if (!storeIds.length) return false;
-  const { data, error } = await admin.from("stores").select("id").in("id", storeIds).eq("is_active", true);
-  return !error && (data ?? []).length === storeIds.length;
+async function validateReferences(admin: ReturnType<typeof createAdminClient>, product: ReturnType<typeof normalize>["product"], storeIds: string[]) {
+  const { data: category } = await admin.from("categories").select("id").eq("id", product.category_id).eq("is_active", true).maybeSingle();
+  if (!category) return "Kategori tidak ditemukan atau sudah nonaktif";
+  if (product.visual_id) {
+    const { data: visual } = await admin.from("product_visuals").select("id").eq("id", product.visual_id).eq("is_active", true).maybeSingle();
+    if (!visual) return "Visual produk tidak ditemukan atau sudah nonaktif";
+  }
+  if (product.sales_scope === "selected") {
+    if (!storeIds.length) return "Pilih minimal satu cabang penjualan";
+    const { data: storeRows, error } = await admin.from("stores").select("id").in("id", storeIds).eq("is_active", true);
+    if (error || (storeRows ?? []).length !== storeIds.length) return "Cabang penjualan tidak valid atau sudah nonaktif";
+  }
+  return null;
 }
 
 async function saveAvailability(admin: ReturnType<typeof createAdminClient>, productId: string, salesScope: string, storeIds: string[]) {
@@ -42,19 +50,27 @@ async function saveAvailability(admin: ReturnType<typeof createAdminClient>, pro
   }
 }
 
+function validateProduct(product: ReturnType<typeof normalize>["product"]) {
+  if (!product.name || !product.sku || !product.category_id || !product.brand) return "Nama, SKU, kategori, dan merek wajib diisi";
+  if (![product.cost_price, product.selling_price, product.minimum_stock].every(Number.isFinite)) return "Harga atau minimum stok tidak valid";
+  if (product.selling_price < 0 || product.cost_price < 0 || product.minimum_stock < 0) return "Harga dan minimum stok tidak boleh negatif";
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { product, salesStoreIds } = normalize(body);
-    if (!product.name || !product.sku || product.selling_price < 0 || product.cost_price < 0) return NextResponse.json({ error: "Data produk tidak valid" }, { status: 400 });
-    if (product.sales_scope === "selected" && !salesStoreIds.length) return NextResponse.json({ error: "Pilih minimal satu cabang penjualan" }, { status: 400 });
+    const invalid = validateProduct(product);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
     const productId = crypto.randomUUID();
     if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ product: { id: productId, ...product, sales_store_ids: salesStoreIds }, demo: true }, { status: 201 });
 
     const auth = await requireAdmin();
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const admin = createAdminClient();
-    if (!(await validateStores(admin, product.sales_scope, salesStoreIds))) return NextResponse.json({ error: "Cabang penjualan tidak valid atau sudah nonaktif" }, { status: 400 });
+    const referenceError = await validateReferences(admin, product, salesStoreIds);
+    if (referenceError) return NextResponse.json({ error: referenceError }, { status: 400 });
 
     const { error } = await admin.from("products").insert({ id: productId, ...product, created_by: auth.user.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -75,19 +91,21 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     if (!body.id) return NextResponse.json({ error: "ID produk tidak ditemukan" }, { status: 400 });
     const { product, salesStoreIds } = normalize(body);
-    if (!product.name || !product.sku || product.selling_price < 0 || product.cost_price < 0) return NextResponse.json({ error: "Nama, SKU, dan harga produk tidak valid" }, { status: 400 });
-    if (product.sales_scope === "selected" && !salesStoreIds.length) return NextResponse.json({ error: "Pilih minimal satu cabang penjualan" }, { status: 400 });
+    const invalid = validateProduct(product);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
     if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ product: { id: body.id, ...product, sales_store_ids: salesStoreIds }, demo: true });
 
     const auth = await requireAdmin();
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const admin = createAdminClient();
-    if (!(await validateStores(admin, product.sales_scope, salesStoreIds))) return NextResponse.json({ error: "Cabang penjualan tidak valid atau sudah nonaktif" }, { status: 400 });
+    const referenceError = await validateReferences(admin, product, salesStoreIds);
+    if (referenceError) return NextResponse.json({ error: referenceError }, { status: 400 });
 
-    const { error } = await admin.from("products").update(product).eq("id", body.id);
+    const { data: updated, error } = await admin.from("products").update(product).eq("id", body.id).select("id,visual_id,image_url,category_id,brand").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (!updated) return NextResponse.json({ error: "Produk tidak ditemukan" }, { status: 404 });
     await saveAvailability(admin, String(body.id), product.sales_scope, salesStoreIds);
-    return NextResponse.json({ product: { id: body.id, ...product, sales_store_ids: salesStoreIds } });
+    return NextResponse.json({ product: { id: body.id, ...product, ...updated, sales_store_ids: salesStoreIds } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Gagal memperbarui produk" }, { status: 500 });
   }

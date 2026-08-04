@@ -1,13 +1,20 @@
-Indotek Sukses v2.4.4
+# Release Notes v2.5.0
 
-Indotek Sukses v2.4.3
+## Produk
+- Sumber visual eksplisit dan konsisten.
+- Fallback otomatis untuk gambar gagal dimuat.
+- Kategori dan merek diwajibkan oleh UI, API, dan database.
+- Pemetaan 146 produk MESIN & ALAT LISTRIK diperbaiki berdasarkan SKU.
+- Helper import SQL memastikan kategori dibuat dan `category_id` terhubung.
 
-# Release Notes v2.4.2
+## Karyawan & akses
+- Login username atau email.
+- Username unik untuk seluruh akun aktif.
+- Owner dapat melihat username dan email.
+- Owner dapat mengganti username/email dan mereset password.
+- Penghapusan karyawan memakai soft delete dan ban akun agar histori aman.
+- Email akun yang dihapus dibebaskan untuk digunakan kembali.
 
-- Memperbaiki PO baru agar tersimpan dan langsung muncul pada daftar Pembelian.
-- Menambahkan RPC daftar PO yang stabil dan lengkap dengan item serta alokasi cabang.
-- Memaksa halaman Pembelian menggunakan data terbaru tanpa cache.
-- Menambahkan pengaturan produk dijual di semua cabang atau cabang tertentu.
-- Menyembunyikan produk dari kasir cabang yang tidak dipilih.
-- Menambahkan validasi server agar produk terlarang tidak dapat dijual melalui manipulasi request.
-- Merapikan tombol Unduh Laporan dan Buka Kasir agar tetap berdampingan pada HP.
+## Keamanan
+- Password lama tidak ditampilkan karena tidak tersimpan dalam bentuk plaintext.
+- Akun nonaktif/terhapus otomatis dikeluarkan dari sesi.

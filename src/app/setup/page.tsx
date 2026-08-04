@@ -49,8 +49,9 @@ export default function SetupPage() {
         </div></div>
         <div className="form-section"><h3>Owner</h3><div className="form-grid">
           <label>Nama lengkap<input name="full_name" placeholder="Nama owner" required/></label>
+          <label>Username login<input name="username" minLength={3} maxLength={32} pattern="[A-Za-z0-9._-]+" placeholder="owner" required/></label>
           <label>Email login<input name="email" type="email" placeholder="admin@indoteksukses.id" required/></label>
-          <label className="span-2">Password<input name="password" type="password" minLength={8} placeholder="Minimal 8 karakter" required/></label>
+          <label>Password<input name="password" type="password" minLength={8} placeholder="Minimal 8 karakter" required/></label>
         </div></div>
         <div className="form-section"><h3>Toko pertama</h3><div className="form-grid">
           <label>Nama toko<input name="store_name" placeholder="Indotek Sukses Pusat" required/></label>

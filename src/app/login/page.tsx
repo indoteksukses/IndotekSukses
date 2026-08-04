@@ -17,8 +17,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <div className="mobile-login-logo">{mark}<strong>{settings.company_name}</strong></div>
           <h2>Masuk ke sistem</h2><p>Gunakan akun yang telah didaftarkan oleh owner atau admin.</p>
           {params.error ? <div className="alert error">{params.error}</div> : null}
-          <label>Email<input name="email" type="email" placeholder="admin@indoteksukses.id" required /></label>
-          <label>Password<input name="password" type="password" placeholder="Minimal 8 karakter" required /></label>
+          <label>Username atau email<input name="identifier" type="text" autoCapitalize="none" autoComplete="username" placeholder="owner atau admin@indoteksukses.id" required /></label>
+          <label>Password<input name="password" type="password" autoComplete="current-password" placeholder="Masukkan password" required /></label>
           <button className="button primary login-button" type="submit">Masuk</button>
           <div className="login-help"><span>Belum membuat owner pertama?</span><Link href="/setup">Jalankan setup awal</Link></div>
         </form>

@@ -1,18 +1,35 @@
-Indotek Sukses v2.4.4
+# Indotek Sukses v2.5.0
 
-Indotek Sukses v2.4.3
+Versi profesional untuk sistem multi-cabang, stok, kasir, pembelian, transfer, dan manajemen karyawan.
 
-# Indotek Sukses v2.4.2
+## Peningkatan v2.5.0
 
-Versi perbaikan manajemen pembelian dan produk per cabang.
+- Visual produk mengikuti sumber yang dipilih: URL gambar, visual kode, atau visual umum.
+- Gambar URL yang rusak otomatis memakai visual cadangan.
+- Produk wajib memiliki kategori dan merek.
+- Migration memperbaiki kategori dan merek produk MESIN & ALAT LISTRIK yang sudah terlanjur diimpor.
+- Import SQL baru menggunakan `public.import_product_catalog(jsonb)` agar `category_id` dan `brand` selalu terisi.
+- Login menggunakan username atau email.
+- Owner dapat melihat username/email dan mereset password karyawan.
+- Karyawan dapat dihapus secara aman tanpa merusak riwayat transaksi.
 
-## Upgrade dari v2.4.1
+## Upgrade dari v2.4.4
 
-1. Backup database Supabase.
-2. Jalankan `supabase/migrations/202608030009_purchase_listing_product_branches.sql` melalui SQL Editor.
-3. Ganti source lama dengan source v2.4.2.
-4. Commit dan push ke GitHub.
-5. Tunggu Vercel berstatus **Ready**.
-6. Logout, login kembali, lalu lakukan hard refresh.
+1. Backup Supabase.
+2. Jalankan `supabase/migrations/202608040010_professional_accounts_visual_import.sql`.
+3. Pastikan hasil akhir menunjukkan `category_missing = 0` dan `brand_missing = 0`.
+4. Deploy source ke Vercel.
+5. Logout dan login kembali.
 
-Migration wajib dijalankan sebelum fitur produk per cabang digunakan.
+## Import produk melalui SQL
+
+Gunakan salah satu file berikut:
+
+- `supabase/IMPORT_PRODUCTS_WITH_CATEGORY_BRAND.sql` sebagai template.
+- `supabase/IMPORT_MESIN_ALAT_LISTRIK_v2.5.0.sql` untuk batch MESIN & ALAT LISTRIK.
+
+Setiap baris wajib memiliki `sku`, `name`, `category`, dan `brand`. Gunakan `Tanpa Merek` apabila merek belum diketahui.
+
+## Keamanan password
+
+Password Supabase disimpan sebagai hash satu arah. Password lama tidak dapat dan tidak boleh ditampilkan. Owner dapat menetapkan password baru melalui menu Karyawan & Akses.

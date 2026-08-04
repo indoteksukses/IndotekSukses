@@ -84,11 +84,13 @@ export type UserProfile = {
   id: string;
   full_name: string;
   email?: string | null;
+  username?: string | null;
   phone?: string | null;
   role: UserRole;
   primary_store_id?: string | null;
   is_active: boolean;
   avatar_key?: string;
+  deleted_at?: string | null;
   store_ids?: string[];
 };
 

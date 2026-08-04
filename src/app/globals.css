@@ -594,3 +594,35 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
 .operational-modal .product-combobox-menu{z-index:90}
 @media(max-width:900px){.section-card-header-actions{width:100%;justify-content:space-between}.section-card-header-actions .compact-button{margin-left:auto}}
 @media(max-width:780px){.section-card-header-actions{width:100%}.section-card-header-actions .button.compact-button{width:100%;justify-content:center}.document-add-line{min-height:42px}}
+
+/* ================================================================
+   Indotek Sukses v2.5.0 — visual source, employee credentials
+   ================================================================ */
+.product-visual-source-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.product-visual-source-tabs button{min-height:39px;border:1px solid #b9c8da;border-radius:9px;background:#fff;color:#526277;display:flex;align-items:center;justify-content:center;gap:6px;font-size:9px;font-weight:850;cursor:pointer}
+.product-visual-source-tabs button.active{border-color:var(--blue);background:var(--blue);color:#fff;box-shadow:0 5px 12px rgba(11,76,194,.16)}
+.password-field-wrap{position:relative;display:flex;align-items:center}
+.password-field-wrap input{width:100%;padding-right:42px!important}
+.password-field-wrap button{position:absolute;right:5px;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.password-field-wrap button:hover{background:#eef3f8;color:var(--ink)}
+.credential-security-note,.credential-security-banner{border:1px solid #bdd2ee;border-radius:11px;background:#edf5ff;color:#194d91;display:flex;align-items:flex-start;gap:10px;padding:11px 13px}
+.credential-security-note>div,.credential-security-banner>div{display:flex;flex-direction:column;gap:3px}
+.credential-security-note strong,.credential-security-banner strong{font-size:10px}
+.credential-security-note span,.credential-security-banner span{font-size:9px;line-height:1.5;color:#526f96}
+.credential-security-banner{margin-bottom:14px}
+.employee-login-cell{display:flex;flex-direction:column;gap:3px;min-width:170px}
+.employee-login-cell strong{font-size:11px;color:var(--blue)}
+.employee-login-cell span{font-size:9px;color:var(--ink)}
+.employee-login-cell small{font-size:8px;color:var(--muted)}
+.employee-modal{width:min(760px,calc(100vw - 24px))}
+.employee-modal-actions{display:flex!important;justify-content:space-between!important;gap:12px}
+.employee-modal-actions>div{display:flex;gap:8px}
+.employee-modal-actions .button.danger{margin-right:auto}
+@media(max-width:720px){
+  .product-visual-source-tabs{grid-template-columns:1fr}
+  .employee-modal-actions{display:grid!important;grid-template-columns:1fr 1fr}
+  .employee-modal-actions>.button.danger{grid-column:1/-1;width:100%}
+  .employee-modal-actions>div{display:grid;grid-template-columns:1fr 1fr;grid-column:1/-1}
+  .employee-modal-actions>div .button{width:100%}
+  .credential-security-banner{padding:10px}
+}

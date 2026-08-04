@@ -1,11 +1,12 @@
-Indotek Sukses v2.4.4
+# Verification v2.5.0
 
-Indotek Sukses v2.4.3
+Pemeriksaan yang dilakukan:
 
-# Verification v2.4.2
+- Syntax transpilation untuk seluruh file TypeScript/TSX yang diubah: lulus.
+- Seluruh import lokal `@/` ditemukan: lulus.
+- Keseimbangan kurung CSS: lulus.
+- Migration memiliki 146 pemetaan SKU kategori/merek.
+- `FRESH_INSTALL.sql` memuat migration v2.5.0 satu kali.
+- Template import JSON berisi kategori dan merek per produk.
 
-- Pemeriksaan sintaks TypeScript/TSX: 96 file, lulus.
-- Pemeriksaan import lokal: lulus.
-- Keseimbangan CSS: lulus.
-- Migration baru tidak menghapus produk, stok, transaksi, supplier, atau PO lama.
-- Build produksi final harus dikonfirmasi melalui deployment Vercel karena dependency npm tidak tersedia pada lingkungan pembuatan paket.
+Build penuh belum dapat dijalankan di lingkungan pembuatan paket karena registry internal tidak menyediakan `@supabase/ssr@0.12.3`. Validasi produksi terakhir dilakukan melalui Vercel setelah deployment.
