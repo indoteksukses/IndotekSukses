@@ -1,3 +1,10 @@
+# Verification v2.5.1
+
+- 96 TypeScript/TSX files passed syntax transpilation.
+- Duplicate `id` response object in product PATCH endpoint removed.
+- Product response keeps the database-returned `id`.
+- Full local npm build could not be run because the internal package registry does not provide `@supabase/ssr@0.12.3`; Vercel is the final build validation.
+
 # Verification v2.5.0
 
 Pemeriksaan yang dilakukan:

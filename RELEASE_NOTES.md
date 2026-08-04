@@ -1,3 +1,9 @@
+# v2.5.1
+
+- Fixed TypeScript TS2783: duplicate `id` property in product PATCH response.
+- Node engine updated from 22.x to 24.x.
+- No database migration required.
+
 # Release Notes v2.5.0
 
 ## Produk

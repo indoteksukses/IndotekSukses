@@ -1,3 +1,18 @@
+# Indotek Sukses v2.5.1
+
+Patch build untuk v2.5.0.
+
+## Perbaikan
+
+- Memperbaiki error TypeScript pada `src/app/api/products/route.ts` karena properti `id` ditulis dua kali pada respons PATCH produk.
+- Respons PATCH sekarang menggunakan `id` dari hasil update Supabase.
+- Menyamakan Node.js menjadi `24.x`, sesuai pengaturan Vercel dan persyaratan dependency ZXing.
+- Tidak membutuhkan migration SQL baru.
+
+## Deploy
+
+Ganti source v2.5.0 dengan paket ini, commit, push, lalu tunggu Vercel berstatus Ready.
+
 # Indotek Sukses v2.5.0
 
 Versi profesional untuk sistem multi-cabang, stok, kasir, pembelian, transfer, dan manajemen karyawan.

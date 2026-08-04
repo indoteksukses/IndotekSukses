@@ -105,7 +105,7 @@ export async function PATCH(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     if (!updated) return NextResponse.json({ error: "Produk tidak ditemukan" }, { status: 404 });
     await saveAvailability(admin, String(body.id), product.sales_scope, salesStoreIds);
-    return NextResponse.json({ product: { id: body.id, ...product, ...updated, sales_store_ids: salesStoreIds } });
+    return NextResponse.json({ product: { ...product, ...updated, sales_store_ids: salesStoreIds } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Gagal memperbarui produk" }, { status: 500 });
   }
