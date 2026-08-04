@@ -1,3 +1,5 @@
+Indotek Sukses v2.6.1
+
 # Indotek Sukses v2.6.0
 
 Sistem inventory dan POS multi-cabang dengan dukungan produk tunggal dan produk bervarian.

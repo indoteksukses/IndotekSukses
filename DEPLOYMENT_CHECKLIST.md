@@ -1,3 +1,5 @@
+Indotek Sukses v2.6.1
+
 # Deployment Checklist v2.6.0
 
 - [ ] Backup database Supabase.

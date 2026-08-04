@@ -1,3 +1,5 @@
+Indotek Sukses v2.6.1
+
 # Verification v2.6.0
 
 - 96 file TypeScript/TSX lolos pemeriksaan sintaks TypeScript.
