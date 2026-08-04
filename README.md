@@ -1,13 +1,7 @@
-# Indotek Sukses v2.5.2
+# Indotek Sukses v2.5.3
 
-Sistem POS, inventori, pembelian, transfer stok, laporan, dan manajemen multi-cabang.
+Patch ini memperbaiki kategori, merek, URL gambar, dan Visual Code yang sebelumnya terlihat tidak tersimpan setelah halaman dimuat ulang.
 
-Versi ini memperbaiki penyimpanan kategori, merek, URL gambar, dan visual kode produk. Penyimpanan produk sekarang dilakukan secara atomik di database dan hasilnya diverifikasi sebelum aplikasi menampilkan pesan berhasil.
+Baca `ROOT_CAUSE_v2.5.3.md` dan `DEPLOYMENT_v2.5.3.md` sebelum deploy.
 
-## Pemasangan
-
-1. Jalankan `202608040011_product_category_visual_save_fix.sql` di Supabase SQL Editor.
-2. Deploy source ke Vercel.
-3. Uji Edit Produk dengan memilih kategori dan Visual kode.
-
-Lihat `DEPLOYMENT_v2.5.2.md` dan `RELEASE_NOTES_v2.5.2.md` untuk rincian.
+Tidak diperlukan migration SQL baru.

@@ -109,13 +109,13 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
 
           const saved = result.product as SavedProduct | undefined;
           if (!saved?.id) throw new Error("Server tidak mengembalikan produk yang tersimpan.");
-          if (String(saved.category_id) !== categoryId) throw new Error("Kategori belum tersimpan. Jalankan migration v2.5.2 lalu coba kembali.");
+          if (String(saved.category_id) !== categoryId) throw new Error("Kategori belum tersimpan ke database.");
           if (String(saved.brand ?? "").trim() !== brand.trim()) throw new Error("Merek belum tersimpan dengan benar.");
-          if ((saved.visual_id ?? null) !== expectedVisualId) throw new Error("Visual kode belum tersimpan. Jalankan migration v2.5.2 lalu coba kembali.");
+          if ((saved.visual_id ?? null) !== expectedVisualId) throw new Error("Visual kode belum tersimpan ke database.");
           if (visualMode !== "image" && saved.image_url) throw new Error("Gambar URL lama masih tersimpan dan menimpa visual kode.");
 
           setOpen(false);
-          window.location.assign(`/products?saved=${encodeURIComponent(saved.id)}&updated=${Date.now()}`);
+          window.location.replace(`/products?saved=${encodeURIComponent(saved.id)}&updated=${Date.now()}`);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Gagal menyimpan produk");
         } finally {

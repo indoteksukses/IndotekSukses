@@ -2,6 +2,7 @@ import { demoMovements, demoProducts, demoProfile, demoSettings, demoStores } fr
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { FinancialReport, Movement, Product, ProductVisual, SaleDetail, SaleSummary, Store, SystemSettings, UserProfile } from "@/lib/types";
 
 const demo = isDemoMode || !hasSupabaseEnv;
@@ -39,12 +40,15 @@ function permittedStoreIds(profile: UserProfile) {
   return ids;
 }
 
-async function loadProductMetadata(supabase: any) {
+async function loadProductMetadata(sessionClient?: any) {
+  let reader = sessionClient;
+  try { reader = createAdminClient(); } catch { /* Fall back to the authenticated server client. */ }
+  if (!reader) reader = await createClient();
   const [productsResult, categoriesResult, visualsResult, salesResult] = await Promise.all([
-    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("is_active", true),
-    supabase.from("categories").select("id,name,is_active"),
-    supabase.from("product_visuals").select("id,name,code,is_builtin,is_active"),
-    supabase.from("product_store_sales").select("product_id,store_id"),
+    reader.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("is_active", true),
+    reader.from("categories").select("id,name,is_active"),
+    reader.from("product_visuals").select("id,name,code,is_builtin,is_active"),
+    reader.from("product_store_sales").select("product_id,store_id"),
   ]);
 
   const categories = new Map<string, any>();
@@ -572,7 +576,8 @@ export async function getProductVisuals(includeInactive = false): Promise<Produc
     { id: "visual-wrench", name: "Kunci Pas", code: { shape: "wrench", primary: "#334155", secondary: "#94a3b8", accent: "#2563eb", background: "#eef2ff" }, is_builtin: true, is_active: true },
     { id: "visual-generic", name: "Perkakas Umum", code: { shape: "generic", primary: "#2563eb", secondary: "#93c5fd", accent: "#f59e0b", background: "#eff6ff" }, is_builtin: true, is_active: true },
   ];
-  const supabase = await createClient();
+  let supabase: any;
+  try { supabase = createAdminClient(); } catch { supabase = await createClient(); }
   let query = supabase.from("product_visuals").select("id,name,code,is_builtin,is_active").order("is_builtin", { ascending: false }).order("name");
   if (!includeInactive) query = query.eq("is_active", true);
   const { data, error } = await query;
@@ -588,7 +593,8 @@ export async function getCategories(includeInactive = false) {
     { id: "cat-4", name: "Aksesori Teknik", description: null, is_active: true },
   ];
   if (demo) return demoCategories;
-  const supabase = await createClient();
+  let supabase: any;
+  try { supabase = createAdminClient(); } catch { supabase = await createClient(); }
   let query = supabase.from("categories").select("id,name,description,is_active").order("is_active", { ascending: false }).order("name");
   if (!includeInactive) query = query.eq("is_active", true);
   const { data } = await query;
