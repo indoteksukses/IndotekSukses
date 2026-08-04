@@ -1,50 +1,13 @@
-# Indotek Sukses v2.5.1
+# Indotek Sukses v2.5.2
 
-Patch build untuk v2.5.0.
+Sistem POS, inventori, pembelian, transfer stok, laporan, dan manajemen multi-cabang.
 
-## Perbaikan
+Versi ini memperbaiki penyimpanan kategori, merek, URL gambar, dan visual kode produk. Penyimpanan produk sekarang dilakukan secara atomik di database dan hasilnya diverifikasi sebelum aplikasi menampilkan pesan berhasil.
 
-- Memperbaiki error TypeScript pada `src/app/api/products/route.ts` karena properti `id` ditulis dua kali pada respons PATCH produk.
-- Respons PATCH sekarang menggunakan `id` dari hasil update Supabase.
-- Menyamakan Node.js menjadi `24.x`, sesuai pengaturan Vercel dan persyaratan dependency ZXing.
-- Tidak membutuhkan migration SQL baru.
+## Pemasangan
 
-## Deploy
+1. Jalankan `202608040011_product_category_visual_save_fix.sql` di Supabase SQL Editor.
+2. Deploy source ke Vercel.
+3. Uji Edit Produk dengan memilih kategori dan Visual kode.
 
-Ganti source v2.5.0 dengan paket ini, commit, push, lalu tunggu Vercel berstatus Ready.
-
-# Indotek Sukses v2.5.0
-
-Versi profesional untuk sistem multi-cabang, stok, kasir, pembelian, transfer, dan manajemen karyawan.
-
-## Peningkatan v2.5.0
-
-- Visual produk mengikuti sumber yang dipilih: URL gambar, visual kode, atau visual umum.
-- Gambar URL yang rusak otomatis memakai visual cadangan.
-- Produk wajib memiliki kategori dan merek.
-- Migration memperbaiki kategori dan merek produk MESIN & ALAT LISTRIK yang sudah terlanjur diimpor.
-- Import SQL baru menggunakan `public.import_product_catalog(jsonb)` agar `category_id` dan `brand` selalu terisi.
-- Login menggunakan username atau email.
-- Owner dapat melihat username/email dan mereset password karyawan.
-- Karyawan dapat dihapus secara aman tanpa merusak riwayat transaksi.
-
-## Upgrade dari v2.4.4
-
-1. Backup Supabase.
-2. Jalankan `supabase/migrations/202608040010_professional_accounts_visual_import.sql`.
-3. Pastikan hasil akhir menunjukkan `category_missing = 0` dan `brand_missing = 0`.
-4. Deploy source ke Vercel.
-5. Logout dan login kembali.
-
-## Import produk melalui SQL
-
-Gunakan salah satu file berikut:
-
-- `supabase/IMPORT_PRODUCTS_WITH_CATEGORY_BRAND.sql` sebagai template.
-- `supabase/IMPORT_MESIN_ALAT_LISTRIK_v2.5.0.sql` untuk batch MESIN & ALAT LISTRIK.
-
-Setiap baris wajib memiliki `sku`, `name`, `category`, dan `brand`. Gunakan `Tanpa Merek` apabila merek belum diketahui.
-
-## Keamanan password
-
-Password Supabase disimpan sebagai hash satu arah. Password lama tidak dapat dan tidak boleh ditampilkan. Owner dapat menetapkan password baru melalui menu Karyawan & Akses.
+Lihat `DEPLOYMENT_v2.5.2.md` dan `RELEASE_NOTES_v2.5.2.md` untuk rincian.

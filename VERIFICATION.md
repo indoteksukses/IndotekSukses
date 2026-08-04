@@ -1,19 +1,12 @@
-# Verification v2.5.1
-
-- 96 TypeScript/TSX files passed syntax transpilation.
-- Duplicate `id` response object in product PATCH endpoint removed.
-- Product response keeps the database-returned `id`.
-- Full local npm build could not be run because the internal package registry does not provide `@supabase/ssr@0.12.3`; Vercel is the final build validation.
-
-# Verification v2.5.0
+# Verification v2.5.2
 
 Pemeriksaan yang dilakukan:
 
-- Syntax transpilation untuk seluruh file TypeScript/TSX yang diubah: lulus.
-- Seluruh import lokal `@/` ditemukan: lulus.
-- Keseimbangan kurung CSS: lulus.
-- Migration memiliki 146 pemetaan SKU kategori/merek.
-- `FRESH_INSTALL.sql` memuat migration v2.5.0 satu kali.
-- Template import JSON berisi kategori dan merek per produk.
+- Sintaks seluruh file TypeScript/TSX diperiksa menggunakan TypeScript transpile diagnostics.
+- Import lokal diperiksa agar tidak mengarah ke file yang hilang.
+- API produk memverifikasi `category_id`, `brand`, `visual_id`, dan `image_url` dari hasil database.
+- Form produk memverifikasi respons server sebelum menutup popup.
+- Migration menyimpan produk dan cabang penjualan dalam satu transaksi fungsi database.
+- Struktur ZIP dan checksum diperiksa.
 
-Build penuh belum dapat dijalankan di lingkungan pembuatan paket karena registry internal tidak menyediakan `@supabase/ssr@0.12.3`. Validasi produksi terakhir dilakukan melalui Vercel setelah deployment.
+Build Next.js penuh tidak dapat dijalankan di lingkungan pembuatan paket karena registry internal tidak menyediakan `@supabase/ssr@0.12.3`. Deployment Vercel menjadi validasi build produksi terakhir.

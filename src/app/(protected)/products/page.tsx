@@ -7,6 +7,8 @@ import { getCategories, getCurrentProfile, getProductsWithStocks, getProductVisu
 import { formatCurrency } from "@/lib/format";
 
 export const metadata = { title: "Master Produk" };
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ProductsPage() {
   const [products, categories, allCategories, visuals, allVisuals, profile, stores] = await Promise.all([getProductsWithStocks(), getCategories(), getCategories(true), getProductVisuals(), getProductVisuals(true), getCurrentProfile(), getStores()]);

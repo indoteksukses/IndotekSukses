@@ -39,6 +39,44 @@ function permittedStoreIds(profile: UserProfile) {
   return ids;
 }
 
+async function loadProductMetadata(supabase: any) {
+  const [productsResult, categoriesResult, visualsResult, salesResult] = await Promise.all([
+    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("is_active", true),
+    supabase.from("categories").select("id,name,is_active"),
+    supabase.from("product_visuals").select("id,name,code,is_builtin,is_active"),
+    supabase.from("product_store_sales").select("product_id,store_id"),
+  ]);
+
+  const categories = new Map<string, any>();
+  for (const row of (categoriesResult.data ?? []) as any[]) categories.set(String(row.id), row);
+  const visuals = new Map<string, any>();
+  for (const row of (visualsResult.data ?? []) as any[]) visuals.set(String(row.id), row);
+  const salesByProduct = new Map<string, string[]>();
+  for (const row of (salesResult.data ?? []) as any[]) {
+    const productId = String(row.product_id);
+    salesByProduct.set(productId, [...(salesByProduct.get(productId) ?? []), String(row.store_id)]);
+  }
+
+  const metadata = new Map<string, any>();
+  for (const row of (productsResult.data ?? []) as any[]) {
+    const category = row.category_id ? categories.get(String(row.category_id)) : null;
+    const visual = row.visual_id ? visuals.get(String(row.visual_id)) : null;
+    metadata.set(String(row.id), {
+      ...row,
+      category_name: category?.name ?? null,
+      visual: visual ? {
+        id: String(visual.id),
+        name: String(visual.name),
+        code: visual.code,
+        is_builtin: Boolean(visual.is_builtin),
+        is_active: Boolean(visual.is_active),
+      } : null,
+      sales_store_ids: salesByProduct.get(String(row.id)) ?? [],
+    });
+  }
+  return metadata;
+}
+
 export async function getStores(includeInactive = false): Promise<Store[]> {
   if (demo) {
     const rows = includeInactive ? demoStores : demoStores.filter((store) => store.is_active !== false);
@@ -71,16 +109,14 @@ export async function getNetworkInventoryStores(): Promise<Store[]> {
 export async function getProductsWithNetworkStocks(): Promise<Product[]> {
   if (demo) return demoProducts;
   const supabase = await createClient();
-  const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
+  const [{ data: catalog, error }, { data: financials }, meta] = await Promise.all([
     supabase.rpc("inventory_network_snapshot"),
     supabase.rpc("admin_product_financials"),
-    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope,categories(name),product_visuals(id,name,code,is_builtin,is_active),product_store_sales(store_id)").eq("is_active", true),
+    loadProductMetadata(supabase),
   ]);
   if (error || !catalog) return [];
   const finance = new Map<string, number>();
   for (const row of (financials ?? []) as any[]) finance.set(String(row.product_id), Number(row.cost_price ?? 0));
-  const meta = new Map<string, any>();
-  for (const row of (productRows ?? []) as any[]) meta.set(String(row.id), row);
   const grouped = new Map<string, Product>();
   for (const row of catalog as any[]) {
     const id = String(row.product_id);
@@ -91,7 +127,7 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       sku: String(row.sku),
       barcode: row.barcode ? String(row.barcode) : null,
       name: String(row.name),
-      category: productMeta?.categories?.name ?? null,
+      category: productMeta?.category_name ?? null,
       category_id: productMeta?.category_id ?? null,
       brand: productMeta?.brand ?? null,
       unit: String(row.unit),
@@ -100,14 +136,10 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       minimum_stock: Number(row.minimum_stock ?? 0),
       image_url: productMeta?.image_url ?? null,
       visual_id: productMeta?.visual_id ?? null,
-      visual: productMeta?.product_visuals ? {
-        id: String(productMeta.product_visuals.id), name: String(productMeta.product_visuals.name),
-        code: productMeta.product_visuals.code, is_builtin: Boolean(productMeta.product_visuals.is_builtin),
-        is_active: Boolean(productMeta.product_visuals.is_active),
-      } : null,
+      visual: productMeta?.visual ?? null,
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
-      sales_store_ids: (productMeta?.product_store_sales ?? []).map((row: any) => String(row.store_id)),
+      sales_store_ids: productMeta?.sales_store_ids ?? [],
       stocks: {},
       total_stock: 0,
     };
@@ -149,17 +181,15 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
   const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
   const allowedStoreIds = permittedStoreIds(profile);
   if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return [];
-  const [{ data: catalog, error }, { data: financials }, { data: productRows }] = await Promise.all([
+  const [{ data: catalog, error }, { data: financials }, meta] = await Promise.all([
     supabase.from("inventory_overview").select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status"),
     supabase.rpc("admin_product_financials"),
-    supabase.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope,categories(name),product_visuals(id,name,code,is_builtin,is_active),product_store_sales(store_id)").eq("is_active", true),
+    loadProductMetadata(supabase),
   ]);
 
   if (error || !catalog) return [];
   const finance = new Map<string, number>();
   for (const row of (financials ?? []) as any[]) finance.set(String(row.product_id), Number(row.cost_price ?? 0));
-  const meta = new Map<string, any>();
-  for (const row of (productRows ?? []) as any[]) meta.set(String(row.id), row);
   const grouped = new Map<string, Product>();
 
   for (const row of catalog as any[]) {
@@ -172,7 +202,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       sku: String(row.sku),
       barcode: row.barcode ? String(row.barcode) : null,
       name: String(row.name),
-      category: productMeta?.categories?.name ?? null,
+      category: productMeta?.category_name ?? null,
       category_id: productMeta?.category_id ?? null,
       brand: productMeta?.brand ?? null,
       unit: String(row.unit),
@@ -181,16 +211,10 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       minimum_stock: Number(row.minimum_stock ?? 0),
       image_url: productMeta?.image_url ?? null,
       visual_id: productMeta?.visual_id ?? null,
-      visual: productMeta?.product_visuals ? {
-        id: String(productMeta.product_visuals.id),
-        name: String(productMeta.product_visuals.name),
-        code: productMeta.product_visuals.code,
-        is_builtin: Boolean(productMeta.product_visuals.is_builtin),
-        is_active: Boolean(productMeta.product_visuals.is_active),
-      } : null,
+      visual: productMeta?.visual ?? null,
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
-      sales_store_ids: (productMeta?.product_store_sales ?? []).map((row: any) => String(row.store_id)),
+      sales_store_ids: productMeta?.sales_store_ids ?? [],
       stocks: {},
       total_stock: 0,
     };

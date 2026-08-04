@@ -1,23 +1,12 @@
-Indotek Sukses v2.4.4
+# Implementation Status v2.5.2
 
-Indotek Sukses v2.4.3
+Selesai:
 
-# Implementation Status v2.4.0
+- Penyimpanan kategori produk secara atomik.
+- Penyimpanan merek produk.
+- Penyimpanan URL gambar atau visual kode secara eksklusif.
+- Verifikasi hasil database sebelum UI menyatakan berhasil.
+- Pembacaan kategori dan visual melalui ID langsung.
+- Revalidasi cache dan reload penuh setelah simpan.
 
-Selesai diimplementasikan:
-
-- stok jaringan read-only untuk seluruh user terautentikasi;
-- hak edit stok tetap per cabang;
-- permintaan transfer stok;
-- popup produk portal responsif;
-- visual produk pada inventori;
-- edit/hapus/arsip supplier;
-- PO multi-cabang dan alokasi per cabang;
-- detail, edit, penerimaan, dan cetak/PDF PO;
-- migration Supabase v007.
-
-Wajib dilakukan pengguna:
-
-1. Jalankan migration v007.
-2. Deploy source v2.4.0.
-3. Uji dengan data nyata sebelum operasional penuh.
+Migration wajib: `202608040011_product_category_visual_save_fix.sql`.

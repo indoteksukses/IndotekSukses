@@ -1,13 +1,13 @@
-# Deployment Checklist v2.5.0
+# Checklist Deployment v2.5.2
 
-- [ ] Backup database Supabase.
-- [ ] Jalankan migration `202608040010_professional_accounts_visual_import.sql`.
-- [ ] Hasil verifikasi: kategori kosong 0, merek kosong 0.
-- [ ] Push source v2.5.0 ke GitHub.
-- [ ] Tunggu Vercel berstatus Ready.
-- [ ] Logout, hard refresh, lalu login dengan username dan password.
-- [ ] Uji perubahan visual produk.
-- [ ] Uji tambah karyawan dengan username.
-- [ ] Uji reset password karyawan.
-- [ ] Uji hapus karyawan dan pastikan akun tidak dapat login.
-- [ ] Uji edit produk dan pastikan kategori serta merek wajib terisi.
+- [ ] Backup Supabase.
+- [ ] Migration v2.5.0 sudah terpasang.
+- [ ] Jalankan `202608040011_product_category_visual_save_fix.sql`.
+- [ ] Hasil SQL: `fungsi_simpan_tersedia = true`.
+- [ ] Deploy source v2.5.2 ke Vercel.
+- [ ] Vercel berstatus Ready.
+- [ ] Logout dan login kembali.
+- [ ] Edit produk dan pilih kategori.
+- [ ] Pilih Visual kode dan simpan.
+- [ ] Buka kembali produk; kategori dan visual harus tetap sama.
+- [ ] Jalankan SQL verifikasi bila perlu.
