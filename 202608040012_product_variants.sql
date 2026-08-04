@@ -14,6 +14,7 @@ create table if not exists public.product_variants (
   selling_price numeric(18,2) not null default 0 check(selling_price >= 0),
   is_active boolean not null default true,
   sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check(length(trim(name)) > 0)
 );
