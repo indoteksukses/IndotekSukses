@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
   const { data: items, error: itemsError } = await auth.supabase
     .from("stocktake_items")
-    .select("id,product_id,system_quantity,physical_quantity,variance,notes,products(name,sku,unit)")
+    .select("id,product_id,variant_id,system_quantity,physical_quantity,variance,notes,products(name,sku,unit),product_variants(name,sku)")
     .eq("stocktake_id", id)
     .order("variance", { ascending: true, nullsFirst: false });
   if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 400 });
@@ -39,8 +39,11 @@ export async function GET(request: Request) {
     items: (items ?? []).map((item: any) => ({
       id: item.id,
       product_id: item.product_id,
+      variant_id: item.variant_id ? String(item.variant_id) : null,
       name: item.products?.name ?? "Produk",
       sku: item.products?.sku ?? "—",
+      variant_name: item.product_variants?.name ?? null,
+      variant_sku: item.product_variants?.sku ?? null,
       unit: item.products?.unit ?? "pcs",
       system_quantity: Number(item.system_quantity ?? 0),
       physical_quantity: item.physical_quantity == null ? null : Number(item.physical_quantity),

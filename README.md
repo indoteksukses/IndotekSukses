@@ -1,24 +1,25 @@
-Indotek Sukses v2.6.1
+# Indotek Sukses v2.7.0
 
-# Indotek Sukses v2.6.0
+Sistem POS dan inventory multi-cabang dengan stok terpisah untuk setiap varian produk pada setiap cabang.
 
-Sistem inventory dan POS multi-cabang dengan dukungan produk tunggal dan produk bervarian.
+## Fitur utama v2.7.0
 
-## Fitur varian
+- Setiap varian mempunyai stok fisik, reservasi, stok rusak, dan barang dalam perjalanan sendiri pada setiap cabang.
+- Stok Masuk/Keluar, Transfer Antartoko, Permintaan Restok, Pembelian, Kasir, Retur, dan Stok Opname sudah menggunakan varian.
+- Stok produk induk tetap dihitung otomatis sebagai ringkasan seluruh varian untuk kompatibilitas dashboard dan laporan.
+- Master Produk menampilkan harga serta stok setiap varian secara ringkas.
+- Editor varian diperbaiki agar tombol hapus tidak keluar dari kartu pada desktop, tablet, maupun HP.
+- Teks pada popup, form, tabel, dan pemilih produk diperbesar.
+- Tombol Kelola Kategori, Visual Produk, dan Tambah Produk dibuat ringkas serta sejajar pada HP.
 
-- Setiap produk dapat memiliki beberapa varian.
-- Setiap varian mempunyai nama, SKU/barcode opsional, harga modal, harga jual, urutan, dan status aktif.
-- Master Produk tetap ringkas: satu baris produk induk dengan daftar varian yang dapat dibuka.
-- Kasir meminta pengguna memilih varian sebelum produk dimasukkan ke keranjang.
-- Scan SKU atau barcode varian langsung memilih varian tersebut.
-- Invoice, COGS, laba, dan retur menyimpan varian serta harga snapshot yang digunakan saat transaksi.
-- Stok tetap berada pada produk induk agar stok masuk/keluar, transfer, pembelian, dan opname tidak menjadi rumit.
+## Urutan upgrade
 
-## Instalasi upgrade
+1. Backup database Supabase.
+2. Pastikan migration `202608040012_product_variants.sql` sudah pernah dijalankan.
+3. Jalankan `202608040013_variant_stock_per_branch.sql` sebagai satu query penuh.
+4. Deploy seluruh source v2.7.0.
+5. Tunggu Vercel berstatus **Ready**.
+6. Logout, login kembali, lalu lakukan hard refresh.
+7. Jalankan `VERIFY_VARIANT_STOCK_v2.7.0.sql`.
 
-1. Backup Supabase.
-2. Jalankan `202608040012_product_variants.sql`.
-3. Deploy source v2.6.0 ke Vercel.
-4. Logout, login kembali, dan lakukan hard refresh.
-
-Lihat `DEPLOYMENT_v2.6.0.md` untuk langkah lengkap.
+Baca `DEPLOYMENT_v2.7.0.md` dan `RELEASE_NOTES_v2.7.0.md` sebelum deployment.

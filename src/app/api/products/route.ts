@@ -75,6 +75,7 @@ function validateProduct(normalized: ReturnType<typeof normalize>) {
 }
 
 function databaseMessage(message: string) {
+  if (message.includes('relation "product_variant_inventory" does not exist')) return "Migration stok varian v2.7.0 belum dijalankan di Supabase.";
   if (message.includes('relation "product_variants" does not exist')) return "Migration varian produk v2.6.0 belum dijalankan di Supabase.";
   if (message.includes("products_sku")) return "SKU produk sudah digunakan.";
   if (message.includes("product_variants_sku")) return "SKU varian sudah digunakan.";
@@ -86,46 +87,44 @@ function databaseMessage(message: string) {
 }
 
 async function saveVariants(admin: ReturnType<typeof createAdminClient>, productId: string, variants: NormalizedVariant[]) {
-  const { data: existing, error: existingError } = await admin.from("product_variants").select("id").eq("product_id", productId);
+  const { data: existing, error: existingError } = await admin.from("product_variants").select("id").eq("product_id", productId).is("archived_at", null);
   if (existingError) throw new Error(databaseMessage(existingError.message));
-  const existingIds = new Set((existing ?? []).map((row: any) => String(row.id)));
-  for (const variant of variants) {
-    if (variant.id && !existingIds.has(variant.id)) throw new Error("Salah satu varian tidak terhubung ke produk ini.");
-  }
+  const existingIds = new Set<string>((existing ?? []).map((row: any) => String(row.id)));
+  for (const variant of variants) if (variant.id && !existingIds.has(variant.id)) throw new Error("Salah satu varian tidak terhubung ke produk ini.");
+
   const keptIds = new Set(variants.map((variant) => variant.id).filter(Boolean) as string[]);
   const removedIds = [...existingIds].filter((id) => !keptIds.has(id));
   if (removedIds.length) {
-    const { error } = await admin.from("product_variants").delete().eq("product_id", productId).in("id", removedIds);
+    const { data: stockRows, error: stockError } = await admin.from("product_variant_inventory").select("variant_id,quantity_on_hand,quantity_reserved,quantity_damaged,quantity_in_transit").in("variant_id", removedIds);
+    if (stockError && !stockError.message.includes('relation "product_variant_inventory" does not exist')) throw new Error(databaseMessage(stockError.message));
+    const hasStock = (stockRows ?? []).some((row: any) => Number(row.quantity_on_hand ?? 0) > 0 || Number(row.quantity_reserved ?? 0) > 0 || Number(row.quantity_damaged ?? 0) > 0 || Number(row.quantity_in_transit ?? 0) > 0);
+    if (hasStock) throw new Error("Varian yang masih memiliki stok tidak dapat dihapus. Kosongkan atau pindahkan stok varian terlebih dahulu.");
+    // Keep historical invoice, purchase, and transfer references intact. Removed variants are archived, not physically deleted.
+    const { error } = await admin.from("product_variants").update({ is_active: false, archived_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("product_id", productId).in("id", removedIds);
     if (error) throw new Error(databaseMessage(error.message));
   }
+
   for (const variant of variants) {
-    const row = {
-      product_id: productId,
-      name: variant.name,
-      sku: variant.sku,
-      barcode: variant.barcode,
-      cost_price: variant.cost_price,
-      selling_price: variant.selling_price,
-      is_active: variant.is_active,
-      sort_order: variant.sort_order,
-      updated_at: new Date().toISOString(),
-    };
+    const row = { product_id: productId, name: variant.name, sku: variant.sku, barcode: variant.barcode, cost_price: variant.cost_price, selling_price: variant.selling_price, is_active: variant.is_active, archived_at: null, sort_order: variant.sort_order, updated_at: new Date().toISOString() };
     if (variant.id) {
       const { error } = await admin.from("product_variants").update(row).eq("id", variant.id).eq("product_id", productId);
       if (error) throw new Error(databaseMessage(error.message));
     } else {
-      const { error } = await admin.from("product_variants").insert(row);
+      const { data: inserted, error } = await admin.from("product_variants").insert(row).select("id").single();
       if (error) throw new Error(databaseMessage(error.message));
+      if (inserted?.id) {
+        const { data: stores, error: storesError } = await admin.from("stores").select("id").eq("is_active", true);
+        if (storesError) throw new Error(databaseMessage(storesError.message));
+        if (stores?.length) {
+          const { error: inventoryError } = await admin.from("product_variant_inventory").upsert(stores.map((store: any) => ({ store_id: store.id, variant_id: inserted.id, quantity_on_hand: 0, quantity_reserved: 0 })), { onConflict: "store_id,variant_id", ignoreDuplicates: true });
+          if (inventoryError) throw new Error(databaseMessage(inventoryError.message));
+        }
+      }
     }
   }
-  const { data, error } = await admin.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").eq("product_id", productId).order("sort_order").order("name");
+  const { data, error } = await admin.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").eq("product_id", productId).is("archived_at", null).order("sort_order").order("name");
   if (error) throw new Error(databaseMessage(error.message));
-  return (data ?? []).map((variant: any) => ({
-    ...variant,
-    id: String(variant.id), product_id: String(variant.product_id),
-    cost_price: Number(variant.cost_price ?? 0), selling_price: Number(variant.selling_price ?? 0),
-    is_active: Boolean(variant.is_active), sort_order: Number(variant.sort_order ?? 0),
-  }));
+  return (data ?? []).map((variant: any) => ({ ...variant, id: String(variant.id), product_id: String(variant.product_id), cost_price: Number(variant.cost_price ?? 0), selling_price: Number(variant.selling_price ?? 0), is_active: Boolean(variant.is_active), sort_order: Number(variant.sort_order ?? 0), stocks: {}, total_stock: 0 }));
 }
 
 async function persistProduct(body: any, productId: string | null) {

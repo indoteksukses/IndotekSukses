@@ -31,11 +31,11 @@ export function TransferManager({ stores, products }: { stores: Store[]; product
       <form className="document-form operational-document-form" onSubmit={async (event) => {
         event.preventDefault(); setSaving(true); setError(""); setSuccess("");
         const form = new FormData(event.currentTarget);
-        const items = selectedLines.map((line) => ({ product_id: line.product_id, quantity: line.quantity }));
+        const items = selectedLines.map((line) => ({ product_id: line.product_id, variant_id: line.variant_id || null, quantity: line.quantity }));
         try {
           if (sourceStoreId === destinationStoreId) throw new Error("Toko asal dan tujuan harus berbeda.");
           if (!items.length) throw new Error("Tambahkan minimal satu produk.");
-          const insufficient = selectedLines.find((line) => line.quantity > (products.find((product) => product.id === line.product_id)?.stocks[sourceStoreId]?.quantity_available ?? 0));
+          const insufficient = selectedLines.find((line) => { const product = products.find((item) => item.id === line.product_id); const variant = product?.variants?.find((item) => item.id === line.variant_id); return line.quantity > (variant ? variant.stocks?.[sourceStoreId]?.quantity_available ?? 0 : product?.stocks[sourceStoreId]?.quantity_available ?? 0); });
           if (insufficient) throw new Error(`Stok ${products.find((product) => product.id === insufficient.product_id)?.name ?? "produk"} tidak mencukupi.`);
           const response = await fetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create", source_store_id: sourceStoreId, destination_store_id: destinationStoreId, items, notes: form.get("notes") }) });
           const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal membuat transfer");
@@ -45,7 +45,7 @@ export function TransferManager({ stores, products }: { stores: Store[]; product
         <SectionCard title="Rute transfer" description="Tentukan lokasi asal dan cabang penerima barang." icon={<ArrowRight size={19}/>} tone="blue">
           <div className="document-header-fields"><label>Toko asal<select value={sourceStoreId} onChange={(event) => { setSourceStoreId(event.target.value); if (event.target.value === destinationStoreId) setDestinationStoreId(stores.find((store) => store.id !== event.target.value)?.id ?? ""); }} required>{stores.map((store) => <option value={store.id} key={store.id}>{store.name} ({store.code})</option>)}</select></label><label>Toko tujuan<select value={destinationStoreId} onChange={(event) => setDestinationStoreId(event.target.value)} required>{stores.map((store) => <option value={store.id} key={store.id} disabled={store.id === sourceStoreId}>{store.name} ({store.code})</option>)}</select></label></div>
         </SectionCard>
-        <SectionCard title="Barang yang dipindahkan" description="Stok asal divalidasi sebelum dokumen transfer dibuat." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalQuantity} unit</span>} actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, createDocumentLine()])}><Plus size={15}/> Tambah produk</button>}>
+        <SectionCard title="Barang yang dipindahkan" description="Pilih varian agar stok yang dipindahkan berasal dari varian yang tepat." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalQuantity} unit</span>} actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, createDocumentLine()])}><Plus size={15}/> Tambah produk / varian</button>}>
           <DocumentItemLines products={products} lines={lines} onChange={setLines} storeId={sourceStoreId} hideAddButton/>
         </SectionCard>
         <SectionCard title="Catatan dokumen" description="Tambahkan tujuan atau keterangan operasional transfer." icon={<FileText size={19}/>}>

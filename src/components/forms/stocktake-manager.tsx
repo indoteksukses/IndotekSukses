@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, Eye, Filter, Plus, Search, X } from "lucide-react";
 import { QuantityStepper } from "@/components/quantity-stepper";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import type { Product, Store } from "@/lib/types";
+import type { Product, ProductVariant, Store } from "@/lib/types";
 
  type CountState = Record<string, { physical: number; note: string }>;
  type DetailItem = {
-  id: string; product_id: string; name: string; sku: string; unit: string;
+  id: string; product_id: string; variant_id?: string | null; name: string; sku: string; variant_name?: string | null; variant_sku?: string | null; unit: string;
   system_quantity: number; physical_quantity: number | null; variance: number | null; notes: string;
 };
 
@@ -44,52 +44,61 @@ export function CreateStocktake({ stores }: { stores: Store[] }) {
 
 export function CompleteStocktake({ stocktake, products }: { stocktake: any; products: Product[] }) {
   const router = useRouter();
+  const rows = useMemo(() => products.flatMap((product) => {
+    const variants = (product.variants ?? []).filter((variant) => variant.is_active);
+    return variants.length
+      ? variants.map((variant) => ({ key: `${product.id}:${variant.id}`, product, variant }))
+      : [{ key: `${product.id}:base`, product, variant: null as ProductVariant | null }];
+  }), [products]);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
-  const [counts, setCounts] = useState<CountState>(() => Object.fromEntries(products.map((product) => [product.id, { physical: product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0, note: "" }])));
+  const [counts, setCounts] = useState<CountState>(() => Object.fromEntries(rows.map(({ key, product, variant }) => [key, { physical: variant ? variant.stocks?.[stocktake.store_id]?.quantity_on_hand ?? 0 : product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0, note: "" }])));
   const categories = useMemo(() => Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[])).sort(), [products]);
-  const filtered = useMemo(() => products.filter((product) => {
-    const matchesQuery = `${product.name} ${product.sku} ${product.barcode ?? ""}`.toLowerCase().includes(query.toLowerCase());
-    const matchesCategory = !category || product.category === category;
-    return matchesQuery && matchesCategory;
-  }), [products, query, category]);
-  const varianceCount = useMemo(() => products.filter((product) => (counts[product.id]?.physical ?? 0) !== (product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0)).length, [products, counts, stocktake.store_id]);
+  const filtered = useMemo(() => rows.filter(({ product, variant }) => {
+    const matchesQuery = `${product.name} ${product.sku} ${product.barcode ?? ""} ${variant?.name ?? ""} ${variant?.sku ?? ""} ${variant?.barcode ?? ""}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (!category || product.category === category);
+  }), [rows, query, category]);
+  const varianceCount = useMemo(() => rows.filter(({ key, product, variant }) => {
+    const system = variant ? variant.stocks?.[stocktake.store_id]?.quantity_on_hand ?? 0 : product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0;
+    return (counts[key]?.physical ?? system) !== system;
+  }).length, [rows, counts, stocktake.store_id]);
 
   return <>
     <button className="table-action" onClick={() => setOpen(true)}>Input fisik</button>
     {open ? <div className="modal-backdrop"><div className="modal-card stocktake-modal operational-modal">
-      <div className="modal-header operational-modal-header"><div><h2>Hitung stok fisik</h2><p>{stocktake.stocktake_number} · {stocktake.store_name}</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
+      <div className="modal-header operational-modal-header"><div><h2>Hitung stok fisik</h2><p>{stocktake.stocktake_number} · {stocktake.store_name} · stok dihitung per varian.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="operation-stepper"><span><b>1</b>Toko dipilih</span><i className="done"/><span className="active"><b>2</b>Hitung fisik</span><i/><span><b>3</b>Review selisih</span><i/><span><b>4</b>Finalisasi</span></div>
       {error ? <div className="alert error">{error}</div> : null}
       <form onSubmit={async (event) => {
         event.preventDefault(); setSaving(true); setError("");
-        const payload = products.map((product) => ({ product_id: product.id, physical_quantity: counts[product.id]?.physical ?? 0, notes: counts[product.id]?.note ?? "" }));
+        const payload = rows.map(({ key, product, variant }) => ({ product_id: product.id, variant_id: variant?.id ?? null, physical_quantity: counts[key]?.physical ?? 0, notes: counts[key]?.note ?? "" }));
         try {
           const response = await fetch("/api/stocktakes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", stocktake_id: stocktake.id, counts: payload }) });
           const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal menyelesaikan opname"); setOpen(false); router.refresh();
         } catch (err) { setError(err instanceof Error ? err.message : "Gagal menyelesaikan opname"); } finally { setSaving(false); }
       }}>
-        <div className="stocktake-toolbar"><div className="activity-search-v23"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari produk, SKU, atau barcode..."/></div><label><Filter size={15}/><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((name) => <option value={name} key={name}>{name}</option>)}</select></label><span>{filtered.length} produk · {varianceCount} berselisih</span></div>
-        <div className="stocktake-table-head"><span>Produk</span><span>Stok sistem</span><span>Stok fisik</span><span>Selisih</span><span>Catatan</span></div>
+        <div className="stocktake-toolbar"><div className="activity-search-v23"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari produk, varian, SKU, atau barcode..."/></div><label><Filter size={15}/><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((name) => <option value={name} key={name}>{name}</option>)}</select></label><span>{filtered.length} baris · {varianceCount} berselisih</span></div>
+        <div className="stocktake-table-head"><span>Produk / varian</span><span>Stok sistem</span><span>Stok fisik</span><span>Selisih</span><span>Catatan</span></div>
         <div className="stocktake-list-v23">
-          {filtered.map((product) => {
-            const system = product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0;
-            const physical = counts[product.id]?.physical ?? system;
+          {filtered.map(({ key, product, variant }) => {
+            const system = variant ? variant.stocks?.[stocktake.store_id]?.quantity_on_hand ?? 0 : product.stocks[stocktake.store_id]?.quantity_on_hand ?? 0;
+            const physical = counts[key]?.physical ?? system;
             const variance = physical - system;
-            return <article className={`stocktake-card-v23 ${variance < 0 ? "short" : variance > 0 ? "over" : "match"}`} key={product.id}>
-              <div className="stocktake-product"><span><ClipboardCheck size={18}/></span><div><strong>{product.name}</strong><small>{product.sku} · {product.category || "Tanpa kategori"}</small></div></div>
+            const displayName = variant ? `${product.name} · ${variant.name}` : product.name;
+            return <article className={`stocktake-card-v23 ${variance < 0 ? "short" : variance > 0 ? "over" : "match"}`} key={key}>
+              <div className="stocktake-product"><span><ClipboardCheck size={18}/></span><div><strong>{displayName}</strong><small>{variant?.sku || product.sku} · {product.category || "Tanpa kategori"}</small></div></div>
               <div className="stocktake-system"><small>Stok sistem</small><strong>{system} {product.unit}</strong></div>
-              <QuantityStepper value={physical} min={0} unit={product.unit} ariaLabel={`Stok fisik ${product.name}`} onChange={(value) => setCounts((current) => ({ ...current, [product.id]: { ...(current[product.id] ?? { note: "" }), physical: value } }))}/>
+              <QuantityStepper value={physical} min={0} unit={product.unit} ariaLabel={`Stok fisik ${displayName}`} onChange={(value) => setCounts((current) => ({ ...current, [key]: { ...(current[key] ?? { note: "" }), physical: value } }))}/>
               <div className="stocktake-variance"><small>Selisih</small><strong>{variance > 0 ? "+" : ""}{variance} {product.unit}</strong><span>{variance === 0 ? "Sesuai" : variance > 0 ? "Stok lebih" : "Stok kurang"}</span></div>
-              <input className="stocktake-note" value={counts[product.id]?.note ?? ""} onChange={(event) => setCounts((current) => ({ ...current, [product.id]: { ...(current[product.id] ?? { physical: system }), note: event.target.value } }))} placeholder="Catatan (opsional)"/>
+              <input className="stocktake-note" value={counts[key]?.note ?? ""} onChange={(event) => setCounts((current) => ({ ...current, [key]: { ...(current[key] ?? { physical: system }), note: event.target.value } }))} placeholder="Catatan (opsional)"/>
             </article>;
           })}
-          {!filtered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
+          {!filtered.length ? <div className="empty-inline">Produk atau varian tidak ditemukan.</div> : null}
         </div>
-        <div className="stocktake-final-summary"><div><span>Total produk</span><strong>{products.length}</strong></div><div><span>Sesuai</span><strong>{products.length - varianceCount}</strong></div><div><span>Berselisih</span><strong className={varianceCount ? "negative" : "positive"}>{varianceCount}</strong></div></div>
+        <div className="stocktake-final-summary"><div><span>Total baris</span><strong>{rows.length}</strong></div><div><span>Sesuai</span><strong>{rows.length - varianceCount}</strong></div><div><span>Berselisih</span><strong className={varianceCount ? "negative" : "positive"}>{varianceCount}</strong></div></div>
         <div className="modal-actions sticky-modal-actions"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : null}<span>{saving ? "Menyelesaikan..." : "Finalkan opname"}</span></button></div>
       </form>
     </div></div> : null}
@@ -119,7 +128,7 @@ export function StocktakeDetails({ stocktake }: { stocktake: any }) {
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return keyword ? items.filter((item) => `${item.name} ${item.sku} ${item.notes}`.toLowerCase().includes(keyword)) : items;
+    return keyword ? items.filter((item) => `${item.name} ${item.sku} ${item.variant_name ?? ""} ${item.variant_sku ?? ""} ${item.notes}`.toLowerCase().includes(keyword)) : items;
   }, [items, query]);
   const changed = items.filter((item) => Number(item.variance ?? 0) !== 0).length;
 
@@ -135,7 +144,7 @@ export function StocktakeDetails({ stocktake }: { stocktake: any }) {
         <div className="stocktake-detail-list">{filtered.map((item) => {
           const variance = Number(item.variance ?? 0);
           return <article key={item.id} className={`stocktake-detail-row ${variance < 0 ? "short" : variance > 0 ? "over" : "match"}`}>
-            <div><strong>{item.name}</strong><span>{item.sku}</span></div>
+            <div><strong>{item.name}{item.variant_name ? ` · ${item.variant_name}` : ""}</strong><span>{item.variant_sku || item.sku}</span></div>
             <div><small>Stok sistem</small><strong>{item.system_quantity} {item.unit}</strong></div>
             <div><small>Stok fisik</small><strong>{item.physical_quantity ?? "Belum diisi"}{item.physical_quantity != null ? ` ${item.unit}` : ""}</strong></div>
             <div><small>Selisih</small><strong>{variance > 0 ? "+" : ""}{variance} {item.unit}</strong></div>

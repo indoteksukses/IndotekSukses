@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, FileText, PackageSearch, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { Movement, Product, Store } from "@/lib/types";
 import { ProductSearchSelect } from "@/components/product-search-select";
@@ -23,8 +23,9 @@ const outReasons = [
   { v: "manual_adjustment", l: "Penyesuaian lain" },
 ];
 
-type Line = { key: string; product_id: string; quantity: number };
-const newLine = (): Line => ({ key: `${Date.now()}-${Math.random()}`, product_id: "", quantity: 1 });
+type Line = { key: string; product_id: string; variant_id?: string | null; quantity: number };
+const newLine = (): Line => ({ key: `${Date.now()}-${Math.random()}`, product_id: "", variant_id: null, quantity: 1 });
+const lineKey = (line: Line) => `${line.product_id}:${line.variant_id || "base"}`;
 
 import { LoadingSpinner } from "@/components/loading-spinner";
 export function StockForm({
@@ -44,7 +45,6 @@ export function StockForm({
   const [movementType, setMovementType] = useState(inReasons[0].v);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const selectedIds = useMemo(() => new Set(lines.map((line) => line.product_id).filter(Boolean)), [lines]);
   const validLines = lines.filter((line) => line.product_id && line.quantity > 0);
   const totalQuantity = validLines.reduce((sum, line) => sum + line.quantity, 0);
 
@@ -74,16 +74,17 @@ export function StockForm({
             setSaving(false);
             return;
           }
-          if (new Set(validLines.map((line) => line.product_id)).size !== validLines.length) {
+          if (new Set(validLines.map(lineKey)).size !== validLines.length) {
             setMessage("Produk yang sama tidak boleh ditambahkan dua kali.");
             setSaving(false);
             return;
           }
           if (type === "out") {
-            const unavailable = validLines.find((line) => line.quantity > (products.find((product) => product.id === line.product_id)?.stocks[storeId]?.quantity_available ?? 0));
+            const unavailable = validLines.find((line) => { const product = products.find((item) => item.id === line.product_id); const variant = product?.variants?.find((item) => item.id === line.variant_id); return line.quantity > (variant ? variant.stocks?.[storeId]?.quantity_available ?? 0 : product?.stocks[storeId]?.quantity_available ?? 0); });
             if (unavailable) {
               const product = products.find((item) => item.id === unavailable.product_id);
-              setMessage(`Stok ${product?.name ?? "produk"} tidak mencukupi.`);
+              const variant = product?.variants?.find((item) => item.id === unavailable.variant_id);
+              setMessage(`Stok ${product?.name ?? "produk"}${variant ? ` · ${variant.name}` : ""} tidak mencukupi.`);
               setSaving(false);
               return;
             }
@@ -95,7 +96,7 @@ export function StockForm({
               body: JSON.stringify({
                 store_id: storeId,
                 direction: type,
-                items: validLines.map(({ product_id, quantity }) => ({ product_id, quantity })),
+                items: validLines.map(({ product_id, variant_id, quantity }) => ({ product_id, variant_id: variant_id || null, quantity })),
                 movement_type: movementType,
                 reference_label: form.get("reference_label"),
                 reason: form.get("reason"),
@@ -141,21 +142,22 @@ export function StockForm({
         </SectionCard>
 
         <SectionCard
-          title="Daftar produk"
-          description="Cari produk berdasarkan nama, SKU, atau barcode. Beberapa produk dapat disimpan sekaligus."
+          title="Daftar produk dan varian"
+          description="Produk bervarian wajib dipilih variannya agar stok setiap varian tersimpan terpisah."
           icon={<PackageSearch size={19}/>}
           badge={<span className="document-count-badge">{validLines.length} produk · {totalQuantity} unit</span>}
-          actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, newLine()])}><Plus size={15}/> Tambah produk</button>}
+          actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, newLine()])}><Plus size={15}/> Tambah produk / varian</button>}
         >
           <div className="stock-line-head" aria-hidden="true"><span>#</span><span>Produk</span><span>Stok saat ini</span><span>Jumlah</span><span>Aksi</span></div>
           <div className="stock-line-list">
             {lines.map((line, index) => {
               const product = products.find((item) => item.id === line.product_id);
-              const available = product?.stocks[storeId]?.quantity_available ?? 0;
+              const variant = product?.variants?.find((item) => item.id === line.variant_id);
+              const available = variant ? variant.stocks?.[storeId]?.quantity_available ?? 0 : product?.stocks[storeId]?.quantity_available ?? 0;
               return (
                 <div className="stock-line-card" key={line.key}>
                   <span className="stock-line-number">{index + 1}</span>
-                  <div className="stock-line-product"><ProductSearchSelect products={products.filter((item) => item.id === line.product_id || !selectedIds.has(item.id))} value={line.product_id} onChange={(product_id) => updateLine(line.key, { product_id })} storeId={storeId}/></div>
+                  <div className="stock-line-product"><ProductSearchSelect products={products} value={line.product_id} variantValue={line.variant_id} onChange={(product_id, variant_id) => updateLine(line.key, { product_id, variant_id: variant_id || null })} storeId={storeId}/></div>
                   <div className="stock-line-current"><small>Stok saat ini</small><strong>{product ? `${available} ${product.unit}` : "—"}</strong>{type === "out" && product && line.quantity > available ? <em>Jumlah melebihi stok</em> : null}</div>
                   <QuantityStepper value={line.quantity} max={type === "out" && product ? Math.max(available, 1) : undefined} unit={product?.unit} ariaLabel={`Jumlah ${product?.name ?? `produk ${index + 1}`}`} onChange={(quantity) => updateLine(line.key, { quantity })}/>
                   <button type="button" className="stock-line-remove" aria-label="Hapus produk" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}><Trash2 size={17}/><span>Hapus</span></button>
@@ -163,7 +165,7 @@ export function StockForm({
               );
             })}
           </div>
-          <button type="button" className="stock-add-row-mobile" onClick={() => setLines((current) => [...current, newLine()])}><Plus size={16}/> Tambah produk lain</button>
+          <button type="button" className="stock-add-row-mobile" onClick={() => setLines((current) => [...current, newLine()])}><Plus size={16}/> Tambah produk / varian lain</button>
         </SectionCard>
 
         <section className="document-summary-bar">

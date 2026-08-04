@@ -7,11 +7,12 @@ function normalizeItems(value: unknown) {
   if (!Array.isArray(value) || !value.length) return null;
   const items = value.map((item: any) => ({
     product_id: String(item?.product_id ?? ""),
+    variant_id: item?.variant_id ? String(item.variant_id) : null,
     unit_cost: Number(item?.unit_cost ?? 0),
     allocations: Array.isArray(item?.allocations) ? item.allocations.map((allocation: any) => ({ store_id: String(allocation?.store_id ?? ""), quantity: Math.floor(Number(allocation?.quantity ?? 0)) })).filter((allocation: any) => allocation.store_id && allocation.quantity > 0) : [],
   }));
   if (items.some((item) => !item.product_id || !Number.isFinite(item.unit_cost) || item.unit_cost < 0 || !item.allocations.length)) return null;
-  if (new Set(items.map((item) => item.product_id)).size !== items.length) return null;
+  if (new Set(items.map((item) => `${item.product_id}:${item.variant_id || "base"}`)).size !== items.length) return null;
   if (items.some((item) => new Set(item.allocations.map((allocation: any) => allocation.store_id)).size !== item.allocations.length)) return null;
   return items;
 }

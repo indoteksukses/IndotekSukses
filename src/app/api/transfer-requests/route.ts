@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     }
     const { data, error } = await auth.supabase.rpc("create_stock_transfer_request", {
       p_product_id: body.product_id,
+      p_variant_id: body.variant_id || null,
       p_source_store_id: body.source_store_id,
       p_destination_store_id: body.destination_store_id,
       p_quantity: quantity,

@@ -11,7 +11,7 @@ import type { Product, Store } from "@/lib/types";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
 type AllocationMap = Record<string, number>;
-type PurchaseLine = { key: string; product_id: string; unit_cost: number; allocations: AllocationMap };
+type PurchaseLine = { key: string; product_id: string; variant_id?: string | null; unit_cost: number; allocations: AllocationMap };
 
 
 async function parsePurchaseResponse(response: Response) {
@@ -21,21 +21,21 @@ async function parsePurchaseResponse(response: Response) {
   } catch {
     return {
       error: raw.trim().startsWith("<!DOCTYPE") || raw.trim().startsWith("<html")
-        ? "Server pembelian mengembalikan halaman error. Pastikan migration v2.4.1 sudah dijalankan dan periksa log Vercel."
+        ? "Server pembelian mengembalikan halaman error. Pastikan migration v2.7.0 sudah dijalankan dan periksa log Vercel."
         : raw || "Respons penyimpanan PO tidak valid.",
     };
   }
 }
 
 const lineKey = () => `${Date.now()}-${Math.random()}`;
-const blankLine = (storeIds: string[]): PurchaseLine => ({ key: lineKey(), product_id: "", unit_cost: 0, allocations: Object.fromEntries(storeIds.map((id) => [id, 1])) });
+const blankLine = (storeIds: string[]): PurchaseLine => ({ key: lineKey(), product_id: "", variant_id: null, unit_cost: 0, allocations: Object.fromEntries(storeIds.map((id) => [id, 1])) });
 
 function initialState(purchase: any | undefined, stores: Store[]) {
   const allocationStoreIds = purchase?.items?.flatMap((item: any) => item.allocations?.map((allocation: any) => allocation.store_id) ?? []) ?? [];
   const fallbackStores = purchase?.destination_store_id ? [purchase.destination_store_id] : [stores[0]?.id].filter(Boolean);
   const selected = [...new Set(allocationStoreIds.length ? allocationStoreIds : fallbackStores)] as string[];
   const lines: PurchaseLine[] = purchase?.items?.length ? purchase.items.map((item: any) => ({
-    key: item.id ?? lineKey(), product_id: item.product_id, unit_cost: Number(item.unit_cost ?? 0),
+    key: item.id ?? lineKey(), product_id: item.product_id, variant_id: item.variant_id ?? null, unit_cost: Number(item.unit_cost ?? 0),
     allocations: Object.fromEntries((item.allocations?.length ? item.allocations : [{ store_id: purchase.destination_store_id, quantity: item.quantity_ordered }]).map((allocation: any) => [allocation.store_id, Number(allocation.quantity ?? 0)])),
   })) : [blankLine(selected)];
   return { selected, lines };
@@ -80,7 +80,6 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
   });
   const patchLine = (key: string, values: Partial<PurchaseLine>) => setLines((current) => current.map((line) => line.key === key ? { ...line, ...values } : line));
   const patchAllocation = (key: string, storeId: string, quantity: number) => setLines((current) => current.map((line) => line.key === key ? { ...line, allocations: { ...line.allocations, [storeId]: Math.max(0, Math.floor(quantity)) } } : line));
-  const selectedProducts = new Set(lines.map((line) => line.product_id).filter(Boolean));
 
   return <>
     <button className={editing ? "table-action" : "button primary"} onClick={() => { reset(); setOpen(true); }}>{editing ? <Pencil size={14}/> : <Plus size={17}/>} {label ?? (editing ? "Edit" : "Buat pembelian")}</button>
@@ -94,6 +93,7 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
           if (!selectedStoreIds.length) throw new Error("Pilih minimal satu cabang penerima.");
           const items = selectedLines.map((line) => ({
             product_id: line.product_id,
+            variant_id: line.variant_id || null,
             unit_cost: Number(line.unit_cost ?? 0),
             allocations: selectedStoreIds.map((store_id) => ({ store_id, quantity: Math.floor(Number(line.allocations[store_id] ?? 0)) })).filter((allocation) => allocation.quantity > 0),
           }));
@@ -112,17 +112,18 @@ export function PurchaseManager({ stores, products, suppliers, purchase, label }
           <div className="purchase-store-grid">{stores.map((store) => <label className={`purchase-store-option ${selectedStoreIds.includes(store.id) ? "selected" : ""}`} key={store.id}><input type="checkbox" checked={selectedStoreIds.includes(store.id)} disabled={scope === "all"} onChange={() => toggleStore(store.id)}/><span><strong>{store.name}</strong><small>{store.code}</small></span></label>)}</div>
         </SectionCard>
 
-        <SectionCard title="Produk dan pembagian jumlah" description="Isi jumlah masing-masing cabang. Total produk dihitung otomatis." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalUnits} unit</span>} actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, blankLine(selectedStoreIds)])}><Plus size={15}/> Tambah produk</button>}>
+        <SectionCard title="Produk, varian, dan pembagian jumlah" description="Pilih varian dan isi jumlah masing-masing cabang. Stok penerimaan disimpan per varian." icon={<PackageSearch size={19}/>} badge={<span className="document-count-badge">{selectedLines.length} produk · {totalUnits} unit</span>} actions={<button type="button" className="button secondary compact-button" onClick={() => setLines((current) => [...current, blankLine(selectedStoreIds)])}><Plus size={15}/> Tambah produk / varian</button>}>
           <div className="purchase-line-list">{lines.map((line, index) => {
             const product = products.find((item) => item.id === line.product_id);
+            const variant = product?.variants?.find((item) => item.id === line.variant_id);
             const quantity = lineQuantity(line);
             return <article className="purchase-line-card" key={line.key}>
-              <div className="purchase-line-head"><span>{index + 1}</span><div className="purchase-line-picker"><ProductSearchSelect products={products.filter((item) => item.id === line.product_id || !selectedProducts.has(item.id))} value={line.product_id} onChange={(product_id) => { const found = products.find((item) => item.id === product_id); patchLine(line.key, { product_id, unit_cost: line.unit_cost || found?.cost_price || 0 }); }}/></div><button type="button" className="document-remove-line" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}><Trash2 size={16}/><span>Hapus</span></button></div>
-              <div className="purchase-cost-row"><label>Harga beli / {product?.unit ?? "unit"}<input type="number" min="0" step="1" value={line.unit_cost || ""} onChange={(event) => patchLine(line.key, { unit_cost: Math.max(0, Number(event.target.value || 0)) })}/></label><div><span>Total jumlah</span><strong>{quantity} {product?.unit ?? "unit"}</strong></div><div><span>Subtotal</span><strong>{formatCurrency(quantity * line.unit_cost)}</strong></div></div>
+              <div className="purchase-line-head"><span>{index + 1}</span><div className="purchase-line-picker"><ProductSearchSelect products={products} value={line.product_id} variantValue={line.variant_id} onChange={(productId, variantId) => { const found = products.find((item) => item.id === productId); const foundVariant = found?.variants?.find((item) => item.id === variantId); patchLine(line.key, { product_id: productId, variant_id: variantId || null, unit_cost: foundVariant?.cost_price ?? found?.cost_price ?? 0 }); }}/></div><button type="button" className="document-remove-line" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}><Trash2 size={16}/><span>Hapus</span></button></div>
+              <div className="purchase-cost-row"><label>Harga beli / {product?.unit ?? "unit"}{variant ? ` · ${variant.name}` : ""}<input type="number" min="0" step="1" value={line.unit_cost || ""} onChange={(event) => patchLine(line.key, { unit_cost: Math.max(0, Number(event.target.value || 0)) })}/></label><div><span>Total jumlah</span><strong>{quantity} {product?.unit ?? "unit"}</strong></div><div><span>Subtotal</span><strong>{formatCurrency(quantity * line.unit_cost)}</strong></div></div>
               <div className="purchase-allocation-grid">{selectedStoreIds.map((storeId) => { const store = stores.find((item) => item.id === storeId); return <label key={storeId}><span>{store?.name ?? "Cabang"}<small>{store?.code}</small></span><div><input type="number" min="0" step="1" value={line.allocations[storeId] || ""} onChange={(event) => patchAllocation(line.key, storeId, Number(event.target.value || 0))}/><b>{product?.unit ?? "unit"}</b></div></label>; })}</div>
             </article>;
           })}</div>
-          <button type="button" className="document-add-line" onClick={() => setLines((current) => [...current, blankLine(selectedStoreIds)])}><Plus size={15}/> Tambah produk lain</button>
+          <button type="button" className="document-add-line" onClick={() => setLines((current) => [...current, blankLine(selectedStoreIds)])}><Plus size={15}/> Tambah produk / varian lain</button>
         </SectionCard>
 
         <SectionCard title="Biaya dan total" description="Total dihitung dari seluruh alokasi cabang." icon={<ReceiptText size={19}/>} tone="green">
@@ -141,7 +142,7 @@ export function PurchaseDetailButton({ purchase }: { purchase: any }) {
     <button className="table-action" onClick={() => setOpen(true)}><Eye size={14}/> Detail</button>
     {open ? <div className="modal-backdrop"><div className="modal-card purchase-detail-modal"><div className="modal-header"><div><h2>{purchase.po_number}</h2><p>{purchase.supplier_name} · {purchase.store_names?.join(", ")}</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="purchase-detail-summary"><div><span>Status</span><strong>{String(purchase.status).replaceAll("_"," ")}</strong></div><div><span>Total unit</span><strong>{purchase.items.reduce((sum:number,item:any)=>sum+Number(item.quantity_ordered||0),0)}</strong></div><div><span>Total nilai</span><strong>{formatCurrency(Number(purchase.total||0))}</strong></div><div><span>Cabang</span><strong>{purchase.store_names?.length ?? 1}</strong></div></div>
-      <div className="purchase-detail-items">{purchase.items.map((item:any)=><article key={item.id}><header><div><strong>{item.name}</strong><span>{item.sku}</span></div><div><strong>{item.quantity_ordered} {item.unit}</strong><span>{formatCurrency(item.unit_cost)} / {item.unit}</span></div></header><div>{item.allocations?.length?item.allocations.map((allocation:any)=><span key={allocation.id}><b>{allocation.store_name}</b>{allocation.quantity} {item.unit}</span>):<span><b>{purchase.store_name}</b>{item.quantity_ordered} {item.unit}</span>}</div></article>)}</div>
+      <div className="purchase-detail-items">{purchase.items.map((item:any)=><article key={item.id}><header><div><strong>{item.name}</strong>{item.variant_name ? <em className="purchase-variant-name">{item.variant_name}</em> : null}<span>{item.variant_sku || item.sku}</span></div><div><strong>{item.quantity_ordered} {item.unit}</strong><span>{formatCurrency(item.unit_cost)} / {item.unit}</span></div></header><div>{item.allocations?.length?item.allocations.map((allocation:any)=><span key={allocation.id}><b>{allocation.store_name}</b>{allocation.quantity} {item.unit}</span>):<span><b>{purchase.store_name}</b>{item.quantity_ordered} {item.unit}</span>}</div></article>)}</div>
       <div className="purchase-detail-totals"><span>Subtotal <b>{formatCurrency(purchase.subtotal)}</b></span><span>Ongkir <b>{formatCurrency(purchase.shipping_cost)}</b></span><span>Diskon <b>- {formatCurrency(purchase.discount)}</b></span><strong>Total <b>{formatCurrency(purchase.total)}</b></strong></div>
       <div className="modal-actions"><button className="button secondary" onClick={() => setOpen(false)}>Tutup</button><Link className="button primary" href={`/purchases/${purchase.id}/print`} target="_blank"><Printer size={16}/> Cetak / PDF</Link></div>
     </div></div> : null}

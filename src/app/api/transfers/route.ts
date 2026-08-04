@@ -4,9 +4,9 @@ import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 
 function normalizeItems(value: unknown) {
   if (!Array.isArray(value) || !value.length) return null;
-  const items = value.map((item) => ({ product_id: String(item?.product_id ?? ""), quantity: Math.floor(Number(item?.quantity ?? 0)) }));
+  const items = value.map((item) => ({ product_id: String(item?.product_id ?? ""), variant_id: item?.variant_id ? String(item.variant_id) : null, quantity: Math.floor(Number(item?.quantity ?? 0)) }));
   if (items.some((item) => !item.product_id || !Number.isFinite(item.quantity) || item.quantity <= 0)) return null;
-  if (new Set(items.map((item) => item.product_id)).size !== items.length) return null;
+  if (new Set(items.map((item) => `${item.product_id}:${item.variant_id || "base"}`)).size !== items.length) return null;
   return items;
 }
 

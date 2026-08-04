@@ -10,12 +10,12 @@ const allowedTypes = new Set([
 
 async function movementPayload(supabase: Awaited<ReturnType<typeof createClient>>, id: string) {
   const { data } = await supabase.from("stock_movements")
-    .select("id,store_id,product_id,created_at,quantity,movement_type,reason,stock_before,stock_after,reversed_at,correction_reason,stores(name),products(name),profiles!stock_movements_created_by_fkey(full_name)")
+    .select("id,store_id,product_id,variant_id,created_at,quantity,movement_type,reason,stock_before,stock_after,reversed_at,correction_reason,stores(name),products(name),product_variants(name),profiles!stock_movements_created_by_fkey(full_name)")
     .eq("id", id).maybeSingle();
   if (!data) return null;
   const row = data as any;
   return {
-    id: String(row.id), time: String(row.created_at), store: row.stores?.name ?? "Toko", product: row.products?.name ?? "Produk",
+    id: String(row.id), time: String(row.created_at), store: row.stores?.name ?? "Toko", product: row.products?.name ?? "Produk", variant_id: row.variant_id ? String(row.variant_id) : null, variant_name: row.product_variants?.name ?? null,
     type: String(row.movement_type).replaceAll("_", " "), movement_type: String(row.movement_type), quantity: Number(row.quantity),
     user: row.profiles?.full_name ?? "Pengguna", reason: row.reason, product_id: String(row.product_id), store_id: String(row.store_id),
     stock_before: Number(row.stock_before ?? 0), stock_after: Number(row.stock_after ?? 0), reversed_at: row.reversed_at, correction_reason: row.correction_reason,
@@ -24,14 +24,14 @@ async function movementPayload(supabase: Awaited<ReturnType<typeof createClient>
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const items = Array.isArray(body.items) ? body.items : body.product_id ? [{ product_id: body.product_id, quantity: body.quantity }] : [];
+  const items = Array.isArray(body.items) ? body.items : body.product_id ? [{ product_id: body.product_id, variant_id: body.variant_id || null, quantity: body.quantity }] : [];
   const direction = body.direction === "out" ? "out" : "in";
   if (!body.store_id || !allowedTypes.has(body.movement_type) || !items.length) return NextResponse.json({ error: "Data pergerakan stok tidak valid" }, { status: 400 });
   for (const item of items) {
     const quantity = Number(item.quantity);
     if (!item.product_id || !Number.isFinite(quantity) || quantity <= 0) return NextResponse.json({ error: "Setiap produk harus memiliki jumlah lebih dari nol" }, { status: 400 });
   }
-  if (new Set(items.map((item: any) => String(item.product_id))).size !== items.length) return NextResponse.json({ error: "Produk duplikat tidak diperbolehkan" }, { status: 400 });
+  if (new Set(items.map((item: any) => `${String(item.product_id)}:${item.variant_id ? String(item.variant_id) : "base"}`)).size !== items.length) return NextResponse.json({ error: "Produk atau varian duplikat tidak diperbolehkan" }, { status: 400 });
 
   if (isDemoMode || !hasSupabaseEnv) {
     return NextResponse.json({ movements: items.map((item: any, index: number) => ({ id: crypto.randomUUID(), time: new Date().toISOString(), store: "Toko demo", product: `Produk demo ${index + 1}`, type: body.movement_type, movement_type: body.movement_type, quantity: Number(item.quantity) * (direction === "out" ? -1 : 1), user: "Demo", reason: body.reason || null, store_id: body.store_id, product_id: item.product_id, stock_before: 0, stock_after: Number(item.quantity), reversed_at: null })) });
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     p_store_id: body.store_id,
     p_type: body.movement_type,
     p_direction: direction,
-    p_items: items.map((item: any) => ({ product_id: String(item.product_id), quantity: Number(item.quantity) })),
+    p_items: items.map((item: any) => ({ product_id: String(item.product_id), variant_id: item.variant_id ? String(item.variant_id) : null, quantity: Number(item.quantity) })),
     p_reference_label: body.reference_label || null,
     p_reason: body.reason || null,
     p_notes: body.notes || null,

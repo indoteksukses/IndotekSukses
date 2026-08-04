@@ -44,12 +44,13 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
   let reader = sessionClient;
   try { reader = createAdminClient(); } catch { /* Fall back to the authenticated server client. */ }
   if (!reader) reader = await createClient();
-  const [productsResult, categoriesResult, visualsResult, salesResult, variantsResult] = await Promise.all([
+  const [productsResult, categoriesResult, visualsResult, salesResult, variantsResult, variantInventoryResult] = await Promise.all([
     reader.from("products").select("id,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("is_active", true),
     reader.from("categories").select("id,name,is_active"),
     reader.from("product_visuals").select("id,name,code,is_builtin,is_active"),
     reader.from("product_store_sales").select("product_id,store_id"),
-    reader.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").order("sort_order").order("name"),
+    reader.from("product_variants").select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order").is("archived_at", null).order("sort_order").order("name"),
+    reader.from("product_variant_inventory").select("variant_id,store_id,quantity_on_hand,quantity_reserved,quantity_damaged,quantity_in_transit"),
   ]);
 
   const categories = new Map<string, any>();
@@ -62,14 +63,31 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
     salesByProduct.set(productId, [...(salesByProduct.get(productId) ?? []), String(row.store_id)]);
   }
 
+  const stockByVariant = new Map<string, Map<string, any>>();
+  for (const row of (variantInventoryResult.data ?? []) as any[]) {
+    const variantId = String(row.variant_id);
+    const storeId = String(row.store_id);
+    const storeRows = stockByVariant.get(variantId) ?? new Map<string, any>();
+    storeRows.set(storeId, {
+      quantity_on_hand: Number(row.quantity_on_hand ?? 0),
+      quantity_reserved: Number(row.quantity_reserved ?? 0),
+      quantity_available: Math.max(Number(row.quantity_on_hand ?? 0) - Number(row.quantity_reserved ?? 0), 0),
+      quantity_damaged: Number(row.quantity_damaged ?? 0),
+      quantity_in_transit: Number(row.quantity_in_transit ?? 0),
+    });
+    stockByVariant.set(variantId, storeRows);
+  }
+
   const variantsByProduct = new Map<string, any[]>();
   for (const row of (variantsResult.data ?? []) as any[]) {
     const productId = String(row.product_id);
+    const id = String(row.id);
     variantsByProduct.set(productId, [...(variantsByProduct.get(productId) ?? []), {
-      id: String(row.id), product_id: productId, name: String(row.name),
+      id, product_id: productId, name: String(row.name),
       sku: row.sku ? String(row.sku) : null, barcode: row.barcode ? String(row.barcode) : null,
       cost_price: includeVariantCosts ? Number(row.cost_price ?? 0) : 0, selling_price: Number(row.selling_price ?? 0),
       is_active: Boolean(row.is_active), sort_order: Number(row.sort_order ?? 0),
+      stock_rows: stockByVariant.get(id) ?? new Map<string, any>(), stocks: {}, total_stock: 0,
     }]);
   }
 
@@ -81,11 +99,8 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
       ...row,
       category_name: category?.name ?? null,
       visual: visual ? {
-        id: String(visual.id),
-        name: String(visual.name),
-        code: visual.code,
-        is_builtin: Boolean(visual.is_builtin),
-        is_active: Boolean(visual.is_active),
+        id: String(visual.id), name: String(visual.name), code: visual.code,
+        is_builtin: Boolean(visual.is_builtin), is_active: Boolean(visual.is_active),
       } : null,
       sales_store_ids: salesByProduct.get(String(row.id)) ?? [],
       variants: variantsByProduct.get(String(row.id)) ?? [],
@@ -158,7 +173,7 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
       sales_store_ids: productMeta?.sales_store_ids ?? [],
-      variants: productMeta?.variants ?? [],
+      variants: (productMeta?.variants ?? []).map(({ stock_rows: _stockRows, ...variant }: any) => ({ ...variant, stocks: {}, total_stock: 0 })), 
       stocks: {},
       total_stock: 0,
     };
@@ -171,6 +186,22 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       quantity_available: Number(row.quantity_available ?? 0),
       stock_status: row.stock_status as "safe" | "low" | "out",
     };
+    for (const variant of current.variants ?? []) {
+      const variantRow = productMeta?.variants?.find((entry: any) => entry.id === variant.id)?.stock_rows?.get?.(rowStoreId);
+      const onHand = Number(variantRow?.quantity_on_hand ?? 0);
+      const reserved = Number(variantRow?.quantity_reserved ?? 0);
+      const available = Math.max(onHand - reserved, 0);
+      variant.stocks[rowStoreId] = {
+        store_id: rowStoreId,
+        store_code: String(row.store_code),
+        store_name: String(row.store_name),
+        quantity_on_hand: onHand,
+        quantity_reserved: reserved,
+        quantity_available: available,
+        stock_status: available === 0 ? "out" : available <= Number(row.minimum_stock ?? 0) ? "low" : "safe",
+      };
+      variant.total_stock += onHand;
+    }
     current.total_stock += Number(row.quantity_on_hand ?? 0);
     grouped.set(id, current);
   }
@@ -234,7 +265,7 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       is_active: productMeta?.is_active ?? true,
       sales_scope: productMeta?.sales_scope === "selected" ? "selected" : "all",
       sales_store_ids: productMeta?.sales_store_ids ?? [],
-      variants: productMeta?.variants ?? [],
+      variants: (productMeta?.variants ?? []).map(({ stock_rows: _stockRows, ...variant }: any) => ({ ...variant, stocks: {}, total_stock: 0 })), 
       stocks: {},
       total_stock: 0,
     };
@@ -247,6 +278,23 @@ export async function getProductsWithStocks(storeId?: string | null): Promise<Pr
       quantity_available: Number(row.quantity_available ?? 0),
       stock_status: row.stock_status as "safe" | "low" | "out",
     };
+    for (const variant of current.variants ?? []) {
+      const variantRow = productMeta?.variants?.find((entry: any) => entry.id === variant.id)?.stock_rows?.get?.(rowStoreId);
+      const onHand = Number(variantRow?.quantity_on_hand ?? 0);
+      const reserved = Number(variantRow?.quantity_reserved ?? 0);
+      const available = Math.max(onHand - reserved, 0);
+      variant.stocks[rowStoreId] = {
+        store_id: rowStoreId,
+        store_code: String(row.store_code),
+        store_name: String(row.store_name),
+        quantity_on_hand: onHand,
+        quantity_reserved: reserved,
+        quantity_available: available,
+        stock_status: available === 0 ? "out" : available <= Number(row.minimum_stock ?? 0) ? "low" : "safe",
+      };
+      variant.total_stock += onHand;
+      if (storeId === rowStoreId) variant.selected_stock = available;
+    }
     if (!storeId || storeId === rowStoreId) current.total_stock += Number(row.quantity_on_hand ?? 0);
     if (storeId === rowStoreId) current.selected_stock = Number(row.quantity_available ?? 0);
     grouped.set(id, current);
@@ -266,7 +314,7 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
   const supabase = await createClient();
   let query = supabase
     .from("stock_movements")
-    .select("id,store_id,product_id,created_at,quantity,movement_type,reason,stock_before,stock_after,reversed_at,correction_reason,stores(name),products(name),profiles!stock_movements_created_by_fkey(full_name)")
+    .select("id,store_id,product_id,variant_id,created_at,quantity,movement_type,reason,stock_before,stock_after,reversed_at,correction_reason,stores(name),products(name),product_variants(name),profiles!stock_movements_created_by_fkey(full_name)")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (storeId) query = query.eq("store_id", storeId);
@@ -277,6 +325,8 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
     time: String(row.created_at),
     store: row.stores?.name ?? "Toko",
     product: row.products?.name ?? "Produk",
+    variant_id: row.variant_id ? String(row.variant_id) : null,
+    variant_name: row.product_variants?.name ?? null,
     type: String(row.movement_type).replaceAll("_", " "),
     quantity: Number(row.quantity),
     user: row.profiles?.full_name ?? "Pengguna",
@@ -483,13 +533,16 @@ export async function getTransfers(storeId?: string | null) {
 export async function getTransferRequests(storeId?: string | null) {
   if (demo) return [];
   const supabase = await createClient();
-  let query = supabase.from("stock_transfer_requests").select("id,request_number,status,quantity,notes,created_at,source_store_id,destination_store_id,product_id,products(name,sku,unit),source:stores!stock_transfer_requests_source_store_id_fkey(name,code),destination:stores!stock_transfer_requests_destination_store_id_fkey(name,code),profiles!stock_transfer_requests_requested_by_fkey(full_name)").order("created_at", { ascending: false }).limit(100);
+  let query = supabase.from("stock_transfer_requests").select("id,request_number,status,quantity,notes,created_at,source_store_id,destination_store_id,product_id,variant_id,products(name,sku,unit),product_variants(name,sku),source:stores!stock_transfer_requests_source_store_id_fkey(name,code),destination:stores!stock_transfer_requests_destination_store_id_fkey(name,code),profiles!stock_transfer_requests_requested_by_fkey(full_name)").order("created_at", { ascending: false }).limit(100);
   if (storeId) query = query.or(`source_store_id.eq.${storeId},destination_store_id.eq.${storeId}`);
   const { data } = await query;
   return (data ?? []).map((row: any) => ({
     ...row,
     product_name: row.products?.name ?? "Produk",
     product_sku: row.products?.sku ?? "",
+    variant_id: row.variant_id ? String(row.variant_id) : null,
+    variant_name: row.product_variants?.name ?? null,
+    variant_sku: row.product_variants?.sku ?? null,
     product_unit: row.products?.unit ?? "pcs",
     source_name: row.source?.name ?? "Toko asal",
     destination_name: row.destination?.name ?? "Toko tujuan",
@@ -507,6 +560,9 @@ export async function getPurchases(storeId?: string | null) {
       ...item,
       id: String(item.id),
       product_id: String(item.product_id),
+      variant_id: item.variant_id ? String(item.variant_id) : null,
+      variant_name: item.variant_name ? String(item.variant_name) : null,
+      variant_sku: item.variant_sku ? String(item.variant_sku) : null,
       quantity_ordered: Number(item.quantity_ordered ?? 0),
       quantity_received: Number(item.quantity_received ?? 0),
       unit_cost: Number(item.unit_cost ?? 0),
@@ -537,13 +593,13 @@ export async function getPurchases(storeId?: string | null) {
   if (!overviewError && overview) return (overview as any[]).map(normalize);
 
   // Compatibility fallback for databases where migration 009 has not yet run.
-  let query = supabase.from("purchase_orders").select("id,po_number,supplier_id,destination_store_id,receiving_scope,status,subtotal,discount,shipping_cost,total,notes,created_at,received_at,suppliers(name),stores(name,code),purchase_order_items(id,product_id,quantity_ordered,quantity_received,unit_cost,subtotal,products(name,sku,unit),purchase_order_allocations(id,store_id,quantity,quantity_received,stores(name,code)))").order("created_at", { ascending: false });
+  let query = supabase.from("purchase_orders").select("id,po_number,supplier_id,destination_store_id,receiving_scope,status,subtotal,discount,shipping_cost,total,notes,created_at,received_at,suppliers(name),stores(name,code),purchase_order_items(id,product_id,variant_id,quantity_ordered,quantity_received,unit_cost,subtotal,products(name,sku,unit),product_variants(name,sku),purchase_order_allocations(id,store_id,quantity,quantity_received,stores(name,code)))").order("created_at", { ascending: false });
   const { data, error } = await query;
   if (error) return [];
   return (data ?? []).map((row: any) => {
     const items = (row.purchase_order_items ?? []).map((item: any) => ({
-      id: String(item.id), product_id: String(item.product_id), name: item.products?.name ?? "Produk",
-      sku: item.products?.sku ?? "", unit: item.products?.unit ?? "pcs",
+      id: String(item.id), product_id: String(item.product_id), variant_id: item.variant_id ? String(item.variant_id) : null, name: item.products?.name ?? "Produk",
+      variant_name: item.product_variants?.name ?? null, variant_sku: item.product_variants?.sku ?? null, sku: item.products?.sku ?? "", unit: item.products?.unit ?? "pcs",
       quantity_ordered: Number(item.quantity_ordered ?? 0), quantity_received: Number(item.quantity_received ?? 0),
       unit_cost: Number(item.unit_cost ?? 0), subtotal: Number(item.subtotal ?? 0),
       allocations: (item.purchase_order_allocations ?? []).map((allocation: any) => ({

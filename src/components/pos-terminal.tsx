@@ -58,10 +58,10 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   const changeAmount = Math.max(cashReceived - grandTotal, 0);
 
   const addSelected = useCallback((product: Product, variant?: ProductVariant | null) => setCart((current) => {
-    const stock = product.selected_stock ?? 0;
-    const productQuantity = current.filter((item) => item.product_id === product.id).reduce((sum, item) => sum + item.quantity, 0);
-    if (stock <= 0 || productQuantity >= stock) return current;
+    const stock = variant ? variant.selected_stock ?? 0 : product.selected_stock ?? 0;
     const key = `${product.id}:${variant?.id ?? "base"}`;
+    const currentQuantity = current.find((item) => item.key === key)?.quantity ?? 0;
+    if (stock <= 0 || currentQuantity >= stock) return current;
     const found = current.find((item) => item.key === key);
     if (found) return current.map((item) => item.key === key ? { ...item, quantity: item.quantity + 1 } : item);
     return [...current, {
@@ -88,7 +88,7 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     for (const product of products) {
       const variant = activeVariants(product).find((item) => item.barcode?.trim().toLowerCase() === code || item.sku?.trim().toLowerCase() === code);
       if (variant) {
-        if ((product.selected_stock ?? 0) <= 0) { setError(`${product.name} sedang tidak memiliki stok.`); return; }
+        if ((variant.selected_stock ?? 0) <= 0) { setError(`${product.name} · ${variant.name} sedang tidak memiliki stok.`); return; }
         addSelected(product, variant); setQuery(""); setError(""); searchRef.current?.focus(); return;
       }
     }
@@ -101,8 +101,7 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   const change = (key: string, delta: number) => setCart((current) => {
     const target = current.find((item) => item.key === key);
     if (!target) return current;
-    const otherQuantity = current.filter((item) => item.product_id === target.product_id && item.key !== key).reduce((sum, item) => sum + item.quantity, 0);
-    const maximum = Math.max(1, target.stock - otherQuantity);
+    const maximum = Math.max(1, target.stock);
     return current.map((item) => item.key === key ? { ...item, quantity: Math.max(1, Math.min(item.quantity + delta, maximum)) } : item);
   });
 
@@ -154,7 +153,7 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     {mobileCartOpen ? <div className="mobile-cart-backdrop" onClick={() => setMobileCartOpen(false)}><section className="mobile-cart-sheet" onClick={(event) => event.stopPropagation()}>{cartContent(true)}</section></div> : null}
     <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onDetected={useBarcode}/>
 
-    {variantProduct ? <div className="modal-backdrop variant-picker-backdrop"><div className="modal-card variant-picker-modal"><div className="modal-header"><div><h2>Pilih varian</h2><p>{variantProduct.name} · stok bersama {variantProduct.selected_stock ?? 0} {variantProduct.unit}</p></div><button className="icon-button" onClick={() => setVariantProduct(null)}><X size={20}/></button></div><div className="variant-picker-product"><ProductVisual name={variantProduct.name} imageUrl={variantProduct.image_url} definition={variantProduct.visual?.code} size="thumb"/><div><strong>{variantProduct.name}</strong><span>{variantProduct.brand || variantProduct.sku}</span></div></div><div className="variant-picker-list">{activeVariants(variantProduct).map((variant) => <button type="button" key={variant.id} onClick={() => { addSelected(variantProduct, variant); setVariantProduct(null); setError(""); }}><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span></div><b>{formatCurrency(variant.selling_price)}</b><Plus size={17}/></button>)}</div></div></div> : null}
+    {variantProduct ? <div className="modal-backdrop variant-picker-backdrop"><div className="modal-card variant-picker-modal"><div className="modal-header"><div><h2>Pilih varian</h2><p>{variantProduct.name} · pilih varian dengan stok yang tersedia.</p></div><button className="icon-button" onClick={() => setVariantProduct(null)}><X size={20}/></button></div><div className="variant-picker-product"><ProductVisual name={variantProduct.name} imageUrl={variantProduct.image_url} definition={variantProduct.visual?.code} size="thumb"/><div><strong>{variantProduct.name}</strong><span>{variantProduct.brand || variantProduct.sku}</span></div></div><div className="variant-picker-list">{activeVariants(variantProduct).map((variant) => <button type="button" key={variant.id} disabled={(variant.selected_stock ?? 0) <= 0} onClick={() => { addSelected(variantProduct, variant); setVariantProduct(null); setError(""); }}><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span><em>Stok {variant.selected_stock ?? 0} {variantProduct.unit}</em></div><b>{formatCurrency(variant.selling_price)}</b><Plus size={17}/></button>)}</div></div></div> : null}
 
     {paymentOpen ? <div className="modal-backdrop payment-backdrop"><div className="modal-card payment-sheet"><div className="modal-header"><div><h2>Pembayaran</h2><p>{store.name} · {itemCount} item</p></div><button className="icon-button" onClick={() => setPaymentOpen(false)}><X size={20}/></button></div><div className="payment-total"><span>Total pembayaran</span><strong>{formatCurrency(grandTotal)}</strong></div><div className="payment-methods">{payments.map(({ id, label, icon: Icon }) => <button type="button" className={paymentMethod === id ? "active" : ""} key={id} onClick={() => { setPaymentMethod(id); setPaymentReference(""); if (id !== "cash") setCashReceived(grandTotal); }}><Icon size={22}/><span>{label}</span></button>)}</div>{paymentMethod === "cash" ? <div className="cash-payment"><label className="payment-field"><span>Uang diterima</span><input type="number" inputMode="numeric" min={grandTotal} value={cashReceived || ""} onChange={(event) => setCashReceived(Number(event.target.value || 0))}/><div className="cash-presets">{[grandTotal, Math.ceil(grandTotal/5000)*5000, Math.ceil(grandTotal/10000)*10000, Math.ceil(grandTotal/50000)*50000].filter((value,index,array)=>array.indexOf(value)===index).slice(0,4).map((value)=><button type="button" key={value} onClick={()=>setCashReceived(value)}>{value===grandTotal?"Uang pas":formatCurrency(value)}</button>)}</div></label><div className="change-card"><span>Kembalian</span><strong>{formatCurrency(changeAmount)}</strong></div></div> : <label className="payment-field"><span>Nomor referensi</span><input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Opsional: nomor transaksi pembayaran"/></label>}{error ? <div className="alert error">{error}</div> : null}<button className="button primary payment-submit" disabled={processing} onClick={checkout}>{processing ? <LoadingSpinner/> : null}<span>{processing ? "Memproses transaksi..." : `Selesaikan ${formatCurrency(grandTotal)}`}</span></button></div></div> : null}
 

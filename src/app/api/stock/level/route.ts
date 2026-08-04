@@ -12,7 +12,9 @@ export async function PATCH(request: Request) {
   if (isDemoMode || !hasSupabaseEnv) return NextResponse.json({ id: crypto.randomUUID(), target_quantity: target, demo: true });
   const auth = await requireRole(["owner", "admin", "manager", "warehouse"]);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const { data, error } = await auth.supabase.rpc("set_stock_level", { p_store_id: body.store_id, p_product_id: body.product_id, p_target_quantity: target, p_reason: reason });
+  const rpc = body.variant_id ? "set_variant_stock_level" : "set_stock_level";
+  const args = body.variant_id ? { p_store_id: body.store_id, p_product_id: body.product_id, p_variant_id: body.variant_id, p_target_quantity: target, p_reason: reason } : { p_store_id: body.store_id, p_product_id: body.product_id, p_target_quantity: target, p_reason: reason };
+  const { data, error } = await auth.supabase.rpc(rpc, args);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ id: data, target_quantity: target });
 }

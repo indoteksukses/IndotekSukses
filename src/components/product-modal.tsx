@@ -111,7 +111,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const previewDefinition = visualMode === "visual" ? selectedVisual?.code : undefined;
 
   return <>
-    <button className={product ? "table-action" : "button primary"} onClick={openEditor}>{label ?? (product ? "Edit" : "+ Tambah Produk")}</button>
+    <button className={product ? "table-action" : "button primary product-add-trigger"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span>Tambah produk</span></>)}</button>
     {open ? <div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       {error ? <div className="alert error">{error}</div> : null}
       <form className="form-grid" onSubmit={async (event) => {
@@ -183,7 +183,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
         <label>Merek<input name="brand" value={brand} onChange={(event) => setBrand(event.target.value)} required placeholder="Contoh: Modern"/></label>
 
         <fieldset className="span-2 variant-config-card-v261">
-          <legend>Harga dan varian produk <span>v2.6.1</span></legend>
+          <legend>Harga dan varian produk <span>v2.7.0</span></legend>
           <div className="variant-config-intro-v261"><div><strong>Tipe produk</strong><small>Pilih satu harga utama atau beberapa varian dengan harga berbeda.</small></div><b>{variantMode ? `${variants.length || 1} varian` : "Produk tunggal"}</b></div>
           <div className="variant-type-options-v261" role="radiogroup" aria-label="Tipe produk">
             <label className={!variantMode ? "selected" : ""}>
@@ -198,7 +198,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
           {!variantMode ? <div className="product-single-price-grid"><label>Harga modal<input type="number" min="0" step="1" value={baseCost || ""} onChange={(event) => setBaseCost(Math.max(0, Number(event.target.value || 0)))}/></label><label>Harga jual<input type="number" min="0" step="1" value={baseSelling || ""} onChange={(event) => setBaseSelling(Math.max(0, Number(event.target.value || 0)))}/></label></div> : <div className="variant-mode-content-v261">
             <div className="variant-summary-bar"><button type="button" onClick={() => setVariantDetailsOpen((current) => !current)}>{variantDetailsOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}<span><strong>{variants.length} varian</strong><small>{priceSummary ? `${formatCurrency(priceSummary.min)}${priceSummary.min !== priceSummary.max ? ` – ${formatCurrency(priceSummary.max)}` : ""}` : "Belum ada harga aktif"}</small></span></button><button type="button" className="button primary compact-button" onClick={addVariant}><Plus size={15}/> Tambah varian</button></div>
             {variantDetailsOpen ? <div className="variant-editor-list">{variants.map((variant, index) => <article className="variant-editor-row" key={variant.key}><span className="variant-order">{index + 1}</span><label className="variant-name">Nama varian<input value={variant.name} onChange={(event) => patchVariant(variant.key, { name: event.target.value })} placeholder="Contoh: 4 inch"/></label><label>SKU varian<input value={variant.sku} onChange={(event) => patchVariant(variant.key, { sku: event.target.value })} placeholder="Opsional"/></label><label>Barcode<input value={variant.barcode} onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })} placeholder="Opsional"/></label><label>Harga modal<input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label><label>Harga jual<input type="number" min="0" step="1" value={variant.selling_price || ""} onChange={(event) => patchVariant(variant.key, { selling_price: Math.max(0, Number(event.target.value || 0)) })}/></label><label className="variant-active"><input type="checkbox" checked={variant.is_active} onChange={(event) => patchVariant(variant.key, { is_active: event.target.checked })}/><span>Aktif</span></label><button type="button" className="variant-remove" disabled={variants.length === 1} onClick={() => removeVariant(variant.key)} title="Hapus varian"><Trash2 size={16}/></button></article>)}</div> : null}
-            <div className="variant-stock-note">Stok tetap mengikuti produk induk agar transfer dan stok masuk/keluar tetap ringkas. Harga transaksi mengikuti varian yang dipilih di kasir.</div>
+            <div className="variant-stock-note">Setiap varian memiliki stok terpisah pada setiap cabang. Stok masuk, stok keluar, transfer, pembelian, dan kasir wajib memilih varian.</div>
           </div>}
         </fieldset>
 

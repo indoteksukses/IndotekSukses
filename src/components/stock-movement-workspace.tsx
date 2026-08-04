@@ -17,7 +17,7 @@ export function StockMovementWorkspace({ initialMovements, products, stores, def
   const [correcting, setCorrecting] = useState<Movement | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const filtered = useMemo(() => movements.filter((row) => `${row.product} ${row.store} ${row.type} ${row.reason ?? ""}`.toLowerCase().includes(query.toLowerCase())), [movements, query]);
+  const filtered = useMemo(() => movements.filter((row) => `${row.product} ${row.variant_name ?? ""} ${row.store} ${row.type} ${row.reason ?? ""}`.toLowerCase().includes(query.toLowerCase())), [movements, query]);
 
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 4000); };
   const onSaved = (saved: Movement[]) => {
@@ -41,7 +41,7 @@ export function StockMovementWorkspace({ initialMovements, products, stores, def
               <article className={`activity-card-v23 ${movement.reversed_at ? "reversed" : ""}`} key={movement.id}>
                 <span className={`movement-dot ${movement.quantity > 0 ? "green" : "red"}`}/>
                 <div className="activity-main-v23">
-                  <div><strong>{movement.product}</strong><b className={movement.quantity > 0 ? "positive" : "negative"}>{movement.quantity > 0 ? "+" : ""}{movement.quantity}</b></div>
+                  <div><strong>{movement.product}{movement.variant_name ? <small className="movement-variant-label"> · {movement.variant_name}</small> : null}</strong><b className={movement.quantity > 0 ? "positive" : "negative"}>{movement.quantity > 0 ? "+" : ""}{movement.quantity}</b></div>
                   <span>{movement.store} · {movement.type}{movement.reason ? ` · ${movement.reason}` : ""}</span>
                   <small>Stok {movement.stock_before ?? "—"} → {movement.stock_after ?? "—"} · oleh {movement.user}</small>
                   <time>{formatDateTime(movement.time)}</time>
@@ -59,7 +59,7 @@ export function StockMovementWorkspace({ initialMovements, products, stores, def
       {toast ? <div className="toast success"><CheckCircle2 size={20}/><div><strong>Pergerakan berhasil disimpan</strong><span>{toast}</span></div><button onClick={() => setToast("")}><X size={16}/></button></div> : null}
 
       {correcting ? <div className="modal-backdrop"><div className="modal-card small-modal operational-dialog"><div className="modal-header"><div><h2>Ralat pergerakan stok</h2><p>Sistem membuat pergerakan kebalikan tanpa menghapus riwayat.</p></div><button className="icon-button" onClick={() => setCorrecting(null)}><X size={20}/></button></div>
-        <div className="correction-summary"><strong>{correcting.product}</strong><span>{correcting.store} · {correcting.quantity > 0 ? "+" : ""}{correcting.quantity}</span><small>Stok {correcting.stock_before} → {correcting.stock_after}</small></div>
+        <div className="correction-summary"><strong>{correcting.product}{correcting.variant_name ? ` · ${correcting.variant_name}` : ""}</strong><span>{correcting.store} · {correcting.quantity > 0 ? "+" : ""}{correcting.quantity}</span><small>Stok {correcting.stock_before} → {correcting.stock_after}</small></div>
         {error ? <div className="alert error">{error}</div> : null}
         <form className="operational-dialog-form" onSubmit={async (event) => { event.preventDefault(); setSaving(true); setError(""); const form = new FormData(event.currentTarget); try { const response = await fetch("/api/stock/movement", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ movement_id: correcting.id, reason: form.get("reason") }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Gagal meralat stok"); setMovements((rows) => { const updated = rows.map((row) => row.id === correcting.id ? { ...row, reversed_at: new Date().toISOString(), correction_reason: String(form.get("reason")) } : row); return result.movement ? [result.movement as Movement, ...updated].slice(0, 60) : updated; }); setCorrecting(null); notify("Ralat berhasil dibuat dan saldo stok telah disesuaikan."); } catch (err) { setError(err instanceof Error ? err.message : "Gagal meralat stok"); } finally { setSaving(false); } }}>
           <label>Alasan ralat<textarea name="reason" rows={4} required autoFocus placeholder="Contoh: Salah input jumlah, seharusnya 10 bukan 100"/></label>

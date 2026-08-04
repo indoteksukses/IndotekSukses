@@ -658,3 +658,101 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
 .variant-type-options-v261 span{display:flex;flex-direction:column;gap:3px}.variant-type-options-v261 strong{font-size:10px}.variant-type-options-v261 small{font-size:8px;line-height:1.4;color:var(--muted)}
 .variant-mode-content-v261{display:block!important;border-top:1px solid #cbd8e8;padding-top:2px}
 @media(max-width:720px){.variant-type-options-v261{grid-template-columns:1fr}.variant-config-intro-v261{align-items:flex-start}.variant-config-intro-v261>b{margin-top:1px}}
+
+/* ================================================================
+   Indotek Sukses v2.7.0 — variant stock per branch & readability
+   ================================================================ */
+/* Readable operational typography */
+.modal-header h2{font-size:18px}.modal-header p{font-size:11px;line-height:1.5}
+.section-card-header h3{font-size:13px}.section-card-header p{font-size:10px;line-height:1.45}
+.section-card-body label,.operational-field-grid label,.document-notes,.purchase-top-grid label,.purchase-cost-row label{font-size:11px}
+.section-card-body input,.section-card-body select,.section-card-body textarea,.form-grid input,.form-grid select,.form-grid textarea{font-size:11px}
+.product-combobox-trigger strong{font-size:12px}.product-combobox-trigger span,.combobox-results span,.combobox-hint{font-size:10px}
+.combobox-results strong{font-size:12px}.combobox-stock{font-size:11px}
+.document-products-header strong,.purchase-line-card strong,.stock-line-card strong{font-size:11px}
+.document-products-header span,.batch-stock-info span,.purchase-cost-row span,.stock-line-current small{font-size:9px}
+.table-panel th{font-size:10px}.table-panel td{font-size:11px}.table-panel small{font-size:9px}
+.badge{font-size:9px}
+
+/* Product variant editor: keep delete button inside every card */
+.variant-editor-row{position:relative;grid-template-columns:28px minmax(155px,1.25fr) minmax(125px,.9fr) minmax(125px,.9fr) 125px 125px 68px;padding:12px 54px 12px 10px;overflow:hidden;align-items:end}
+.variant-editor-row label{font-size:10px}.variant-editor-row input[type=text],.variant-editor-row input[type=number],.variant-editor-row input:not([type]){height:40px;font-size:11px}
+.variant-active{height:40px}.variant-remove{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:38px;height:38px;z-index:2}
+.variant-stock-note{font-size:10px;line-height:1.55;padding:10px 12px}
+.variant-summary-bar strong{font-size:11px}.variant-summary-bar small{font-size:9px}
+.variant-config-card-v261>legend{font-size:12px}.variant-config-intro-v261 small{font-size:10px}.variant-type-options-v261 strong{font-size:11px}.variant-type-options-v261 small{font-size:9px}
+
+/* Variant inventory */
+.inventory-product-summary-row{background:#f3f7fc}.inventory-product-summary-row td{font-weight:700}
+.inventory-variant-row td{background:#fbfdff}.inventory-variant-row .sticky-col{padding-left:24px}
+.inventory-variant-name{display:flex;align-items:center;gap:8px;color:#315c91}.inventory-variant-name>div{display:flex;flex-direction:column}.inventory-variant-name strong{font-size:11px;color:var(--ink)}.inventory-variant-name span{font-size:9px;color:var(--muted);margin-top:2px}
+.variant-inventory-mobile-list{display:grid;gap:8px}.variant-inventory-mobile-card{border:1px solid #cbd9e9;border-radius:10px;background:#f8fbff;overflow:hidden}.variant-inventory-mobile-card>header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid #dce6f1}.variant-inventory-mobile-card>header>div{display:flex;align-items:center;gap:7px}.variant-inventory-mobile-card>header span{display:flex;flex-direction:column}.variant-inventory-mobile-card>header strong{font-size:11px}.variant-inventory-mobile-card>header small{font-size:9px;color:var(--muted);margin-top:2px}.variant-inventory-mobile-card>header b{font-size:11px}.variant-inventory-mobile-card .inventory-mobile-branches{padding:7px}
+
+/* Product variant details in Master Produk */
+.product-variant-detail>header strong{font-size:12px}.product-variant-detail>header span,.product-variant-detail>header small{font-size:9px}
+.product-variant-detail-list article{grid-template-columns:minmax(190px,1.2fr) 105px 105px 100px 70px;position:relative}
+.product-variant-detail-list article strong{font-size:10px}.product-variant-detail-list article span{font-size:9px}
+.variant-detail-branches{grid-column:1/-1!important;display:flex!important;flex-direction:row!important;gap:6px;flex-wrap:wrap;padding-top:6px;border-top:1px dashed #d5e0ec}.variant-detail-branches>span{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:5px;padding:4px 7px;border-radius:99px;background:#eef4fb;color:#425b78!important}.variant-detail-branches b{color:#245c9f}
+
+/* Master Produk actions */
+.product-master-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.product-master-actions .button{white-space:nowrap}.product-add-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+
+/* Variant selector and picker readability */
+.variant-picker-product strong{font-size:12px}.variant-picker-product span{font-size:10px}.variant-picker-list strong{font-size:12px}.variant-picker-list span{font-size:10px}.variant-picker-list b{font-size:12px}.pos-variant-badge,.cart-variant-name{font-size:9px}
+.movement-variant-label{font-size:10px;color:#315c91;font-weight:800}
+
+@media(max-width:1050px){
+  .variant-editor-row{grid-template-columns:28px minmax(170px,1fr) 135px 135px 120px 120px 68px;padding-right:54px;overflow:hidden}
+}
+@media(max-width:780px){
+  .variant-editor-row{display:grid;grid-template-columns:30px minmax(0,1fr);padding:10px 50px 10px 10px;align-items:center;overflow:hidden}
+  .variant-editor-row .variant-order{grid-column:1;grid-row:1}.variant-editor-row .variant-name{grid-column:2;grid-row:1}
+  .variant-editor-row>label:not(.variant-name):not(.variant-active){grid-column:1/-1}.variant-editor-row .variant-active{grid-column:1/-1}
+  .variant-editor-row .variant-remove{right:8px;top:9px;transform:none}
+  .product-variant-detail-list article{grid-template-columns:minmax(0,1fr) auto auto}.variant-detail-stock{grid-column:2}.product-variant-detail-list article .badge{grid-column:3;grid-row:1}.variant-detail-branches{grid-column:1/-1!important}
+}
+@media(max-width:720px){
+  .product-master-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:6px}
+  .product-master-actions>*,.product-master-actions .button{min-width:0;width:100%;height:42px;padding:0 6px;font-size:9px;justify-content:center;text-align:center;white-space:normal;line-height:1.15}
+  .product-master-actions svg{width:15px;height:15px;flex:none}.product-add-trigger span{display:inline}
+  .table-panel td{font-size:11px}.mobile-card-table td:before{font-size:9px}
+}
+@media(max-width:480px){
+  .product-master-actions{gap:5px}.product-master-actions>*,.product-master-actions .button{font-size:8.5px;padding:0 4px}
+  .variant-editor-row{padding-right:48px}.variant-remove{width:34px;height:34px}
+  .product-variant-detail-list article{grid-template-columns:1fr auto}.product-variant-detail-list article .badge{grid-column:2}.variant-detail-stock{grid-column:1}.variant-detail-branches{grid-column:1/-1!important}
+}
+
+/* v2.7.0 final readability and responsive variant editor refinements */
+.product-form-modal,.document-modal,.purchase-multi-modal,.transfer-request-modal{font-size:12px}
+.product-form-modal .form-grid>label,.product-form-modal fieldset label,.document-modal label,.purchase-multi-modal label,.transfer-request-modal label{font-size:11.5px;line-height:1.45}
+.product-form-modal input,.product-form-modal select,.product-form-modal textarea,.document-modal input,.document-modal select,.document-modal textarea,.purchase-multi-modal input,.purchase-multi-modal select,.purchase-multi-modal textarea,.transfer-request-modal input,.transfer-request-modal select{font-size:12px}
+.product-form-modal small,.document-modal small,.purchase-multi-modal small,.transfer-request-modal small{font-size:9.5px;line-height:1.45}
+.product-form-modal .button,.document-modal .button,.purchase-multi-modal .button,.transfer-request-modal .button{font-size:11px}
+.variant-editor-row{grid-template-columns:28px minmax(140px,1.35fr) repeat(4,minmax(98px,1fr)) 76px;gap:8px;padding-right:54px}
+.variant-editor-row label{min-width:0;font-size:11px}.variant-editor-row input{min-width:0;font-size:12px!important}
+.variant-active{min-width:0;justify-content:center}.variant-remove{display:grid;place-items:center;overflow:hidden}
+.transfer-variant-help{display:flex;align-items:center;gap:5px;margin-top:5px;color:#315c91!important;font-weight:700}
+.transfer-request-product strong{font-size:14px}.transfer-request-product span{font-size:10px}
+.product-variant-detail-list article,.inventory-variant-row,.variant-inventory-mobile-card{font-size:11px}
+
+@media(max-width:1100px){
+  .variant-editor-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr);padding:10px 50px 10px 10px;align-items:end}
+  .variant-editor-row .variant-order{grid-column:1;grid-row:1}.variant-editor-row .variant-name{grid-column:2/4;grid-row:1}
+  .variant-editor-row>label:not(.variant-name):not(.variant-active){grid-column:span 1}
+  .variant-editor-row .variant-active{grid-column:1/4;min-height:40px;justify-content:flex-start}
+  .variant-editor-row .variant-remove{right:8px;top:9px;transform:none}
+}
+@media(max-width:720px){
+  .product-master-actions>*,.product-master-actions .button{font-size:10px!important;line-height:1.2;min-height:44px}
+  .variant-editor-row{grid-template-columns:28px minmax(0,1fr);padding-right:48px}
+  .variant-editor-row .variant-name{grid-column:2;grid-row:1}
+  .variant-editor-row>label:not(.variant-name):not(.variant-active){grid-column:1/-1}
+  .variant-editor-row .variant-active{grid-column:1/-1}
+  .section-card-header h3{font-size:14px}.section-card-header p{font-size:11px}
+  .document-products-header strong{font-size:12px}.document-products-header span{font-size:10px}
+  .table-panel td{font-size:11.5px}.mobile-card-table td:before{font-size:10px}
+}
+@media(max-width:480px){
+  .product-master-actions>*,.product-master-actions .button{font-size:9.5px!important;padding:0 5px}
+}

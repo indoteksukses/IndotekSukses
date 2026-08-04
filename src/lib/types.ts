@@ -58,6 +58,9 @@ export type ProductVariant = {
   selling_price: number;
   is_active: boolean;
   sort_order: number;
+  stocks: Record<string, StockLevel>;
+  total_stock: number;
+  selected_stock?: number;
 };
 
 export type Product = {
@@ -121,6 +124,8 @@ export type Movement = {
   reason?: string | null;
   movement_type?: string;
   product_id?: string;
+  variant_id?: string | null;
+  variant_name?: string | null;
   store_id?: string;
   stock_before?: number;
   stock_after?: number;
