@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Layers3, PackageOpen } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { ProductVisual } from "@/components/product-visual";
@@ -28,11 +28,21 @@ export function ProductTable({ products, categories, visuals, stores, canEdit }:
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const filtered = useMemo(() => products.filter((product) => {
     const variantText = (product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ");
     const text = `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${variantText}`.toLowerCase();
     return text.includes(query.toLowerCase()) && (!category || product.category === category) && (!status || (status === "active" ? product.is_active : !product.is_active));
   }), [products, query, category, status]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = (safePage - 1) * pageSize;
+  const pagedProducts = filtered.slice(pageStart, pageStart + pageSize);
+
+  useEffect(() => { setPage(1); setExpanded(null); }, [query, category, status, pageSize]);
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+
   const rows = filtered.map((product) => ({
     Nama: product.name,
     SKU: product.sku,
@@ -51,10 +61,10 @@ export function ProductTable({ products, categories, visuals, stores, canEdit }:
   const toggleExpanded = (productId: string) => setExpanded((current) => current === productId ? null : productId);
 
   return <>
-    <div className="toolbar-card product-toolbar"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari produk, varian, SKU, barcode, atau merek..."/></div><select className="select" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select><select className="select" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><CsvButton filename="master-produk-indotek" rows={rows} label="Ekspor produk"/></div>
+    <div className="toolbar-card product-toolbar"><div className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari produk, varian, SKU, barcode, atau merek..."/></div><select className="select" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">Semua kategori</option>{categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select><select className="select" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Semua status</option><option value="active">Aktif</option><option value="inactive">Nonaktif</option></select><label className="product-page-size"><span>Per halaman</span><select className="select" value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label><CsvButton filename="master-produk-indotek" rows={rows} label="Ekspor produk"/></div><div className="product-result-summary"><strong>{filtered.length.toLocaleString("id-ID")}</strong><span>dari {products.length.toLocaleString("id-ID")} produk · menampilkan {filtered.length ? pageStart + 1 : 0}–{Math.min(pageStart + pageSize, filtered.length)}</span></div>
 
     <div className="product-mobile-list">
-      {filtered.map((product) => {
+      {pagedProducts.map((product) => {
         const variants = product.variants ?? [];
         const isExpanded = expanded === product.id;
         return <article className="product-mobile-card" key={product.id}>
@@ -86,7 +96,7 @@ export function ProductTable({ products, categories, visuals, stores, canEdit }:
     </div>
 
     <div className="panel table-panel product-master-table product-desktop-table"><table><thead><tr><th>Produk</th><th>SKU / Barcode</th><th>Kategori</th><th>Modal</th><th>Harga jual</th><th>Stok total</th><th>Dijual di</th><th>Status</th><th/></tr></thead><tbody>
-      {filtered.map((product) => {
+      {pagedProducts.map((product) => {
         const variants = product.variants ?? [];
         const isExpanded = expanded === product.id;
         return <Fragment key={product.id}>
@@ -96,5 +106,11 @@ export function ProductTable({ products, categories, visuals, stores, canEdit }:
       })}
       {!filtered.length ? <tr><td colSpan={9}><div className="empty-inline">Produk tidak ditemukan.</div></td></tr> : null}
     </tbody></table></div>
+
+    <nav className="product-pagination" aria-label="Navigasi halaman produk">
+      <button type="button" className="button secondary" disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft size={17}/>Sebelumnya</button>
+      <div><strong>Halaman {safePage.toLocaleString("id-ID")}</strong><span>dari {pageCount.toLocaleString("id-ID")}</span></div>
+      <button type="button" className="button secondary" disabled={safePage >= pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>Selanjutnya<ChevronRight size={17}/></button>
+    </nav>
   </>;
 }

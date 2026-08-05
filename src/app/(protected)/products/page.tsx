@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function ProductsPage() {
-  const [products, categories, allCategories, visuals, allVisuals, profile, stores] = await Promise.all([getProductsWithStocks(), getCategories(), getCategories(true), getProductVisuals(), getProductVisuals(true), getCurrentProfile(), getStores()]);
+  const [products, categories, allCategories, visuals, allVisuals, profile, stores] = await Promise.all([getProductsWithStocks(null, true), getCategories(), getCategories(true), getProductVisuals(), getProductVisuals(true), getCurrentProfile(), getStores()]);
   const categoryRows = categories as Array<{ id: string; name: string; description?: string | null; is_active?: boolean }>;
   const allCategoryRows = allCategories as Array<{ id: string; name: string; description?: string | null; is_active?: boolean }>;
   const canEdit = profile.role === "owner" || profile.role === "admin";
