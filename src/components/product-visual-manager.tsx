@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Braces, CheckCircle2, Copy, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Braces, CheckCircle2, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { ProductVisual as ProductVisualType, ProductVisualDefinition } from "@/lib/types";
@@ -34,7 +34,13 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [query, setQuery] = useState("");
   const preview = useMemo(() => parseCode(code), [code]);
+  const filteredVisuals = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return visuals;
+    return visuals.filter((visual) => `${visual.name} ${visual.code?.shape ?? ""} ${visual.is_builtin ? "bawaan" : "custom admin"}`.toLowerCase().includes(normalized));
+  }, [visuals, query]);
 
   const resetEditor = () => {
     setEditing(null);
@@ -84,19 +90,20 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
 
 
   return <>
-    <button className="button secondary" onClick={() => setOpen(true)}><Braces size={16}/> Visual Produk</button>
+    <button className="button secondary product-master-action-button" onClick={() => setOpen(true)}><Braces size={16}/><span className="action-label-full">Visual Produk</span><span className="action-label-short">Visual</span></button>
     {open ? <div className="modal-backdrop"><div className="modal-card visual-manager-modal">
       <div className="modal-header"><div><h2>Galeri visual produk</h2><p>Edit visual buatan admin atau hapus visual apa pun dari galeri. Produk yang memakai visual terhapus otomatis kembali ke visual umum.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="visual-manager-layout">
         <section className="visual-library"><div className="visual-section-title"><strong>Pilihan tersimpan</strong><span>{visuals.filter((visual) => visual.is_active).length} aktif · {visuals.length} total</span></div>
-          <div className="visual-library-grid">{visuals.map((visual) => <article key={visual.id} className={`visual-library-card ${visual.is_active ? "" : "is-inactive"}`}>
+          <div className="visual-library-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau bentuk Visual Code..."/><b>{filteredVisuals.length}</b></div>
+          <div className="visual-library-grid">{filteredVisuals.map((visual) => <article key={visual.id} className={`visual-library-card ${visual.is_active ? "" : "is-inactive"}`}>
             <ProductVisual name={visual.name} definition={visual.code} size="preview"/>
             <div className="visual-library-meta"><strong>{visual.name}</strong><span>{visual.is_builtin ? "Bawaan sistem" : "Visual buatan admin"}{visual.is_active ? "" : " · disembunyikan"}</span></div>
             <div className="visual-card-actions">
               {!visual.is_builtin ? <button type="button" title="Edit visual" onClick={() => startEdit(visual)}><Pencil size={14}/><span>Edit</span></button> : <span className="visual-builtin-label">Bawaan</span>}
               <button type="button" className="danger" title="Hapus visual" onClick={() => remove(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={14}/> : <Trash2 size={14}/>}<span>Hapus</span></button>
             </div>
-          </article>)}</div>
+          </article>)}{!filteredVisuals.length ? <div className="visual-library-empty">Visual tidak ditemukan. Coba kata kunci lain.</div> : null}</div>
         </section>
         <section className="visual-code-editor"><div className="visual-section-title"><strong>{editing ? `Edit ${editing.name}` : "Tambah visual dari kode"}</strong><span>{editing ? "Simpan untuk memperbarui pilihan visual." : "Gunakan bentuk perkakas yang tersedia."}</span></div>
           <label>Nama visual<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Baut Stainless" disabled={Boolean(editing?.is_builtin)}/></label>

@@ -756,3 +756,163 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
 @media(max-width:480px){
   .product-master-actions>*,.product-master-actions .button{font-size:9.5px!important;padding:0 5px}
 }
+
+/* ================================================================
+   Indotek Sukses v2.7.1 — polished product editor and mobile catalog
+   ================================================================ */
+.action-label-short{display:none}
+
+/* Stable variant cards: no field can escape its card. */
+.variant-editor-row.variant-editor-card{
+  display:block;
+  position:relative;
+  grid-template-columns:none;
+  padding:12px;
+  overflow:visible;
+  border:1px solid #cbd9e8;
+  border-left:4px solid #4f8bd8;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(31,61,98,.045)
+}
+.variant-editor-card-header{display:grid;grid-template-columns:34px minmax(0,1fr) 42px;align-items:end;gap:10px}
+.variant-editor-card-header .variant-order{width:32px;height:32px;align-self:end;margin-bottom:4px;font-size:11px}
+.variant-editor-card-header .variant-name{min-width:0}
+.variant-editor-card-header .variant-name>span,
+.variant-editor-fields label>span{display:block;margin-bottom:5px;color:#52647a;font-size:11px;font-weight:850;line-height:1.35}
+.variant-editor-card input{
+  width:100%;
+  min-width:0;
+  height:42px!important;
+  padding:0 11px!important;
+  border:1px solid #bdcde0!important;
+  border-radius:9px!important;
+  background:#fff;
+  font-size:12px!important;
+  line-height:1.2
+}
+.variant-editor-card input:focus{border-color:#4f8bd8!important;box-shadow:0 0 0 3px rgba(79,139,216,.13)!important;outline:0}
+.variant-editor-card .variant-remove{
+  position:static;
+  transform:none;
+  width:42px;
+  height:42px;
+  align-self:end;
+  margin:0;
+  border-radius:9px
+}
+.variant-editor-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:11px}
+.variant-editor-card>.variant-active{
+  display:flex!important;
+  width:100%;
+  min-height:42px;
+  height:auto;
+  margin-top:10px;
+  padding:9px 11px;
+  justify-content:flex-start!important;
+  border:1px solid #cbd8e6;
+  border-radius:9px;
+  background:#f7faff;
+  color:#334155!important;
+  font-size:11px!important
+}
+.variant-editor-card>.variant-active input{width:17px!important;height:17px!important;padding:0!important;flex:none}
+.variant-editor-list{gap:10px;padding:0 12px 12px}
+.variant-stock-note{font-size:10.5px;line-height:1.55}
+
+/* Searchable Visual Code picker in product editor. */
+.visual-product-picker{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.visual-product-picker>label{display:flex;flex-direction:column;gap:5px}
+.visual-product-picker>label>span{font-size:11px;font-weight:800;color:#52647a}
+.visual-search-input,.visual-library-search{display:flex;align-items:center;gap:8px;border:1px solid #bdcde0;border-radius:10px;background:#fff;padding:0 11px;color:#64748b}
+.visual-search-input{height:42px}
+.visual-search-input input,.visual-library-search input{min-width:0;width:100%;height:auto!important;border:0!important;padding:0!important;background:transparent!important;box-shadow:none!important;outline:0!important}
+.visual-product-picker small{font-size:9.5px;color:#64748b}
+
+/* Search inside Visual Product gallery. */
+.visual-library-search{height:44px;margin:0 0 11px}
+.visual-library-search b{min-width:30px;height:25px;padding:0 7px;border-radius:99px;background:#eaf2ff;color:#285e9f;display:grid;place-items:center;font-size:10px}
+.visual-library-empty{grid-column:1/-1;min-height:130px;border:1px dashed #b8c9dc;border-radius:12px;background:#f8fbff;color:#64748b;display:grid;place-items:center;padding:20px;text-align:center;font-size:11px}
+
+/* Dedicated mobile product catalog instead of table-to-card conversion. */
+.product-mobile-list{display:none}
+.product-mobile-card{border:1px solid #cad8e8;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 5px 18px rgba(29,56,91,.055)}
+.product-mobile-card-head{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px;border-bottom:1px solid #e1e8f0;background:linear-gradient(180deg,#fff,#f9fbfe)}
+.product-mobile-card-head .product-visual,.product-mobile-card-head .product-visual-card{width:52px;height:52px;margin:0;border-radius:12px}
+.product-mobile-title{display:flex;flex-direction:column;min-width:0}
+.product-mobile-title strong{font-size:14px;line-height:1.3;color:#16243a;overflow-wrap:anywhere}
+.product-mobile-title span{margin-top:4px;font-size:10.5px;color:#64748b}
+.product-mobile-head-actions{display:flex;align-items:flex-end;flex-direction:column;gap:6px}
+.product-mobile-edit .table-action{min-height:31px;padding:0 9px;border-radius:8px;background:#eef5ff;color:#245c9f;font-size:10px;font-weight:850}
+.product-mobile-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:4px 13px 10px}
+.product-mobile-meta-grid>div{min-width:0;padding:10px 4px;border-bottom:1px solid #edf1f6;display:flex;flex-direction:column}
+.product-mobile-meta-grid>div:nth-last-child(-n+2){border-bottom:0}
+.product-mobile-meta-grid>div:nth-child(odd){padding-right:12px;border-right:1px solid #edf1f6}
+.product-mobile-meta-grid>div:nth-child(even){padding-left:12px}
+.product-mobile-meta-grid span{font-size:9.5px;color:#64748b;font-weight:750}
+.product-mobile-meta-grid strong{margin-top:4px;font-size:11.5px;line-height:1.35;color:#24354d;overflow-wrap:anywhere}
+.product-mobile-meta-grid small{margin-top:3px;font-size:9px;color:#8794a7}
+.product-mobile-meta-grid .product-mobile-selling{font-size:12.5px;color:#0b4cc2}
+.product-mobile-variant-toggle{width:calc(100% - 26px);min-height:48px;margin:0 13px 13px;border:1px solid #bdd1ea;border-radius:11px;background:#eef5ff;color:#285e9f;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 11px;text-align:left;cursor:pointer}
+.product-mobile-variant-toggle>span{display:grid;grid-template-columns:18px 1fr;align-items:center;column-gap:7px}
+.product-mobile-variant-toggle b{font-size:11px}.product-mobile-variant-toggle small{grid-column:2;font-size:9px;color:#617896;margin-top:2px}
+.product-mobile-single-note{margin:0 13px 13px;padding:8px 10px;border-radius:9px;background:#f5f7fa;color:#64748b;display:flex;align-items:center;gap:6px;font-size:10px;font-weight:750}
+.product-mobile-variant-list{display:grid;gap:8px;padding:0 13px 13px}
+.product-mobile-variant-card{border:1px solid #d2deeb;border-radius:11px;background:#fbfdff;padding:10px}
+.product-mobile-variant-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid #e6edf5}
+.product-mobile-variant-card>header>div{display:flex;flex-direction:column;min-width:0}
+.product-mobile-variant-card>header strong{font-size:11.5px;color:#20324b}.product-mobile-variant-card>header span{margin-top:3px;font-size:9px;color:#758398;overflow-wrap:anywhere}
+.product-mobile-variant-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 0}
+.product-mobile-variant-metrics>div{min-width:0;border:1px solid #e0e8f1;border-radius:8px;background:#fff;padding:7px;display:flex;flex-direction:column}
+.product-mobile-variant-metrics span{font-size:8.5px;color:#718096}.product-mobile-variant-metrics strong{margin-top:3px;font-size:10.5px;color:#263a54;overflow-wrap:anywhere}
+.product-mobile-branch-chips{display:flex;gap:5px;flex-wrap:wrap;padding-top:7px;border-top:1px dashed #d8e2ed}
+.product-mobile-branch-chips span{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:99px;background:#edf4fc;color:#48627f;font-size:9px}
+.product-mobile-branch-chips b{color:#245c9f}
+.product-mobile-empty{border:1px dashed #bdcce0;border-radius:14px;background:#fff;padding:24px}
+
+/* Product master action buttons: predictable on tablet and phone. */
+.product-master-actions{display:grid;grid-template-columns:repeat(3,max-content);gap:8px;align-items:center}
+.product-master-action-button{display:flex!important;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+
+@media(max-width:1100px){
+  .variant-editor-fields{grid-template-columns:1fr 1fr}
+  .page-actions:has(.product-master-actions){width:100%}
+  .product-master-actions{grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:8px}
+  .product-master-actions .product-master-action-button{width:100%;min-width:0;min-height:46px;padding:0 10px;font-size:10.5px}
+}
+
+@media(max-width:780px){
+  .product-form-modal-variants{width:100%!important}
+  .product-form-modal-variants .form-grid{padding:13px;gap:12px}
+  .product-form-modal-variants .form-grid>label{font-size:12px}
+  .product-form-modal-variants input,.product-form-modal-variants select,.product-form-modal-variants textarea{font-size:13px!important}
+  .variant-config-card-v261{border-radius:13px}
+  .variant-config-intro-v261{padding:12px}
+  .variant-type-options-v261{padding:0 12px 12px}
+  .variant-editor-card-header{grid-template-columns:32px minmax(0,1fr) 40px;gap:8px}
+  .variant-editor-fields{grid-template-columns:1fr 1fr;gap:8px}
+  .visual-product-picker{grid-template-columns:1fr}
+  .product-desktop-table{display:none}
+  .product-mobile-list{display:grid;gap:12px}
+  .product-toolbar{margin-bottom:12px}
+}
+
+@media(max-width:520px){
+  .action-label-full{display:none}.action-label-short{display:inline}
+  .product-master-actions{gap:6px}
+  .product-master-actions .product-master-action-button{min-height:48px;padding:0 5px;flex-direction:column;gap:3px;font-size:10px!important;line-height:1}
+  .product-master-actions .product-master-action-button svg{width:16px;height:16px}
+  .variant-editor-fields{grid-template-columns:1fr}
+  .variant-editor-card{padding:10px!important}
+  .variant-editor-card-header{grid-template-columns:30px minmax(0,1fr) 38px}
+  .variant-editor-card .variant-remove{width:38px;height:38px}
+  .product-mobile-card-head{grid-template-columns:46px minmax(0,1fr) auto;padding:11px;gap:9px}
+  .product-mobile-card-head .product-visual,.product-mobile-card-head .product-visual-card{width:46px;height:46px}
+  .product-mobile-title strong{font-size:12.5px}
+  .product-mobile-head-actions .badge{font-size:8px;padding:4px 7px}
+  .product-mobile-meta-grid{padding-left:10px;padding-right:10px}
+  .product-mobile-meta-grid strong{font-size:10.5px}
+  .product-mobile-variant-metrics{grid-template-columns:1fr 1fr}
+  .product-mobile-variant-metrics>div:last-child{grid-column:1/-1}
+}
+.variant-editor-card-header .variant-name{grid-column:2!important;grid-row:auto!important}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, Trash2, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { formatCurrency } from "@/lib/format";
@@ -68,6 +68,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const [brand, setBrand] = useState(product?.brand || "Tanpa Merek");
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [visualId, setVisualId] = useState(product?.visual_id ?? visuals[0]?.id ?? "");
+  const [visualQuery, setVisualQuery] = useState("");
   const [visualMode, setVisualMode] = useState<VisualMode>(initialVisualMode(product));
   const [salesScope, setSalesScope] = useState<"all" | "selected">(product?.sales_scope === "selected" ? "selected" : "all");
   const [salesStoreIds, setSalesStoreIds] = useState<string[]>(product?.sales_store_ids?.length ? product.sales_store_ids : stores.map((store) => store.id));
@@ -77,6 +78,14 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const [baseCost, setBaseCost] = useState(Number(product?.cost_price ?? 0));
   const [baseSelling, setBaseSelling] = useState(Number(product?.selling_price ?? 0));
   const selectedVisual = useMemo(() => visuals.find((visual) => visual.id === visualId), [visuals, visualId]);
+  const filteredVisuals = useMemo(() => {
+    const query = visualQuery.trim().toLowerCase();
+    if (!query) return visuals;
+    return visuals.filter((visual) => `${visual.name} ${visual.code?.shape ?? ""}`.toLowerCase().includes(query));
+  }, [visuals, visualQuery]);
+  const visualOptions = useMemo(() => selectedVisual && !filteredVisuals.some((visual) => visual.id === selectedVisual.id)
+    ? [selectedVisual, ...filteredVisuals]
+    : filteredVisuals, [filteredVisuals, selectedVisual]);
 
   const resetEditor = () => {
     setError("");
@@ -84,6 +93,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
     setBrand(product?.brand || "Tanpa Merek");
     setImageUrl(product?.image_url ?? "");
     setVisualId(product?.visual_id ?? visuals[0]?.id ?? "");
+    setVisualQuery("");
     setVisualMode(initialVisualMode(product));
     setSalesScope(product?.sales_scope === "selected" ? "selected" : "all");
     setSalesStoreIds(product?.sales_store_ids?.length ? product.sales_store_ids : stores.map((store) => store.id));
@@ -111,7 +121,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const previewDefinition = visualMode === "visual" ? selectedVisual?.code : undefined;
 
   return <>
-    <button className={product ? "table-action" : "button primary product-add-trigger"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span>Tambah produk</span></>)}</button>
+    <button className={product ? "table-action" : "button primary product-add-trigger product-master-action-button"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span className="action-label-full">Tambah produk</span><span className="action-label-short">Tambah</span></>)}</button>
     {open ? <div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       {error ? <div className="alert error">{error}</div> : null}
       <form className="form-grid" onSubmit={async (event) => {
@@ -183,7 +193,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
         <label>Merek<input name="brand" value={brand} onChange={(event) => setBrand(event.target.value)} required placeholder="Contoh: Modern"/></label>
 
         <fieldset className="span-2 variant-config-card-v261">
-          <legend>Harga dan varian produk <span>v2.7.0</span></legend>
+          <legend>Harga dan varian produk <span>v2.7.1</span></legend>
           <div className="variant-config-intro-v261"><div><strong>Tipe produk</strong><small>Pilih satu harga utama atau beberapa varian dengan harga berbeda.</small></div><b>{variantMode ? `${variants.length || 1} varian` : "Produk tunggal"}</b></div>
           <div className="variant-type-options-v261" role="radiogroup" aria-label="Tipe produk">
             <label className={!variantMode ? "selected" : ""}>
@@ -197,7 +207,20 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
           </div>
           {!variantMode ? <div className="product-single-price-grid"><label>Harga modal<input type="number" min="0" step="1" value={baseCost || ""} onChange={(event) => setBaseCost(Math.max(0, Number(event.target.value || 0)))}/></label><label>Harga jual<input type="number" min="0" step="1" value={baseSelling || ""} onChange={(event) => setBaseSelling(Math.max(0, Number(event.target.value || 0)))}/></label></div> : <div className="variant-mode-content-v261">
             <div className="variant-summary-bar"><button type="button" onClick={() => setVariantDetailsOpen((current) => !current)}>{variantDetailsOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}<span><strong>{variants.length} varian</strong><small>{priceSummary ? `${formatCurrency(priceSummary.min)}${priceSummary.min !== priceSummary.max ? ` – ${formatCurrency(priceSummary.max)}` : ""}` : "Belum ada harga aktif"}</small></span></button><button type="button" className="button primary compact-button" onClick={addVariant}><Plus size={15}/> Tambah varian</button></div>
-            {variantDetailsOpen ? <div className="variant-editor-list">{variants.map((variant, index) => <article className="variant-editor-row" key={variant.key}><span className="variant-order">{index + 1}</span><label className="variant-name">Nama varian<input value={variant.name} onChange={(event) => patchVariant(variant.key, { name: event.target.value })} placeholder="Contoh: 4 inch"/></label><label>SKU varian<input value={variant.sku} onChange={(event) => patchVariant(variant.key, { sku: event.target.value })} placeholder="Opsional"/></label><label>Barcode<input value={variant.barcode} onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })} placeholder="Opsional"/></label><label>Harga modal<input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label><label>Harga jual<input type="number" min="0" step="1" value={variant.selling_price || ""} onChange={(event) => patchVariant(variant.key, { selling_price: Math.max(0, Number(event.target.value || 0)) })}/></label><label className="variant-active"><input type="checkbox" checked={variant.is_active} onChange={(event) => patchVariant(variant.key, { is_active: event.target.checked })}/><span>Aktif</span></label><button type="button" className="variant-remove" disabled={variants.length === 1} onClick={() => removeVariant(variant.key)} title="Hapus varian"><Trash2 size={16}/></button></article>)}</div> : null}
+            {variantDetailsOpen ? <div className="variant-editor-list">{variants.map((variant, index) => <article className="variant-editor-row variant-editor-card" key={variant.key}>
+              <div className="variant-editor-card-header">
+                <span className="variant-order">{index + 1}</span>
+                <label className="variant-name"><span>Nama varian</span><input value={variant.name} onChange={(event) => patchVariant(variant.key, { name: event.target.value })} placeholder="Contoh: 4 inch"/></label>
+                <button type="button" className="variant-remove" disabled={variants.length === 1} onClick={() => removeVariant(variant.key)} title="Hapus varian" aria-label={`Hapus ${variant.name || `varian ${index + 1}`}`}><Trash2 size={17}/></button>
+              </div>
+              <div className="variant-editor-fields">
+                <label><span>SKU varian</span><input value={variant.sku} onChange={(event) => patchVariant(variant.key, { sku: event.target.value })} placeholder="Opsional"/></label>
+                <label><span>Barcode</span><input value={variant.barcode} onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })} placeholder="Opsional"/></label>
+                <label><span>Harga modal</span><input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
+                <label><span>Harga jual</span><input type="number" min="0" step="1" value={variant.selling_price || ""} onChange={(event) => patchVariant(variant.key, { selling_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
+              </div>
+              <label className="variant-active"><input type="checkbox" checked={variant.is_active} onChange={(event) => patchVariant(variant.key, { is_active: event.target.checked })}/><span>Varian aktif dan dapat digunakan</span></label>
+            </article>)}</div> : null}
             <div className="variant-stock-note">Setiap varian memiliki stok terpisah pada setiap cabang. Stok masuk, stok keluar, transfer, pembelian, dan kasir wajib memilih varian.</div>
           </div>}
         </fieldset>
@@ -206,7 +229,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
 
         <section className="span-2 product-sales-availability"><div className="product-sales-heading"><Building2 size={18}/><div><strong>Cabang penjualan</strong><span>Tentukan apakah produk tersedia di seluruh cabang atau cabang tertentu.</span></div></div><div className="product-sales-scope-buttons"><button type="button" className={salesScope === "all" ? "active" : ""} onClick={() => { setSalesScope("all"); setSalesStoreIds(stores.map((store) => store.id)); }}>Semua cabang</button><button type="button" className={salesScope === "selected" ? "active" : ""} onClick={() => setSalesScope("selected")}>Cabang tertentu</button></div>{salesScope === "selected" ? <div className="product-sales-store-grid">{stores.map((store) => <label className={salesStoreIds.includes(store.id) ? "selected" : ""} key={store.id}><input type="checkbox" checked={salesStoreIds.includes(store.id)} onChange={() => toggleStore(store.id)}/><span><strong>{store.name}</strong><small>{store.code}</small></span></label>)}</div> : <div className="product-sales-all-note">Produk akan muncul di kasir seluruh cabang aktif.</div>}</section>
 
-        <section className="span-2 product-appearance-editor-v231"><div className="product-appearance-fields-v231"><div className="appearance-heading"><Image size={17}/><div><strong>Gambar & visual produk</strong><span>Pilih satu sumber gambar.</span></div></div><div className="product-visual-source-tabs"><button type="button" className={visualMode === "image" ? "active" : ""} onClick={() => chooseMode("image")}><Link2 size={15}/> URL gambar</button><button type="button" className={visualMode === "visual" ? "active" : ""} onClick={() => chooseMode("visual")}><Images size={15}/> Visual kode</button><button type="button" className={visualMode === "none" ? "active" : ""} onClick={() => chooseMode("none")}><X size={15}/> Tanpa pilihan</button></div>{visualMode === "image" ? <label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://..."/></label> : null}{visualMode === "visual" ? <label>Visual ringan berbasis kode<select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="" disabled>Pilih visual</option>{visuals.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select></label> : null}</div><div className="product-preview-panel-v231"><span>Pratinjau</span><ProductVisual name={product?.name || "Produk"} imageUrl={previewImage} definition={previewDefinition} size="preview"/><small>{visualMode === "image" ? "URL gambar" : visualMode === "visual" ? selectedVisual?.name ?? "Visual kode" : "Visual umum"}</small></div></section>
+        <section className="span-2 product-appearance-editor-v231"><div className="product-appearance-fields-v231"><div className="appearance-heading"><Image size={17}/><div><strong>Gambar & visual produk</strong><span>Pilih satu sumber gambar.</span></div></div><div className="product-visual-source-tabs"><button type="button" className={visualMode === "image" ? "active" : ""} onClick={() => chooseMode("image")}><Link2 size={15}/> URL gambar</button><button type="button" className={visualMode === "visual" ? "active" : ""} onClick={() => chooseMode("visual")}><Images size={15}/> Visual kode</button><button type="button" className={visualMode === "none" ? "active" : ""} onClick={() => chooseMode("none")}><X size={15}/> Tanpa pilihan</button></div>{visualMode === "image" ? <label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://..."/></label> : null}{visualMode === "visual" ? <div className="visual-product-picker"><label><span>Cari Visual Code</span><div className="visual-search-input"><Search size={16}/><input value={visualQuery} onChange={(event) => setVisualQuery(event.target.value)} placeholder="Cari nama atau bentuk visual..."/></div></label><label><span>Visual ringan berbasis kode</span><select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="" disabled>Pilih visual</option>{visualOptions.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select><small>{filteredVisuals.length} visual ditemukan{selectedVisual && visualQuery && !filteredVisuals.some((visual) => visual.id === selectedVisual.id) ? ` · pilihan aktif: ${selectedVisual.name}` : ""}</small></label></div> : null}</div><div className="product-preview-panel-v231"><span>Pratinjau</span><ProductVisual name={product?.name || "Produk"} imageUrl={previewImage} definition={previewDefinition} size="preview"/><small>{visualMode === "image" ? "URL gambar" : visualMode === "visual" ? selectedVisual?.name ?? "Visual kode" : "Visual umum"}</small></div></section>
         <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true}/><span>Produk aktif dan dapat digunakan dalam sistem</span></label>
         <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
       </form>

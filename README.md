@@ -1,25 +1,22 @@
-# Indotek Sukses v2.7.0
+# Indotek Sukses v2.7.1
 
-Sistem POS dan inventory multi-cabang dengan stok terpisah untuk setiap varian produk pada setiap cabang.
+Patch tampilan profesional untuk Master Produk, editor varian, dan galeri Visual Code.
 
-## Fitur utama v2.7.0
+## Perubahan v2.7.1
 
-- Setiap varian mempunyai stok fisik, reservasi, stok rusak, dan barang dalam perjalanan sendiri pada setiap cabang.
-- Stok Masuk/Keluar, Transfer Antartoko, Permintaan Restok, Pembelian, Kasir, Retur, dan Stok Opname sudah menggunakan varian.
-- Stok produk induk tetap dihitung otomatis sebagai ringkasan seluruh varian untuk kompatibilitas dashboard dan laporan.
-- Master Produk menampilkan harga serta stok setiap varian secara ringkas.
-- Editor varian diperbaiki agar tombol hapus tidak keluar dari kartu pada desktop, tablet, maupun HP.
-- Teks pada popup, form, tabel, dan pemilih produk diperbesar.
-- Tombol Kelola Kategori, Visual Produk, dan Tambah Produk dibuat ringkas serta sejajar pada HP.
+- Editor varian menggunakan kartu responsif yang stabil pada desktop, tablet, dan HP.
+- Tombol hapus selalu berada di dalam kartu varian dan tidak menutupi input.
+- Input varian ditata 4 kolom pada desktop, 2 kolom pada tablet, dan 1 kolom pada HP.
+- Master Produk pada HP menggunakan kartu produk khusus dengan informasi yang lebih ringkas dan mudah dibaca.
+- Detail varian pada HP menampilkan harga, stok total, status, dan stok per cabang.
+- Pencarian Visual Code tersedia pada Galeri Visual Produk dan saat memilih visual di form produk.
+- Tombol Kategori, Visual, dan Tambah Produk ditata dalam tiga kolom yang seimbang pada tablet dan HP.
+- Ukuran teks, input, label, dan tombol pada form produk diperbesar.
 
-## Urutan upgrade
+## Upgrade
 
-1. Backup database Supabase.
-2. Pastikan migration `202608040012_product_variants.sql` sudah pernah dijalankan.
-3. Jalankan `202608040013_variant_stock_per_branch.sql` sebagai satu query penuh.
-4. Deploy seluruh source v2.7.0.
-5. Tunggu Vercel berstatus **Ready**.
-6. Logout, login kembali, lalu lakukan hard refresh.
-7. Jalankan `VERIFY_VARIANT_STOCK_v2.7.0.sql`.
+Versi ini tidak memerlukan migration SQL baru.
 
-Baca `DEPLOYMENT_v2.7.0.md` dan `RELEASE_NOTES_v2.7.0.md` sebelum deployment.
+Apabila sistem belum pernah memakai v2.7.0, jalankan migration `202608040013_variant_stock_per_branch.sql` sebelum menggunakan stok varian per cabang.
+
+Lihat `DEPLOYMENT_v2.7.1.md` untuk urutan deployment.

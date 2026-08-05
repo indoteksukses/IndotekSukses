@@ -27,7 +27,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
   };
 
   return <>
-    <button className="button secondary" onClick={show}><Tags size={17}/> Kelola kategori</button>
+    <button className="button secondary product-master-action-button" onClick={show}><Tags size={17}/><span className="action-label-full">Kelola kategori</span><span className="action-label-short">Kategori</span></button>
     {open ? <div className="modal-backdrop"><div className="modal-card category-modal">
       <div className="modal-header"><div><h2>{editing ? (editing.id ? "Edit kategori" : "Tambah kategori") : "Kelola kategori"}</h2><p>Kategori dapat ditambah, diubah, dinonaktifkan, dan dipakai untuk pencarian produk.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       {error ? <div className="alert error">{error}</div> : null}
