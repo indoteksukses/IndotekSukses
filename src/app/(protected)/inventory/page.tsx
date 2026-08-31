@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRightLeft } from "lucide-react";
 import { InventoryTable } from "@/components/inventory-table";
 import { PageHeader } from "@/components/ui";
@@ -17,7 +18,7 @@ export default async function InventoryPage() {
   const lowCount = products.filter((product) => stores.some((store) => { const quantity = product.stocks[store.id]?.quantity_available ?? 0; return quantity > 0 && quantity <= product.minimum_stock; })).length;
   const outCount = products.filter((product) => stores.some((store) => (product.stocks[store.id]?.quantity_available ?? 0) === 0)).length;
   return <>
-    <PageHeader title="Stok Semua Toko" description="Stok seluruh jaringan dapat dilihat untuk membantu merekomendasikan cabang dan mengajukan permintaan transfer. Perubahan stok tetap dibatasi sesuai hak akses cabang." actions={profile.role !== "cashier" ? <><a className="button secondary" href="/transfers"><ArrowRightLeft size={17}/> Transfer stok</a><a className="button primary" href="/stock-movements">+ Catat stok</a></> : undefined}/>
+    <PageHeader title="Stok Semua Toko" description="Stok seluruh jaringan dapat dilihat untuk membantu merekomendasikan cabang dan mengajukan permintaan transfer. Perubahan stok tetap dibatasi sesuai hak akses cabang." actions={profile.role !== "cashier" ? <><Link className="button secondary" href="/transfers"><ArrowRightLeft size={17}/> Transfer stok</Link><Link className="button primary" href="/stock-movements">+ Catat stok</Link></> : undefined}/>
     <div className="mini-stats"><div><span>Total unit jaringan</span><strong>{totalUnits.toLocaleString("id-ID")}</strong></div><div><span>Nilai persediaan</span><strong>{canViewCosts ? formatCurrency(stockValue) : "Terlindungi"}</strong></div><div><span>Hampir habis</span><strong>{lowCount} produk</strong></div><div><span>Stok kosong</span><strong>{outCount} produk</strong></div></div>
     <InventoryTable products={products} stores={stores} editableStoreIds={editableStoreIds} requestDestinationStoreIds={requestDestinationStoreIds}/>
   </>;

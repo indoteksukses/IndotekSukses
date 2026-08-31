@@ -1,4 +1,5 @@
-import { Boxes, CircleDollarSign, PackageCheck, ReceiptText, RotateCcw, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { CircleDollarSign, PackageCheck, ReceiptText, RotateCcw, TrendingUp } from "lucide-react";
 import { ReportDefinitionHelp } from "@/components/report-definition-help";
 import { ReportExportActions } from "@/components/report-print-options";
 import { PageHeader, StatCard, StatusBadge } from "@/components/ui";
@@ -83,11 +84,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </section>
         <section className="panel report-panel-v23">
           <div className="panel-header"><div><h2>Transaksi terbaru</h2><p>Maksimal 10 transaksi pada periode terpilih</p></div><ReceiptText size={20}/></div>
-          <div className="report-table">{sales.slice(0, 10).map((sale) => <a className="report-row transaction-report-row" href={`/sales/${sale.id}/receipt`} key={sale.id}>
+          <div className="report-table">{sales.slice(0, 10).map((sale) => <Link className="report-row transaction-report-row" href={`/sales/${sale.id}/receipt`} key={sale.id}>
             <div><strong>{sale.invoice_number}</strong><span>{sale.store_name} · {formatDateTime(sale.completed_at)}</span></div>
             <strong>{formatCurrency(sale.grand_total)}</strong>
             <StatusBadge tone={sale.status === "completed" ? "success" : sale.status === "voided" ? "danger" : "warning"}>{sale.status}</StatusBadge>
-          </a>)}{!sales.length ? <div className="empty-inline">Tidak ada transaksi pada periode ini.</div> : null}</div>
+          </Link>)}{!sales.length ? <div className="empty-inline">Tidak ada transaksi pada periode ini.</div> : null}</div>
         </section>
       </div>
     </div>
@@ -95,7 +96,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <article className="report-print-document">
       <header className="report-print-header">
         <div className="report-print-brand">
-          {settings.logo_url ? <img src={settings.logo_url} alt={settings.company_name}/> : <div className="report-print-logo">IS</div>}
+          {settings.logo_url ? <img src={settings.logo_url} alt={settings.company_name} decoding="async"/> : <div className="report-print-logo">IS</div>}
           <div><h1>{settings.company_name}</h1><p>{settings.company_tagline}</p></div>
         </div>
         <div><strong>LAPORAN OPERASIONAL</strong><span>{from} s.d. {to}</span><span>{scopeName}</span></div>

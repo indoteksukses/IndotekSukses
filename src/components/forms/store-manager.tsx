@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, Edit3, MapPin, Phone, Plus, X } from "lucide-react";
 import type { Store } from "@/lib/types";
@@ -18,10 +19,10 @@ export function StoreManager({ stores }: { stores: Store[] }) {
   return <>
     <div className="store-grid">
       {stores.map((store) => <article className={`store-card ${store.is_active === false ? "inactive" : ""}`} key={store.id}>
-        <div className="store-card-top"><div className="store-card-icon">{store.image_url ? <img src={store.image_url} alt={store.name}/> : <Building2 size={23}/>}</div><span className={`status-dot ${store.is_active === false ? "off" : ""}`}>{store.is_active === false ? "Nonaktif" : "Aktif"}</span></div>
+        <div className="store-card-top"><div className="store-card-icon">{store.image_url ? <img src={store.image_url} alt={store.name} loading="lazy" decoding="async"/> : <Building2 size={23}/>}</div><span className={`status-dot ${store.is_active === false ? "off" : ""}`}>{store.is_active === false ? "Nonaktif" : "Aktif"}</span></div>
         <h2>{store.name}</h2><strong className="store-code">{store.code}</strong>
         <div className="store-meta"><span><MapPin size={15}/>{store.address || "Alamat belum diisi"}</span><span><Phone size={15}/>{store.phone || "Telepon belum diisi"}</span></div>
-        <div className="store-card-actions"><a className="button secondary" href={`/inventory?store=${store.id}`}>Lihat stok</a><button className="button ghost" onClick={() => showForm(store)}><Edit3 size={16}/> Edit</button></div>
+        <div className="store-card-actions"><Link className="button secondary" href={`/inventory?store=${store.id}`}>Lihat stok</Link><button className="button ghost" onClick={() => showForm(store)}><Edit3 size={16}/> Edit</button></div>
       </article>)}
       <button className="add-store-card" onClick={() => showForm()}><Plus size={32}/><strong>Tambah toko baru</strong><span>Cabang baru otomatis tersedia di stok, kasir, laporan, dan transfer.</span></button>
     </div>

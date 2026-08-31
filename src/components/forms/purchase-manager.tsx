@@ -42,7 +42,6 @@ function initialState(purchase: any | undefined, stores: Store[]) {
 }
 
 export function PurchaseManager({ stores, products, suppliers, purchase, label }: { stores: Store[]; products: Product[]; suppliers: any[]; purchase?: any; label?: string }) {
-  const router = useRouter();
   const base = initialState(purchase, stores);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);

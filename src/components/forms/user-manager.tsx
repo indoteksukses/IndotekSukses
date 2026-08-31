@@ -26,7 +26,7 @@ function PasswordField({ name, label, required = false, placeholder = "Minimal 8
   return <label>{label}<div className="password-field-wrap"><input name={name} type={visible ? "text" : "password"} minLength={8} required={required} placeholder={placeholder}/><button type="button" aria-label={visible ? "Sembunyikan password" : "Tampilkan password"} onClick={() => setVisible((value) => !value)}>{visible ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div></label>;
 }
 
-export function UserManager({ stores, users, canCreateAdmin }: { stores: Store[]; users: UserProfile[]; canCreateAdmin: boolean }) {
+export function UserManager({ stores, canCreateAdmin }: { stores: Store[]; canCreateAdmin: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);

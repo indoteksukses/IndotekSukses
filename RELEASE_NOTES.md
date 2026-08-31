@@ -1,7 +1,5 @@
-Indotek Sukses v2.6.1
+# Indotek Sukses v2.8.0
 
-# Release Notes v2.6.0
+Patch antarmuka dan performa untuk katalog besar serta jaringan multi-cabang. Dashboard memakai query lebih ringan, pencarian tetap responsif, Stok Semua Toko dipaginasi, barcode POS diindeks, navigasi internal tidak melakukan reload penuh, dan tampilan desktop/mobile dirapikan.
 
-Versi ini menambahkan varian produk dengan harga modal dan harga jual per varian, tampilan Master Produk yang dapat dibuka/tutup, pemilih varian pada kasir, snapshot varian pada invoice, dan retur berdasarkan baris invoice.
-
-Validasi tambahan mencegah SKU/barcode ganda serta mencegah total penjualan beberapa varian melebihi stok bersama produk induk.
+Tidak ada migration SQL baru. Detail lengkap tersedia pada `RELEASE_NOTES_v2.8.0.md`.

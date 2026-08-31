@@ -1,6 +1,7 @@
 import { demoMovements, demoProducts, demoProfile, demoSettings, demoStores } from "@/lib/demo-data";
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/pagination";
@@ -8,7 +9,7 @@ import type { FinancialReport, Movement, Product, ProductVisual, SaleDetail, Sal
 
 const demo = isDemoMode || !hasSupabaseEnv;
 
-export async function getCurrentProfile(): Promise<UserProfile> {
+export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<UserProfile> {
   if (demo) return demoProfile;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,7 +33,7 @@ export async function getCurrentProfile(): Promise<UserProfile> {
     };
   }
   return { ...profile, store_ids: (access ?? []).map((row: any) => String(row.store_id)) } as UserProfile;
-}
+});
 
 function permittedStoreIds(profile: UserProfile) {
   if (profile.role === "owner" || profile.role === "admin") return null;
@@ -41,10 +42,18 @@ function permittedStoreIds(profile: UserProfile) {
   return ids;
 }
 
-async function loadProductMetadata(sessionClient?: any, includeVariantCosts = false, includeInactive = false) {
+async function loadProductMetadata(
+  sessionClient?: any,
+  includeVariantCosts = false,
+  includeInactive = false,
+  stockStoreIds: string[] | null = null,
+  salesStoreId: string | null = null,
+) {
   let reader = sessionClient;
   try { reader = createAdminClient(); } catch { /* Fall back to the authenticated server client. */ }
   if (!reader) reader = await createClient();
+
+  const scopedStockStoreIds = stockStoreIds?.length ? [...new Set(stockStoreIds)] : null;
 
   const [productsResult, categoriesResult, visualsResult, salesResult, variantsResult, variantInventoryResult] = await Promise.all([
     fetchAllRows<any>((from, to) => {
@@ -57,7 +66,11 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
     }),
     fetchAllRows<any>((from, to) => reader.from("categories").select("id,name,is_active").order("id").range(from, to)),
     fetchAllRows<any>((from, to) => reader.from("product_visuals").select("id,name,code,is_builtin,is_active").order("id").range(from, to)),
-    fetchAllRows<any>((from, to) => reader.from("product_store_sales").select("product_id,store_id").order("product_id").order("store_id").range(from, to)),
+    fetchAllRows<any>((from, to) => {
+      let query = reader.from("product_store_sales").select("product_id,store_id");
+      if (salesStoreId) query = query.eq("store_id", salesStoreId);
+      return query.order("product_id").order("store_id").range(from, to);
+    }),
     fetchAllRows<any>((from, to) => reader.from("product_variants")
       .select("id,product_id,name,sku,barcode,cost_price,selling_price,is_active,sort_order")
       .is("archived_at", null)
@@ -65,11 +78,12 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
       .order("sort_order")
       .order("id")
       .range(from, to)),
-    fetchAllRows<any>((from, to) => reader.from("product_variant_inventory")
-      .select("variant_id,store_id,quantity_on_hand,quantity_reserved,quantity_damaged,quantity_in_transit")
-      .order("variant_id")
-      .order("store_id")
-      .range(from, to)),
+    fetchAllRows<any>((from, to) => {
+      let query = reader.from("product_variant_inventory")
+        .select("variant_id,store_id,quantity_on_hand,quantity_reserved,quantity_damaged,quantity_in_transit");
+      if (scopedStockStoreIds) query = query.in("store_id", scopedStockStoreIds);
+      return query.order("variant_id").order("store_id").range(from, to);
+    }),
   ]);
 
   const metadataError = [productsResult, categoriesResult, visualsResult, salesResult, variantsResult, variantInventoryResult]
@@ -126,6 +140,7 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
   for (const row of (productsResult.data ?? []) as any[]) {
     const category = row.category_id ? categories.get(String(row.category_id)) : null;
     const visual = row.visual_id ? visuals.get(String(row.visual_id)) : null;
+    const productVariants = variantsByProduct.get(String(row.id)) ?? [];
     metadata.set(String(row.id), {
       ...row,
       id: String(row.id),
@@ -145,13 +160,14 @@ async function loadProductMetadata(sessionClient?: any, includeVariantCosts = fa
         is_active: Boolean(visual.is_active),
       } : null,
       sales_store_ids: salesByProduct.get(String(row.id)) ?? [],
-      variants: variantsByProduct.get(String(row.id)) ?? [],
+      variants: productVariants,
+      variant_index: new Map(productVariants.map((variant: any) => [variant.id, variant])),
     });
   }
   return metadata;
 }
 
-export async function getStores(includeInactive = false): Promise<Store[]> {
+export const getStores = cache(async function getStores(includeInactive = false): Promise<Store[]> {
   if (demo) {
     const rows = includeInactive ? demoStores : demoStores.filter((store) => store.is_active !== false);
     const allowed = permittedStoreIds(demoProfile);
@@ -165,7 +181,7 @@ export async function getStores(includeInactive = false): Promise<Store[]> {
   const rows = (data ?? []) as Store[];
   const allowed = permittedStoreIds(profile);
   return allowed ? rows.filter((store) => allowed.has(store.id)) : rows;
-}
+});
 
 export async function getNetworkInventoryStores(): Promise<Store[]> {
   if (demo) return demoStores.filter((store) => store.is_active !== false);
@@ -235,7 +251,7 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
       stock_status: row.stock_status as "safe" | "low" | "out",
     };
     for (const variant of current.variants ?? []) {
-      const variantRow = productMeta.variants?.find((entry: any) => entry.id === variant.id)?.stock_rows?.get?.(rowStoreId);
+      const variantRow = productMeta.variant_index?.get(variant.id)?.stock_rows?.get?.(rowStoreId);
       const onHand = Number(variantRow?.quantity_on_hand ?? 0);
       const reserved = Number(variantRow?.quantity_reserved ?? 0);
       const available = Math.max(onHand - reserved, 0);
@@ -256,12 +272,12 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
   return [...grouped.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
 }
 
-export async function getSystemSettings(): Promise<SystemSettings> {
+export const getSystemSettings = cache(async function getSystemSettings(): Promise<SystemSettings> {
   if (demo) return demoSettings;
   const supabase = await createClient();
   const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer,logo_url").eq("id", 1).maybeSingle();
   return data ? { ...demoSettings, ...data } : demoSettings;
-}
+});
 
 export async function getAppContext() {
   const [profile, stores, settings] = await Promise.all([getCurrentProfile(), getStores(), getSystemSettings()]);
@@ -281,21 +297,25 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
   const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
   const allowedStoreIds = permittedStoreIds(profile);
   if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return [];
+  if (!storeId && allowedStoreIds && allowedStoreIds.size === 0) return [];
   const canViewCosts = profile.role === "owner" || profile.role === "admin";
+  const scopedStoreIds = storeId ? [storeId] : allowedStoreIds ? [...allowedStoreIds] : null;
 
   if (includeInactive) {
     const [meta, storesResult, inventoryResult] = await Promise.all([
-      loadProductMetadata(supabase, canViewCosts, true),
-      fetchAllRows<any>((from, to) => supabase.from("stores")
-        .select("id,code,name,is_active")
-        .eq("is_active", true)
-        .order("id")
-        .range(from, to)),
-      fetchAllRows<any>((from, to) => supabase.from("store_inventory")
-        .select("product_id,store_id,quantity_on_hand,quantity_reserved")
-        .order("product_id")
-        .order("store_id")
-        .range(from, to)),
+      loadProductMetadata(supabase, canViewCosts, true, scopedStoreIds),
+      fetchAllRows<any>((from, to) => {
+        let query = supabase.from("stores").select("id,code,name,is_active").eq("is_active", true);
+        if (storeId) query = query.eq("id", storeId);
+        else if (scopedStoreIds) query = query.in("id", scopedStoreIds);
+        return query.order("id").range(from, to);
+      }),
+      fetchAllRows<any>((from, to) => {
+        let query = supabase.from("store_inventory").select("product_id,store_id,quantity_on_hand,quantity_reserved");
+        if (storeId) query = query.eq("store_id", storeId);
+        else if (scopedStoreIds) query = query.in("store_id", scopedStoreIds);
+        return query.order("product_id").order("store_id").range(from, to);
+      }),
     ]);
 
     if (storesResult.error || inventoryResult.error) return [];
@@ -356,7 +376,7 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
         if (storeId === store.id) product.selected_stock = available;
 
         for (const variant of product.variants ?? []) {
-          const sourceVariant = productMeta.variants?.find((entry: any) => entry.id === variant.id);
+          const sourceVariant = productMeta.variant_index?.get(variant.id);
           const variantRow = sourceVariant?.stock_rows?.get?.(store.id);
           const variantOnHand = Number(variantRow?.quantity_on_hand ?? 0);
           const variantReserved = Number(variantRow?.quantity_reserved ?? 0);
@@ -380,12 +400,14 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
   }
 
   const [catalogResult, meta] = await Promise.all([
-    fetchAllRows<any>((from, to) => supabase.from("inventory_overview")
-      .select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status")
-      .order("product_id")
-      .order("store_id")
-      .range(from, to)),
-    loadProductMetadata(supabase, canViewCosts),
+    fetchAllRows<any>((from, to) => {
+      let query = supabase.from("inventory_overview")
+        .select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status");
+      if (storeId) query = query.eq("store_id", storeId);
+      else if (scopedStoreIds) query = query.in("store_id", scopedStoreIds);
+      return query.order("product_id").order("store_id").range(from, to);
+    }),
+    loadProductMetadata(supabase, canViewCosts, false, scopedStoreIds, storeId ?? null),
   ]);
 
   if (catalogResult.error || !catalogResult.data) return [];
@@ -429,7 +451,7 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
       stock_status: row.stock_status as "safe" | "low" | "out",
     };
     for (const variant of current.variants ?? []) {
-      const variantRow = productMeta.variants?.find((entry: any) => entry.id === variant.id)?.stock_rows?.get?.(rowStoreId);
+      const variantRow = productMeta.variant_index?.get(variant.id)?.stock_rows?.get?.(rowStoreId);
       const onHand = Number(variantRow?.quantity_on_hand ?? 0);
       const reserved = Number(variantRow?.quantity_reserved ?? 0);
       const available = Math.max(onHand - reserved, 0);
@@ -512,19 +534,143 @@ export async function getSales(storeId?: string | null, limit = 100): Promise<Sa
   }));
 }
 
-export async function getDashboardSnapshot(storeId?: string | null) {
-  const [products, movements, stores] = await Promise.all([
-    getProductsWithStocks(storeId),
-    getRecentMovements(storeId, 8),
-    getStores(),
+async function getDashboardProducts(storeId?: string | null): Promise<Product[]> {
+  if (demo) {
+    return demoProducts.map((product) => ({
+      ...product,
+      total_stock: storeId ? product.stocks[storeId]?.quantity_on_hand ?? 0 : product.total_stock,
+    }));
+  }
+
+  const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
+  const allowedStoreIds = permittedStoreIds(profile);
+  if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return [];
+  if (!storeId && allowedStoreIds && allowedStoreIds.size === 0) return [];
+  const scopedStoreIds = storeId ? [storeId] : allowedStoreIds ? [...allowedStoreIds] : null;
+  let metadataReader: any = supabase;
+  try { metadataReader = createAdminClient(); } catch { /* The authenticated client remains a safe fallback. */ }
+
+  const [inventoryResult, productsResult, visualsResult] = await Promise.all([
+    fetchAllRows<any>((from, to) => {
+      let query = supabase.from("inventory_overview")
+        .select("product_id,sku,barcode,name,unit,minimum_stock,selling_price,store_id,store_code,store_name,quantity_on_hand,quantity_reserved,quantity_available,stock_status");
+      if (storeId) query = query.eq("store_id", storeId);
+      else if (scopedStoreIds) query = query.in("store_id", scopedStoreIds);
+      return query.order("product_id").order("store_id").range(from, to);
+    }),
+    fetchAllRows<any>((from, to) => metadataReader.from("products")
+      .select("id,image_url,visual_id,is_active")
+      .eq("is_active", true)
+      .order("id")
+      .range(from, to)),
+    fetchAllRows<any>((from, to) => metadataReader.from("product_visuals")
+      .select("id,name,code,is_builtin,is_active")
+      .eq("is_active", true)
+      .order("id")
+      .range(from, to)),
   ]);
+
+  if (inventoryResult.error || productsResult.error || visualsResult.error) return [];
+  const visuals = new Map<string, ProductVisual>();
+  for (const visual of (visualsResult.data ?? []) as any[]) {
+    visuals.set(String(visual.id), {
+      id: String(visual.id),
+      name: String(visual.name),
+      code: visual.code,
+      is_builtin: Boolean(visual.is_builtin),
+      is_active: Boolean(visual.is_active),
+    });
+  }
+  const decorations = new Map<string, { image_url: string | null; visual_id: string | null; visual: ProductVisual | null }>();
+  for (const product of (productsResult.data ?? []) as any[]) {
+    const visualId = product.visual_id ? String(product.visual_id) : null;
+    decorations.set(String(product.id), {
+      image_url: product.image_url ? String(product.image_url) : null,
+      visual_id: visualId,
+      visual: visualId ? visuals.get(visualId) ?? null : null,
+    });
+  }
+
+  const grouped = new Map<string, Product>();
+  for (const row of (inventoryResult.data ?? []) as any[]) {
+    const id = String(row.product_id);
+    const decoration = decorations.get(id);
+    if (!decoration) continue;
+    const rowStoreId = String(row.store_id);
+    const current: Product = grouped.get(id) ?? {
+      id,
+      sku: String(row.sku),
+      barcode: row.barcode ? String(row.barcode) : null,
+      name: String(row.name),
+      category: null,
+      category_id: null,
+      brand: null,
+      unit: String(row.unit),
+      cost_price: 0,
+      selling_price: Number(row.selling_price ?? 0),
+      minimum_stock: Number(row.minimum_stock ?? 0),
+      image_url: decoration.image_url,
+      visual_id: decoration.visual_id,
+      visual: decoration.visual,
+      is_active: true,
+      sales_scope: "all",
+      sales_store_ids: [],
+      variants: [],
+      stocks: {},
+      total_stock: 0,
+    };
+    current.stocks[rowStoreId] = {
+      store_id: rowStoreId,
+      store_code: String(row.store_code),
+      store_name: String(row.store_name),
+      quantity_on_hand: Number(row.quantity_on_hand ?? 0),
+      quantity_reserved: Number(row.quantity_reserved ?? 0),
+      quantity_available: Number(row.quantity_available ?? 0),
+      stock_status: row.stock_status as "safe" | "low" | "out",
+    };
+    current.total_stock += Number(row.quantity_on_hand ?? 0);
+    grouped.set(id, current);
+  }
+
+  return [...grouped.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
+}
+
+export async function getDashboardSnapshot(storeId?: string | null) {
   const dayKeys = Array.from({ length: 7 }, (_, index) => {
     const date = new Date();
     date.setUTCDate(date.getUTCDate() - (6 - index));
     return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(date);
   });
+  const todayKey = dayKeys[dayKeys.length - 1];
+  const trendStart = `${dayKeys[0]}T00:00:00+07:00`;
+  const trendEnd = `${todayKey}T23:59:59.999+07:00`;
+
+  const salesPromise = demo ? Promise.resolve({ data: [] as any[] }) : (async () => {
+    const [supabase, profile] = await Promise.all([createClient(), getCurrentProfile()]);
+    const allowedStoreIds = permittedStoreIds(profile);
+    if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return { data: [] as any[] };
+    if (!storeId && allowedStoreIds && allowedStoreIds.size === 0) return { data: [] as any[] };
+    const result = await fetchAllRows<any>((from, to) => {
+      let query = supabase.from("sales")
+        .select("id,store_id,grand_total,completed_at,sale_items(quantity)")
+        .gte("completed_at", trendStart)
+        .lte("completed_at", trendEnd)
+        .in("status", ["completed", "partially_refunded"]);
+      if (storeId) query = query.eq("store_id", storeId);
+      else if (allowedStoreIds) query = query.in("store_id", [...allowedStoreIds]);
+      return query.order("completed_at").order("store_id").order("id").range(from, to);
+    });
+    return { data: result.data ?? [] };
+  })();
+
+  const [products, movements, stores, salesResult] = await Promise.all([
+    getDashboardProducts(storeId),
+    getRecentMovements(storeId, 8),
+    getStores(),
+    salesPromise,
+  ]);
+
   if (demo) {
-    const scoped = storeId ? demoProducts.map((p) => ({ ...p, total_stock: p.stocks[storeId]?.quantity_on_hand ?? 0 })) : demoProducts;
     const storeStats = stores.map((store, index) => ({ store, revenue: [2_500_000, 1_850_000, 1_125_000][index] ?? 0, transactions: [35, 27, 16][index] ?? 0, units: [58, 39, 21][index] ?? 0 }));
     const dailyTrend = dayKeys.map((date, index) => ({
       date,
@@ -532,37 +678,50 @@ export async function getDashboardSnapshot(storeId?: string | null) {
       transactions: [12, 17, 15, 24, 20, 29, 42][index],
       units: [18, 25, 21, 39, 31, 48, 67][index],
     }));
-    return { products: scoped, movements, stores, storeStats, dailyTrend, revenue: storeId ? storeStats.find((row) => row.store.id === storeId)?.revenue ?? 0 : storeStats.reduce((sum, row) => sum + row.revenue, 0), transactions: storeId ? storeStats.find((row) => row.store.id === storeId)?.transactions ?? 0 : storeStats.reduce((sum, row) => sum + row.transactions, 0), units: storeId ? storeStats.find((row) => row.store.id === storeId)?.units ?? 0 : storeStats.reduce((sum, row) => sum + row.units, 0) };
+    return { products, movements, stores, storeStats, dailyTrend, revenue: storeId ? storeStats.find((row) => row.store.id === storeId)?.revenue ?? 0 : storeStats.reduce((sum, row) => sum + row.revenue, 0), transactions: storeId ? storeStats.find((row) => row.store.id === storeId)?.transactions ?? 0 : storeStats.reduce((sum, row) => sum + row.transactions, 0), units: storeId ? storeStats.find((row) => row.store.id === storeId)?.units ?? 0 : storeStats.reduce((sum, row) => sum + row.units, 0) };
   }
 
-  const supabase = await createClient();
-  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
-  const trendStart = `${dayKeys[0]}T00:00:00+07:00`;
-  let salesQuery = supabase.from("sales").select("store_id,grand_total,completed_at,sale_items(quantity)").gte("completed_at", trendStart).in("status", ["completed", "partially_refunded"]);
-  if (storeId) salesQuery = salesQuery.eq("store_id", storeId);
-  const { data: sales } = await salesQuery;
-  const todaySales = (sales ?? []).filter((sale: any) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(sale.completed_at)) === todayKey);
-  const revenue = todaySales.reduce((sum: number, sale: any) => sum + Number(sale.grand_total), 0);
-  const units = todaySales.reduce((sum: number, sale: any) => sum + (sale.sale_items ?? []).reduce((itemSum: number, item: any) => itemSum + Number(item.quantity), 0), 0);
-  const storeStats = stores.map((store) => {
-    const rows = todaySales.filter((sale: any) => sale.store_id === store.id);
-    return {
-      store,
-      revenue: rows.reduce((sum: number, sale: any) => sum + Number(sale.grand_total), 0),
-      transactions: rows.length,
-      units: rows.reduce((sum: number, sale: any) => sum + (sale.sale_items ?? []).reduce((itemSum: number, item: any) => itemSum + Number(item.quantity), 0), 0),
-    };
-  });
-  const dailyTrend = dayKeys.map((date) => {
-    const rows = (sales ?? []).filter((sale: any) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(sale.completed_at)) === date);
-    return {
-      date,
-      revenue: rows.reduce((sum: number, sale: any) => sum + Number(sale.grand_total), 0),
-      transactions: rows.length,
-      units: rows.reduce((sum: number, sale: any) => sum + (sale.sale_items ?? []).reduce((itemSum: number, item: any) => itemSum + Number(item.quantity), 0), 0),
-    };
-  });
-  return { products, movements, stores, storeStats, dailyTrend, revenue, transactions: todaySales.length, units };
+  const sales = salesResult.data;
+  const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" });
+  const dailyBuckets = new Map(dayKeys.map((date) => [date, { date, revenue: 0, transactions: 0, units: 0 }]));
+  const scopedStores = storeId ? stores.filter((store) => store.id === storeId) : stores;
+  const storeBuckets = new Map(scopedStores.map((store) => [store.id, { store, revenue: 0, transactions: 0, units: 0 }]));
+  let revenue = 0;
+  let transactions = 0;
+  let units = 0;
+
+  for (const sale of sales as any[]) {
+    const saleDate = dateKeyFormatter.format(new Date(sale.completed_at));
+    const saleRevenue = Number(sale.grand_total ?? 0);
+    const saleUnits = (sale.sale_items ?? []).reduce((sum: number, item: any) => sum + Number(item.quantity ?? 0), 0);
+    const day = dailyBuckets.get(saleDate);
+    if (day) {
+      day.revenue += saleRevenue;
+      day.transactions += 1;
+      day.units += saleUnits;
+    }
+    if (saleDate !== todayKey) continue;
+    revenue += saleRevenue;
+    transactions += 1;
+    units += saleUnits;
+    const store = storeBuckets.get(String(sale.store_id));
+    if (store) {
+      store.revenue += saleRevenue;
+      store.transactions += 1;
+      store.units += saleUnits;
+    }
+  }
+
+  return {
+    products,
+    movements,
+    stores,
+    storeStats: [...storeBuckets.values()],
+    dailyTrend: dayKeys.map((date) => dailyBuckets.get(date)!),
+    revenue,
+    transactions,
+    units,
+  };
 }
 
 export async function getFinancialReport(storeId: string | null | undefined, from: string, to: string): Promise<FinancialReport> {

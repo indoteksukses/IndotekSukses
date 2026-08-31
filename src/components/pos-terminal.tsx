@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Banknote, CheckCircle2, CreditCard, Layers3, Minus, Plus, QrCode, ReceiptText, ScanBarcode, Search, ShoppingCart, Trash2, X } from "lucide-react";
 import type { CartItem, Product, ProductVariant, Store } from "@/lib/types";
@@ -16,7 +17,16 @@ const payments = [
   { id: "debit_card", label: "Debit", icon: CreditCard },
 ] as const;
 
+type BarcodeTarget = { product: Product; variant: ProductVariant | null };
+
+function normalizeCode(value?: string | null) { return value?.trim().toLocaleLowerCase("id-ID") ?? ""; }
 function activeVariants(product: Product) { return (product.variants ?? []).filter((variant) => variant.is_active); }
+function availableStock(product: Product) {
+  const variants = activeVariants(product);
+  return variants.length
+    ? variants.reduce((sum, variant) => sum + Number(variant.selected_stock ?? 0), 0)
+    : Number(product.selected_stock ?? 0);
+}
 function productPriceLabel(product: Product) {
   const variants = activeVariants(product);
   if (!variants.length) return formatCurrency(product.selling_price);
@@ -27,6 +37,7 @@ function productPriceLabel(product: Product) {
 
 export function PosTerminal({ products, store, shiftId = null }: { products: Product[]; store: Store; shiftId?: string | null }) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Semua");
@@ -45,13 +56,38 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   const [error, setError] = useState("");
   const [invoice, setInvoice] = useState("");
   const [saleId, setSaleId] = useState("");
+  const [visibleLimit, setVisibleLimit] = useState(80);
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
-  const categories = useMemo(() => ["Semua", ...Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[]))], [products]);
-  const filtered = useMemo(() => products.filter((product) => {
-    const variants = (product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ");
-    const matchesQuery = `${product.name} ${product.sku} ${product.barcode ?? ""} ${variants}`.toLowerCase().includes(query.toLowerCase());
-    return matchesQuery && (category === "Semua" || product.category === category);
-  }).slice(0, 160), [products, query, category]);
+  const categories = useMemo(() => ["Semua", ...Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "id"))], [products]);
+  const indexedProducts = useMemo(() => products.map((product) => ({
+    product,
+    searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${(product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ")}`.toLocaleLowerCase("id-ID"),
+  })), [products]);
+  const barcodeIndex = useMemo(() => {
+    const index = new Map<string, BarcodeTarget>();
+    for (const product of products) {
+      for (const variant of activeVariants(product)) {
+        for (const value of [variant.barcode, variant.sku]) {
+          const code = normalizeCode(value);
+          if (code && !index.has(code)) index.set(code, { product, variant });
+        }
+      }
+    }
+    for (const product of products) {
+      for (const value of [product.barcode, product.sku]) {
+        const code = normalizeCode(value);
+        if (code && !index.has(code)) index.set(code, { product, variant: null });
+      }
+    }
+    return index;
+  }, [products]);
+  const allFiltered = useMemo(() => indexedProducts.filter(({ product, searchText }) =>
+    (!normalizedQuery || searchText.includes(normalizedQuery))
+    && (category === "Semua" || product.category === category)
+  ).map(({ product }) => product), [indexedProducts, normalizedQuery, category]);
+  const filtered = allFiltered.slice(0, visibleLimit);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
   const itemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   const grandTotal = Math.max(subtotal - Math.max(discount, 0), 0);
@@ -84,19 +120,15 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   }, [addSelected]);
 
   const useBarcode = useCallback((rawCode: string) => {
-    const code = rawCode.trim().toLowerCase();
-    for (const product of products) {
-      const variant = activeVariants(product).find((item) => item.barcode?.trim().toLowerCase() === code || item.sku?.trim().toLowerCase() === code);
-      if (variant) {
-        if ((variant.selected_stock ?? 0) <= 0) { setError(`${product.name} · ${variant.name} sedang tidak memiliki stok.`); return; }
-        addSelected(product, variant); setQuery(""); setError(""); searchRef.current?.focus(); return;
-      }
+    const target = barcodeIndex.get(normalizeCode(rawCode));
+    if (!target) { setQuery(rawCode); setVisibleLimit(80); setError(`Barcode ${rawCode} belum terdaftar.`); searchRef.current?.focus(); return; }
+    if (target.variant) {
+      if ((target.variant.selected_stock ?? 0) <= 0) { setError(`${target.product.name} · ${target.variant.name} sedang tidak memiliki stok.`); return; }
+      addSelected(target.product, target.variant); setQuery(""); setVisibleLimit(80); setError(""); searchRef.current?.focus(); return;
     }
-    const matched = products.find((product) => product.barcode?.trim().toLowerCase() === code || product.sku.trim().toLowerCase() === code);
-    if (!matched) { setQuery(rawCode); setError(`Barcode ${rawCode} belum terdaftar.`); searchRef.current?.focus(); return; }
-    if ((matched.selected_stock ?? 0) <= 0) { setError(`${matched.name} sedang tidak memiliki stok.`); return; }
-    chooseProduct(matched); setQuery(""); setError(""); searchRef.current?.focus();
-  }, [products, addSelected, chooseProduct]);
+    if (availableStock(target.product) <= 0) { setError(`${target.product.name} sedang tidak memiliki stok.`); return; }
+    chooseProduct(target.product); setQuery(""); setVisibleLimit(80); setError(""); searchRef.current?.focus();
+  }, [barcodeIndex, addSelected, chooseProduct]);
 
   const change = (key: string, delta: number) => setCart((current) => {
     const target = current.find((item) => item.key === key);
@@ -117,14 +149,14 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
           payments: [{ method: paymentMethod, amount: grandTotal, reference_number: paymentReference || null }],
           discount, notes: paymentMethod === "cash" ? `Uang diterima ${cashReceived}; kembalian ${changeAmount}` : null }),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Transaksi gagal");
-      setInvoice(result.invoice_number || ""); setSaleId(result.sale_id || ""); setPaymentOpen(false); setMobileCartOpen(false); setPaid(true); router.refresh();
+      setInvoice(result.invoice_number || ""); setSaleId(result.sale_id || ""); setPaymentOpen(false); setMobileCartOpen(false); setPaid(true); startTransition(() => router.refresh());
     } catch (err) { setError(err instanceof Error ? err.message : "Transaksi gagal"); }
     finally { setProcessing(false); }
   };
 
-  const reset = () => { setPaid(false); setCart([]); setCustomerName(""); setDiscount(0); setCashReceived(0); setPaymentReference(""); setQuery(""); setSaleId(""); setInvoice(""); searchRef.current?.focus(); };
+  const reset = () => { setPaid(false); setCart([]); setCustomerName(""); setDiscount(0); setCashReceived(0); setPaymentReference(""); setQuery(""); setVisibleLimit(80); setSaleId(""); setInvoice(""); searchRef.current?.focus(); };
   const receiptUrl = saleId ? `/sales/${saleId}/receipt` : "";
 
   const cartContent = (mobile = false) => <>
@@ -139,13 +171,13 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
 
   return <div className="pos-layout pos-layout-v231">
     <section className="pos-products">
-      <div className="pos-search"><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk / varian..." value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={21}/><span>Scan</span></button></div>
-      <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => setCategory(name)}>{name}</button>)}</div>
-      <div className="product-grid">{filtered.map((product) => { const variants = activeVariants(product); return <button className="pos-product" key={product.id} onClick={() => chooseProduct(product)} disabled={(product.selected_stock ?? 0) <= 0}>
-        <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="card"/><strong title={product.name}>{product.name}</strong><span title={product.sku}>{product.sku}</span>{variants.length ? <em className="pos-variant-badge"><Layers3 size={12}/>{variants.length} varian</em> : null}<div><b>{productPriceLabel(product)}</b><small>Stok {product.selected_stock ?? 0}</small></div>
+      <div className={`pos-search ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk / varian..." value={query} onChange={(event) => { setQuery(event.target.value); setVisibleLimit(80); }} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={21}/><span>Scan</span></button></div>
+      <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => { setCategory(name); setVisibleLimit(80); }}>{name}</button>)}</div>
+      <div className="product-grid">{filtered.map((product) => { const variants = activeVariants(product); const stock = availableStock(product); return <button className="pos-product" key={product.id} onClick={() => chooseProduct(product)} disabled={stock <= 0}>
+        <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="card"/><strong title={product.name}>{product.name}</strong><span title={product.sku}>{product.sku}</span>{variants.length ? <em className="pos-variant-badge"><Layers3 size={12}/>{variants.length} varian</em> : null}<div><b>{productPriceLabel(product)}</b><small>Stok {stock}</small></div>
       </button>; })}</div>
-      {!filtered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
-      {products.length > 160 && !query ? <div className="catalog-hint">Gunakan pencarian untuk menemukan produk dari katalog besar.</div> : null}
+      {!allFiltered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
+      {allFiltered.length ? <div className="catalog-status"><span>Menampilkan <strong>{filtered.length.toLocaleString("id-ID")}</strong> dari {allFiltered.length.toLocaleString("id-ID")} produk</span>{filtered.length < allFiltered.length ? <button type="button" className="button secondary" onClick={() => setVisibleLimit((current) => current + 80)}>Tampilkan lebih banyak</button> : null}</div> : null}
     </section>
 
     <aside className="cart-panel desktop-cart-panel">{cartContent()}</aside>
@@ -157,6 +189,6 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
 
     {paymentOpen ? <div className="modal-backdrop payment-backdrop"><div className="modal-card payment-sheet"><div className="modal-header"><div><h2>Pembayaran</h2><p>{store.name} · {itemCount} item</p></div><button className="icon-button" onClick={() => setPaymentOpen(false)}><X size={20}/></button></div><div className="payment-total"><span>Total pembayaran</span><strong>{formatCurrency(grandTotal)}</strong></div><div className="payment-methods">{payments.map(({ id, label, icon: Icon }) => <button type="button" className={paymentMethod === id ? "active" : ""} key={id} onClick={() => { setPaymentMethod(id); setPaymentReference(""); if (id !== "cash") setCashReceived(grandTotal); }}><Icon size={22}/><span>{label}</span></button>)}</div>{paymentMethod === "cash" ? <div className="cash-payment"><label className="payment-field"><span>Uang diterima</span><input type="number" inputMode="numeric" min={grandTotal} value={cashReceived || ""} onChange={(event) => setCashReceived(Number(event.target.value || 0))}/><div className="cash-presets">{[grandTotal, Math.ceil(grandTotal/5000)*5000, Math.ceil(grandTotal/10000)*10000, Math.ceil(grandTotal/50000)*50000].filter((value,index,array)=>array.indexOf(value)===index).slice(0,4).map((value)=><button type="button" key={value} onClick={()=>setCashReceived(value)}>{value===grandTotal?"Uang pas":formatCurrency(value)}</button>)}</div></label><div className="change-card"><span>Kembalian</span><strong>{formatCurrency(changeAmount)}</strong></div></div> : <label className="payment-field"><span>Nomor referensi</span><input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Opsional: nomor transaksi pembayaran"/></label>}{error ? <div className="alert error">{error}</div> : null}<button className="button primary payment-submit" disabled={processing} onClick={checkout}>{processing ? <LoadingSpinner/> : null}<span>{processing ? "Memproses transaksi..." : `Selesaikan ${formatCurrency(grandTotal)}`}</span></button></div></div> : null}
 
-    {paid ? <div className="modal-backdrop"><div className="modal-card payment-modal success-modal"><div className="success-check"><CheckCircle2 size={34}/></div><h2>Pembayaran berhasil</h2><p>Invoice <strong>{invoice}</strong> tersimpan. Varian dan harga transaksi tercatat pada invoice.</p><strong className="success-total">{formatCurrency(grandTotal)}</strong><div className="success-actions"><a className="button secondary" href={receiptUrl}><ReceiptText size={16}/> Lihat invoice</a><a className="button secondary" href={`${receiptUrl}?print=1`} target="_blank" rel="noreferrer">Cetak / PDF</a><button className="button primary" onClick={reset}>Transaksi baru</button></div></div></div> : null}
+    {paid ? <div className="modal-backdrop"><div className="modal-card payment-modal success-modal"><div className="success-check"><CheckCircle2 size={34}/></div><h2>Pembayaran berhasil</h2><p>Invoice <strong>{invoice}</strong> tersimpan. Varian dan harga transaksi tercatat pada invoice.</p><strong className="success-total">{formatCurrency(grandTotal)}</strong><div className="success-actions"><Link className="button secondary" href={receiptUrl}><ReceiptText size={16}/> Lihat invoice</Link><Link className="button secondary" href={`${receiptUrl}?print=1`} target="_blank" rel="noreferrer">Cetak / PDF</Link><button className="button primary" onClick={reset}>Transaksi baru</button></div></div></div> : null}
   </div>;
 }

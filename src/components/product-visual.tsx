@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useState, type CSSProperties, type ReactNode } from "react";
 import type { ProductVisualDefinition, ProductVisualElement } from "@/lib/types";
 
 type Props = {
@@ -66,9 +66,8 @@ function CustomShapes({ elements, palette }: { elements: ProductVisualElement[];
   })}</>;
 }
 
-export function ProductVisual({ name, imageUrl, definition, size = "card", animated = true }: Props) {
-  const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => setImageFailed(false), [imageUrl]);
+export const ProductVisual = memo(function ProductVisual({ name, imageUrl, definition, size = "card", animated = true }: Props) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const normalized = {
     shape: definition?.shape ?? fallback.shape,
     primary: safeColor(definition?.primary, fallback.primary),
@@ -78,8 +77,8 @@ export function ProductVisual({ name, imageUrl, definition, size = "card", anima
   };
   const style = { "--visual-bg": normalized.background } as CSSProperties;
   const custom = normalized.shape === "custom" && Array.isArray(definition?.elements) && definition.elements.length > 0;
-  const showImage = Boolean(imageUrl) && !imageFailed;
+  const showImage = Boolean(imageUrl) && failedImageUrl !== imageUrl;
   return <div className={`product-visual product-visual-${size} ${animated ? "is-animated" : ""}`} style={style} aria-label={`Ilustrasi ${name}`}>
-    {showImage ? <img key={imageUrl} src={imageUrl!} alt={name} onError={() => setImageFailed(true)}/> : <svg viewBox="0 0 80 90" role="img" aria-hidden="true"><ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/><g className="product-visual-object">{custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}</g></svg>}
+    {showImage ? <img key={imageUrl} src={imageUrl!} alt={name} loading={size === "preview" ? "eager" : "lazy"} decoding="async" draggable={false} onError={() => setFailedImageUrl(imageUrl ?? null)}/> : <svg viewBox="0 0 80 90" role="img" aria-hidden="true"><ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/><g className="product-visual-object">{custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}</g></svg>}
   </div>;
-}
+});

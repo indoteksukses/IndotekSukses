@@ -1,22 +1,21 @@
-# Indotek Sukses v2.7.1
+# Indotek Sukses v2.8.0
 
-Patch tampilan profesional untuk Master Produk, editor varian, dan galeri Visual Code.
+Patch ini berfokus pada dua hal: tampilan aplikasi yang lebih rapi dan respons aplikasi yang lebih cepat pada katalog serta jaringan toko berukuran besar.
 
-## Perubahan v2.7.1
+## Peningkatan utama
 
-- Editor varian menggunakan kartu responsif yang stabil pada desktop, tablet, dan HP.
-- Tombol hapus selalu berada di dalam kartu varian dan tidak menutupi input.
-- Input varian ditata 4 kolom pada desktop, 2 kolom pada tablet, dan 1 kolom pada HP.
-- Master Produk pada HP menggunakan kartu produk khusus dengan informasi yang lebih ringkas dan mudah dibaca.
-- Detail varian pada HP menampilkan harga, stok total, status, dan stok per cabang.
-- Pencarian Visual Code tersedia pada Galeri Visual Produk dan saat memilih visual di form produk.
-- Tombol Kategori, Visual, dan Tambah Produk ditata dalam tiga kolom yang seimbang pada tablet dan HP.
-- Ukuran teks, input, label, dan tombol pada form produk diperbesar.
+- Dashboard memakai payload stok yang lebih ringan dan memuat data penjualan secara paralel.
+- Query stok, stok varian, dan relasi penjualan dibatasi ke cabang yang benar-benar dipilih atau diizinkan.
+- Data profil, daftar toko, dan pengaturan tidak lagi diminta berulang dalam satu render server.
+- Master Produk, Stok Semua Toko, dan Transaksi memakai pencarian tertunda agar input tidak tersendat.
+- Stok Semua Toko sekarang memiliki pagination 25, 50, atau 100 produk per halaman.
+- POS memakai indeks barcode, membatasi jumlah kartu awal, dan menambah produk secara bertahap.
+- Navigasi internal tidak lagi melakukan reload penuh dan prefetch halaman berat dikendalikan secara eksplisit.
+- Sidebar, topbar, kartu statistik, tabel, form, status loading, fokus keyboard, serta tampilan mobile dirapikan.
+- Ditambahkan skeleton loading untuk perpindahan halaman terlindungi.
 
 ## Upgrade
 
-Versi ini tidak memerlukan migration SQL baru.
+Versi ini tidak memerlukan migration SQL baru. Seluruh migration yang diwajibkan pada v2.7.2 tetap harus sudah terpasang.
 
-Apabila sistem belum pernah memakai v2.7.0, jalankan migration `202608040013_variant_stock_per_branch.sql` sebelum menggunakan stok varian per cabang.
-
-Lihat `DEPLOYMENT_v2.7.1.md` untuk urutan deployment.
+Lihat `DEPLOYMENT_v2.8.0.md`, `RELEASE_NOTES_v2.8.0.md`, dan `VERIFICATION_v2.8.0.md`.
