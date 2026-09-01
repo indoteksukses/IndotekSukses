@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
   BarChart3, Boxes, Building2, ChevronDown, ClipboardCheck, FileBarChart,
   History, LayoutDashboard, LoaderCircle, LogOut, Menu, PackagePlus, ReceiptText, Settings,
@@ -64,6 +64,9 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
   const [storeOpen, setStoreOpen] = useState(false);
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
   const [storeNavigating, startStoreTransition] = useTransition();
+  const storeSelectorRef = useRef<HTMLDivElement>(null);
+  const storeButtonRef = useRef<HTMLButtonElement>(null);
+  const storeMenuId = useId();
   const requestedStoreId = searchParams.get("store") ?? "";
   const restrictedToOneStore = !["owner", "admin"].includes(profile.role) && stores.length === 1;
   const selectedStoreId = stores.some((store) => store.id === requestedStoreId)
@@ -75,7 +78,29 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
   useEffect(() => {
     setNavigatingHref(null);
     setMobileOpen(false);
+    setStoreOpen(false);
   }, [pathname, searchKey]);
+
+  useEffect(() => {
+    if (!storeOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!storeSelectorRef.current?.contains(event.target as Node)) setStoreOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setStoreOpen(false);
+      storeButtonRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [storeOpen]);
 
   const beginNavigation = (href: string) => {
     if (href === currentHref) return;
@@ -100,7 +125,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
         <div className="brand">
           {settings.logo_url ? <img className="brand-logo" src={settings.logo_url} alt={settings.company_name} decoding="async"/> : <div className="brand-mark">IS</div>}
           <div><strong>{settings.company_name}</strong><span>{settings.company_tagline}</span></div>
-          <button className="icon-button sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Tutup menu"><X size={20}/></button>
+          <button type="button" className="icon-button sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Tutup menu"><X size={20}/></button>
         </div>
         <nav className="sidebar-nav">
           {groups.map((group) => (
@@ -131,22 +156,22 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
         <div className="sidebar-footer">
           <UserAvatar name={profile.full_name} avatarKey={profile.avatar_key}/>
           <div><strong>{profile.full_name}</strong><span>{roleLabels[profile.role] ?? profile.role}</span></div>
-          <form action="/auth/signout" method="post"><button className="logout-button" title="Keluar"><LogOut size={17}/></button></form>
+          <form action="/auth/signout" method="post"><button type="submit" className="logout-button" title="Keluar" aria-label="Keluar dari akun"><LogOut size={17}/></button></form>
         </div>
       </aside>
       {mobileOpen ? <button className="sidebar-backdrop" aria-label="Tutup menu" onClick={() => setMobileOpen(false)} /> : null}
 
       <main className="main-area">
         <header className="topbar">
-          <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Buka menu"><Menu size={22}/></button>
-          <div className="store-selector-wrap">
-            <button className="store-selector" type="button" aria-expanded={storeOpen} aria-haspopup="menu" onClick={() => setStoreOpen((value) => !value)}>
+          <button type="button" className="icon-button mobile-menu" onClick={() => { setStoreOpen(false); setMobileOpen(true); }} aria-label="Buka menu"><Menu size={22}/></button>
+          <div className="store-selector-wrap" ref={storeSelectorRef}>
+            <button ref={storeButtonRef} className="store-selector" type="button" aria-expanded={storeOpen} aria-haspopup="menu" aria-controls={storeOpen ? storeMenuId : undefined} aria-label={`Pilih toko. Saat ini ${selectedStore?.name ?? "semua toko"}`} onClick={() => setStoreOpen((value) => !value)}>
               {storeNavigating || navigatingHref?.startsWith(pathname) ? <LoaderCircle className="loading-spinner" size={18}/> : selectedStore?.image_url ? <img className="store-selector-image" src={selectedStore.image_url} alt="" loading="lazy" decoding="async"/> : <Store size={18}/>}<span>{selectedStore?.name ?? "Semua Toko"}</span><ChevronDown size={16}/>
             </button>
-            {storeOpen ? <div className="store-menu" role="menu">
-              {!restrictedToOneStore ? <button role="menuitem" className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko yang Diakses</button> : null}
-              {stores.map((store) => <button role="menuitem" className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}>{store.image_url ? <img className="store-menu-image" src={store.image_url} alt="" loading="lazy" decoding="async"/> : null}<span><strong>{store.name}</strong><small>{store.code}</small></span></button>)}
-              {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" prefetch={false} role="menuitem" className="store-manage-link" onMouseEnter={() => router.prefetch("/stores")} onFocus={() => router.prefetch("/stores")} onClick={(event) => { if (isModifiedNavigation(event)) return; beginNavigation("/stores"); }}>+ Kelola cabang</Link> : null}
+            {storeOpen ? <div className="store-menu" id={storeMenuId} role="menu" aria-label="Daftar toko">
+              {!restrictedToOneStore ? <button type="button" role="menuitem" className={!selectedStoreId ? "selected" : ""} onClick={() => selectStore("")}>Semua Toko yang Diakses</button> : null}
+              {stores.map((store) => <button type="button" role="menuitem" className={selectedStoreId === store.id ? "selected" : ""} key={store.id} onClick={() => selectStore(store.id)}>{store.image_url ? <img className="store-menu-image" src={store.image_url} alt="" loading="lazy" decoding="async"/> : null}<span><strong>{store.name}</strong><small>{store.code}</small></span></button>)}
+              {profile.role === "owner" || profile.role === "admin" ? <Link href="/stores" prefetch={false} role="menuitem" className="store-manage-link" onMouseEnter={() => router.prefetch("/stores")} onFocus={() => router.prefetch("/stores")} onClick={(event) => { if (isModifiedNavigation(event)) return; setStoreOpen(false); beginNavigation("/stores"); }}>+ Kelola cabang</Link> : null}
             </div> : null}
           </div>
           <div className="topbar-right">

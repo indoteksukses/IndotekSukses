@@ -1,5 +1,5 @@
-# Indotek Sukses v2.8.0
+# Indotek Sukses v2.8.1
 
-Patch antarmuka dan performa untuk katalog besar serta jaringan multi-cabang. Dashboard memakai query lebih ringan, pencarian tetap responsif, Stok Semua Toko dipaginasi, barcode POS diindeks, navigasi internal tidak melakukan reload penuh, dan tampilan desktop/mobile dirapikan.
+Patch stabilitas antarmuka untuk dialog profil/avatar, modal pada kartu mobile, dan menu topbar. Overlay sekarang mengikuti viewport, tidak terpotong oleh sticky header atau `content-visibility`, dan lebih nyaman dipakai dengan mouse maupun keyboard.
 
-Tidak ada migration SQL baru. Detail lengkap tersedia pada `RELEASE_NOTES_v2.8.0.md`.
+Tidak ada migration SQL baru. Detail lengkap tersedia pada `RELEASE_NOTES_v2.8.1.md`.

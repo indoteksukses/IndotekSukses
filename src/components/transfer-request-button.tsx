@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRightLeft, CheckCircle2, Layers3, X } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { ModalPortal } from "@/components/modal-portal";
 import type { Product, ProductVariant, Store } from "@/lib/types";
 
 export function TransferRequestButton({ product, stores, destinationStoreIds }: { product: Product; stores: Store[]; destinationStoreIds: string[] }) {
@@ -36,8 +37,8 @@ export function TransferRequestButton({ product, stores, destinationStoreIds }: 
 
   return <>
     <button type="button" className="inventory-request-button" onClick={() => { setOpen(true); setMessage(""); }}><ArrowRightLeft size={14}/> Minta stok</button>
-    {open ? <div className="modal-backdrop"><div className="modal-card transfer-request-modal">
-      <div className="modal-header"><div><h2>Permintaan transfer stok</h2><p>Pilih varian dan cabang sumber yang masih memiliki stok.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
+    {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card transfer-request-modal">
+      <div className="modal-header"><div><h2>Permintaan transfer stok</h2><p>Pilih varian dan cabang sumber yang masih memiliki stok.</p></div><button type="button" className="icon-button" onClick={() => setOpen(false)} aria-label="Tutup permintaan transfer"><X size={20}/></button></div>
       <div className="transfer-request-product"><strong>{product.name}</strong><span>{selectedVariant ? `${selectedVariant.name} · ${selectedVariant.sku || product.sku}` : product.sku} · stok tujuan {ownStock} {product.unit}</span></div>
       {message ? <div className={message.includes("berhasil") ? "alert success" : "alert error"}>{message.includes("berhasil") ? <CheckCircle2 size={17}/> : null}{message}</div> : null}
       <form className="form-grid" onSubmit={async (event) => {
@@ -58,8 +59,8 @@ export function TransferRequestButton({ product, stores, destinationStoreIds }: 
         <label>Cabang sumber<select value={sourceId} onChange={(event) => { setSourceId(event.target.value); setQuantity((current) => Math.min(current, Math.max(1, stockAt(event.target.value)))); }}>{sourceCandidates.length ? sourceCandidates.map((store) => <option key={store.id} value={store.id}>{store.name} · tersedia {stockAt(store.id)} {product.unit}</option>) : <option value="">Tidak ada stok tersedia</option>}</select></label>
         <label>Jumlah diminta<input type="number" min="1" max={Math.max(1, stockAt(sourceId))} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(Number(event.target.value || 1), Math.max(1, stockAt(sourceId)))))}/></label>
         <label>Catatan<input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Contoh: stok habis, kebutuhan pelanggan"/></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving || !sourceId}>{saving ? <><LoadingSpinner/><span>Mengirim...</span></> : "Kirim permintaan"}</button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button type="submit" className="button primary" disabled={saving || !sourceId}>{saving ? <><LoadingSpinner/><span>Mengirim...</span></> : "Kirim permintaan"}</button></div>
       </form>
-    </div></div> : null}
+    </div></div></ModalPortal> : null}
   </>;
 }

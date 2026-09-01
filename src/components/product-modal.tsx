@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { ModalPortal } from "@/components/modal-portal";
 import { formatCurrency } from "@/lib/format";
 import type { Product, ProductVariant, ProductVisual as ProductVisualType, Store } from "@/lib/types";
 
@@ -121,8 +122,8 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const previewDefinition = visualMode === "visual" ? selectedVisual?.code : undefined;
 
   return <>
-    <button className={product ? "table-action" : "button primary product-add-trigger product-master-action-button"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span className="action-label-full">Tambah produk</span><span className="action-label-short">Tambah</span></>)}</button>
-    {open ? <div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
+    <button type="button" className={product ? "table-action" : "button primary product-add-trigger product-master-action-button"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span className="action-label-full">Tambah produk</span><span className="action-label-short">Tambah</span></>)}</button>
+    {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button type="button" className="icon-button" onClick={() => setOpen(false)} aria-label="Tutup formulir produk"><X size={20}/></button></div>
       {error ? <div className="alert error">{error}</div> : null}
       <form className="form-grid" onSubmit={async (event) => {
         event.preventDefault(); setSaving(true); setError("");
@@ -231,8 +232,8 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
 
         <section className="span-2 product-appearance-editor-v231"><div className="product-appearance-fields-v231"><div className="appearance-heading"><Image size={17}/><div><strong>Gambar & visual produk</strong><span>Pilih satu sumber gambar.</span></div></div><div className="product-visual-source-tabs"><button type="button" className={visualMode === "image" ? "active" : ""} onClick={() => chooseMode("image")}><Link2 size={15}/> URL gambar</button><button type="button" className={visualMode === "visual" ? "active" : ""} onClick={() => chooseMode("visual")}><Images size={15}/> Visual kode</button><button type="button" className={visualMode === "none" ? "active" : ""} onClick={() => chooseMode("none")}><X size={15}/> Tanpa pilihan</button></div>{visualMode === "image" ? <label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://..."/></label> : null}{visualMode === "visual" ? <div className="visual-product-picker"><label><span>Cari Visual Code</span><div className="visual-search-input"><Search size={16}/><input value={visualQuery} onChange={(event) => setVisualQuery(event.target.value)} placeholder="Cari nama atau bentuk visual..."/></div></label><label><span>Visual ringan berbasis kode</span><select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="" disabled>Pilih visual</option>{visualOptions.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select><small>{filteredVisuals.length} visual ditemukan{selectedVisual && visualQuery && !filteredVisuals.some((visual) => visual.id === selectedVisual.id) ? ` · pilihan aktif: ${selectedVisual.name}` : ""}</small></label></div> : null}</div><div className="product-preview-panel-v231"><span>Pratinjau</span><ProductVisual name={product?.name || "Produk"} imageUrl={previewImage} definition={previewDefinition} size="preview"/><small>{visualMode === "image" ? "URL gambar" : visualMode === "visual" ? selectedVisual?.name ?? "Visual kode" : "Visual umum"}</small></div></section>
         <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true}/><span>Produk aktif dan dapat digunakan dalam sistem</span></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
+        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button type="submit" className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
       </form>
-    </div></div> : null}
+    </div></div></ModalPortal> : null}
   </>;
 }

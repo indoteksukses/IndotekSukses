@@ -1,21 +1,26 @@
-# Indotek Sukses v2.8.0
+# Indotek Sukses v2.8.1
 
-Patch ini berfokus pada dua hal: tampilan aplikasi yang lebih rapi dan respons aplikasi yang lebih cepat pada katalog serta jaringan toko berukuran besar.
+Versi ini meneruskan peningkatan UI dan performa v2.8.0, sekaligus memperbaiki dialog profil/avatar yang sebelumnya dapat terpotong dan tampil di area topbar.
 
 ## Peningkatan utama
 
-- Dashboard memakai payload stok yang lebih ringan dan memuat data penjualan secara paralel.
-- Query stok, stok varian, dan relasi penjualan dibatasi ke cabang yang benar-benar dipilih atau diizinkan.
-- Data profil, daftar toko, dan pengaturan tidak lagi diminta berulang dalam satu render server.
-- Master Produk, Stok Semua Toko, dan Transaksi memakai pencarian tertunda agar input tidak tersendat.
-- Stok Semua Toko sekarang memiliki pagination 25, 50, atau 100 produk per halaman.
-- POS memakai indeks barcode, membatasi jumlah kartu awal, dan menambah produk secara bertahap.
-- Navigasi internal tidak lagi melakukan reload penuh dan prefetch halaman berat dikendalikan secara eksplisit.
-- Sidebar, topbar, kartu statistik, tabel, form, status loading, fokus keyboard, serta tampilan mobile dirapikan.
-- Ditambahkan skeleton loading untuk perpindahan halaman terlindungi.
+- Dialog profil dirender melalui React portal langsung pada `document.body`, sehingga selalu mengikuti viewport dan berada di atas sidebar serta topbar.
+- Backdrop menutupi seluruh aplikasi, scroll latar dikunci, fokus keyboard ditahan di dalam dialog, dan dialog mendukung klik backdrop serta tombol `Escape`.
+- Modal edit produk, edit stok, dan permintaan transfer yang berada di kartu mobile juga memakai portal agar tidak terpotong oleh `content-visibility`, tabel, atau container lain.
+- Avatar legacy dinormalisasi dan perubahan yang belum disimpan tidak lagi tampil sebagai avatar aktif.
+- Pemilih toko menutup saat klik di luar atau menekan `Escape`, serta memiliki scroll internal untuk daftar cabang panjang.
+- Efek blur mahal pada topbar dan toolbar dihapus untuk mencegah bug containing block dan mengurangi beban render.
+- Seluruh pagination, query ringan, pencarian tertunda, optimasi katalog, dan optimasi POS dari v2.8.0 tetap dipertahankan.
 
 ## Upgrade
 
-Versi ini tidak memerlukan migration SQL baru. Seluruh migration yang diwajibkan pada v2.7.2 tetap harus sudah terpasang.
+Versi ini tidak memerlukan migration SQL baru. Gunakan Node.js 24, lalu jalankan:
 
-Lihat `DEPLOYMENT_v2.8.0.md`, `RELEASE_NOTES_v2.8.0.md`, dan `VERIFICATION_v2.8.0.md`.
+```bash
+npm install
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Lihat `DEPLOYMENT_v2.8.1.md`, `RELEASE_NOTES_v2.8.1.md`, dan `VERIFICATION_v2.8.1.md`.

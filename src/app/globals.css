@@ -1056,9 +1056,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   height:70px;
   padding:0 28px;
   border-bottom:1px solid rgba(219,228,239,.86);
-  background:rgba(255,255,255,.88);
+  background:rgba(255,255,255,.97);
   box-shadow:0 5px 18px rgba(15,35,66,.035);
-  backdrop-filter:blur(16px) saturate(1.25);
 }
 .content{max-width:1680px;padding:30px clamp(20px,2.35vw,38px) 42px}
 .store-selector{
@@ -1137,8 +1136,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   gap:10px;
   padding:11px;
   border-radius:15px;
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(8px);
+  background:#fff;
 }
 .search-box{
   position:relative;
@@ -1290,4 +1288,42 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ================================================================
+   Indotek Sukses v2.8.1 - stable overlays and menu reliability
+   ================================================================ */
+body.modal-open{overscroll-behavior:none}
+.topbar,.toolbar-card{-webkit-backdrop-filter:none;backdrop-filter:none}
+.modal-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  min-height:100dvh!important;
+  z-index:1000!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  isolation:isolate;
+}
+.modal-card{overscroll-behavior:contain}
+.profile-backdrop{
+  z-index:1100!important;
+  padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
+  overscroll-behavior:contain;
+}
+.profile-modal{
+  width:min(760px,100%);
+  max-height:min(92dvh,calc(100dvh - 36px));
+  overflow:hidden;
+}
+.profile-modal>form{overscroll-behavior:contain}
+.profile-trigger[aria-expanded="true"]{box-shadow:0 0 0 3px rgba(21,94,239,.14)}
+.profile-trigger:focus-visible{outline:3px solid rgba(21,94,239,.2);outline-offset:3px}
+.store-selector-wrap{z-index:2}
+.store-menu{z-index:80;max-height:min(430px,calc(100dvh - 92px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+
+@media(max-width:720px){
+  .profile-backdrop{padding:0;align-items:end}
+  .profile-modal{width:100%;max-height:calc(100dvh - 6px);border-radius:18px 18px 0 0}
 }

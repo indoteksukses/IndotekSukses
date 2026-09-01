@@ -20,7 +20,7 @@ export const avatarPresets = [
   { key: "hijab-rose", label: "Hijab Rose" },
 ] as const;
 
-type AvatarPresetKey = (typeof avatarPresets)[number]["key"];
+export type AvatarPresetKey = (typeof avatarPresets)[number]["key"];
 type HairStyle = "short" | "side" | "bob" | "long" | "pony" | "afro" | "wave";
 
 type AvatarPalette = {
@@ -82,7 +82,7 @@ const paletteByKey: Record<AvatarPresetKey, AvatarPalette> = {
   "hijab-rose": { background: "#f6dedf", skin: "#edb98f", shirt: "#92445d", hair: "#33222a", hairStyle: "long", female: true, hijab: "#a85a73" },
 };
 
-function resolvePreset(key?: string): AvatarPresetKey {
+export function normalizeAvatarKey(key?: string | null): AvatarPresetKey {
   if (!key) return "male-beard";
   if (key in paletteByKey) return key as AvatarPresetKey;
   return legacyMap[key] ?? "male-beard";
@@ -139,7 +139,7 @@ function PersonIllustration({ preset, name }: { preset: AvatarPresetKey; name: s
 }
 
 export function UserAvatar({ name, avatarKey = "male-beard", size = "md" }: { name: string; avatarKey?: string; size?: "sm" | "md" | "lg" | "xl" }) {
-  const preset = resolvePreset(avatarKey);
+  const preset = normalizeAvatarKey(avatarKey);
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
   return <span className={`avatar avatar-person avatar-${size}`} aria-label={`Avatar ${name}`} data-avatar-key={preset}><PersonIllustration preset={preset} name={name}/>{!name ? <span className="avatar-fallback">{initials || <CircleUserRound size={18}/>}</span> : null}</span>;
 }
