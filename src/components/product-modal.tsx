@@ -61,10 +61,38 @@ function readResponse(raw: string) {
   catch { return { error: raw || "Respons server tidak valid" }; }
 }
 
-export function ProductModal({ categories, visuals, stores, product, label }: { categories: Array<{ id: string; name: string }>; visuals: ProductVisualType[]; stores: Store[]; product?: Product; label?: string }) {
-  const [open, setOpen] = useState(false);
+export function ProductModal({
+  categories,
+  visuals,
+  stores,
+  product,
+  label,
+  isOpen: externalOpen,
+  onClose: externalClose,
+}: {
+  categories: Array<{ id: string; name: string }>;
+  visuals: ProductVisualType[];
+  stores: Store[];
+  product?: Product;
+  label?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
+}) {
+  const isControlled = externalOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpenState = (val: boolean) => {
+    if (isControlled) {
+      if (!val) externalClose?.();
+    } else {
+      setInternalOpen(val);
+    }
+  };
+  const setOpen = setOpenState;
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
   const [categoryId, setCategoryId] = useState(product?.category_id ?? "");
   const [brand, setBrand] = useState(product?.brand || "Tanpa Merek");
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
@@ -106,7 +134,7 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
     setBaseSelling(Number(product?.selling_price ?? 0));
   };
 
-  const openEditor = () => { resetEditor(); setOpen(true); };
+  const openEditor = () => { resetEditor(); setOpenState(true); };
   const toggleStore = (storeId: string) => setSalesStoreIds((current) => current.includes(storeId) ? current.filter((id) => id !== storeId) : [...current, storeId]);
   const chooseMode = (mode: VisualMode) => { setVisualMode(mode); if (mode === "visual" && !visualId) setVisualId(visuals[0]?.id ?? ""); };
   const patchVariant = (key: string, patch: Partial<VariantDraft>) => setVariants((current) => current.map((variant) => variant.key === key ? { ...variant, ...patch } : variant));
@@ -122,8 +150,10 @@ export function ProductModal({ categories, visuals, stores, product, label }: { 
   const previewDefinition = visualMode === "visual" ? selectedVisual?.code : undefined;
 
   return <>
-    <button type="button" className={product ? "table-action" : "button primary product-add-trigger product-master-action-button"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span className="action-label-full">Tambah produk</span><span className="action-label-short">Tambah</span></>)}</button>
-    {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button type="button" className="icon-button" onClick={() => setOpen(false)} aria-label="Tutup formulir produk"><X size={20}/></button></div>
+    {!isControlled ? (
+      <button type="button" className={product ? "table-action" : "button primary product-add-trigger product-master-action-button"} onClick={openEditor}>{label ?? (product ? "Edit" : <><Plus size={16}/><span className="action-label-full">Tambah produk</span><span className="action-label-short">Tambah</span></>)}</button>
+    ) : null}
+    {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card product-form-modal product-form-modal-variants"><div className="modal-header"><div><h2>{product ? "Edit produk" : "Tambah produk"}</h2><p>Kelola produk tunggal atau beberapa varian dalam satu tampilan yang ringkas.</p></div><button type="button" className="icon-button" onClick={() => setOpenState(false)} aria-label="Tutup formulir produk"><X size={20}/></button></div>
       {error ? <div className="alert error">{error}</div> : null}
       <form className="form-grid" onSubmit={async (event) => {
         event.preventDefault(); setSaving(true); setError("");

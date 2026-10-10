@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { formatCurrency } from "@/lib/format";
 
 export type SalesChartPoint = {
@@ -13,57 +13,18 @@ export type SalesChartPoint = {
 
 export function InteractiveSalesChart({ points }: { points: SalesChartPoint[] }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [tooltipLeft, setTooltipLeft] = useState(0);
-  const [tooltipSide, setTooltipSide] = useState<"left" | "right">("right");
-  const chartRef = useRef<HTMLDivElement>(null);
-  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const max = useMemo(() => Math.max(...points.map((point) => point.revenue), 1), [points]);
   const active = activeIndex == null ? null : points[activeIndex];
 
-  const activate = (index: number, target: HTMLElement) => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    const chartRect = chart.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    const center = targetRect.left - chartRect.left + targetRect.width / 2;
-    setTooltipLeft(center);
-    setTooltipSide(center > chartRect.width - 160 ? "left" : "right");
-    setActiveIndex(index);
-  };
-
-  const activateFromPointer = (clientX: number) => {
-    const refs = buttonRefs.current.filter(Boolean) as HTMLButtonElement[];
-    if (!refs.length) return;
-    let nearest = 0;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    refs.forEach((button, index) => {
-      const rect = button.getBoundingClientRect();
-      const center = rect.left + rect.width / 2;
-      const distance = Math.abs(center - clientX);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        nearest = index;
-      }
-    });
-    const button = refs[nearest];
-    if (button) activate(nearest, button);
-  };
-
-  const tooltipStyle = { "--tooltip-anchor": `${tooltipLeft}px` } as CSSProperties;
+  const percent = points.length && activeIndex != null ? ((activeIndex + 0.5) / points.length) * 100 : 50;
+  const tooltipSide = activeIndex != null && activeIndex >= Math.floor(points.length / 2) ? "left" : "right";
+  const tooltipStyle = { "--tooltip-anchor": `${percent}%` } as CSSProperties;
 
   return (
     <div
       className="interactive-chart"
-      ref={chartRef}
-      onPointerMove={(event) => {
-        if (!points.length) return;
-        activateFromPointer(event.clientX);
-      }}
       onPointerLeave={(event) => {
         if (event.pointerType === "mouse") setActiveIndex(null);
-      }}
-      onPointerDown={(event) => {
-        if (event.target === chartRef.current) setActiveIndex(null);
       }}
     >
       <div className="interactive-chart-grid" aria-label="Grafik omzet 7 hari terakhir">
@@ -75,15 +36,12 @@ export function InteractiveSalesChart({ points }: { points: SalesChartPoint[] })
               type="button"
               className={`interactive-chart-column ${activeIndex === index ? "active" : ""}`}
               key={point.date}
-              ref={(node) => {
-                buttonRefs.current[index] = node;
-              }}
               aria-label={`${point.date}, omzet ${formatCurrency(point.revenue)}`}
               aria-pressed={activeIndex === index}
-              onMouseEnter={(event) => activate(index, event.currentTarget)}
-              onFocus={(event) => activate(index, event.currentTarget)}
+              onPointerEnter={() => setActiveIndex(index)}
+              onFocus={() => setActiveIndex(index)}
               onBlur={() => setActiveIndex(null)}
-              onClick={(event) => activate(index, event.currentTarget)}
+              onClick={() => setActiveIndex(index)}
             >
               <span className="interactive-chart-value">{point.revenue ? formatCurrency(point.revenue) : "Rp 0"}</span>
               <span className="interactive-chart-track"><i style={{ height: `${height}%` }} /></span>

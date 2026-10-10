@@ -24,8 +24,29 @@ function downloadRows(filename: string, rows: Record<string, CsvValue>[]) {
   URL.revokeObjectURL(url);
 }
 
-export function CsvButton({ filename, rows, label = "Unduh CSV" }: { filename: string; rows: Record<string, CsvValue>[]; label?: string }) {
-  return <button type="button" className="button secondary" onClick={() => downloadRows(filename, rows)} disabled={!rows.length}><Download size={16}/> {label}</button>;
+export function CsvButton({
+  filename,
+  rows,
+  getRows,
+  label = "Unduh CSV",
+  disabled,
+}: {
+  filename: string;
+  rows?: Record<string, CsvValue>[];
+  getRows?: () => Record<string, CsvValue>[];
+  label?: string;
+  disabled?: boolean;
+}) {
+  const handleClick = () => {
+    const data = getRows ? getRows() : (rows ?? []);
+    downloadRows(filename, data);
+  };
+  const isDisabled = disabled ?? (getRows ? false : !(rows && rows.length));
+  return (
+    <button type="button" className="button secondary" onClick={handleClick} disabled={isDisabled}>
+      <Download size={16}/> {label}
+    </button>
+  );
 }
 
 export function ExportButtons({ filename, rows }: { filename: string; rows: Record<string, CsvValue>[] }) {

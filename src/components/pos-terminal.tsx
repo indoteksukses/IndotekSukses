@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Banknote, CheckCircle2, CreditCard, Layers3, Minus, Plus, QrCode, ReceiptText, ScanBarcode, Search, ShoppingCart, Trash2, X } from "lucide-react";
@@ -35,6 +35,45 @@ function productPriceLabel(product: Product) {
   return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
 }
 
+// Memoized Product Card: Tidak me-render ulang saat keranjang / diskon / pembayaran berubah
+const PosProductCard = memo(function PosProductCard({
+  product,
+  onChoose,
+}: {
+  product: Product;
+  onChoose: (product: Product) => void;
+}) {
+  const variants = activeVariants(product);
+  const stock = availableStock(product);
+  return (
+    <button
+      type="button"
+      className="pos-product"
+      onClick={() => onChoose(product)}
+      disabled={stock <= 0}
+    >
+      <ProductVisual
+        name={product.name}
+        imageUrl={product.image_url}
+        definition={product.visual?.code}
+        size="card"
+      />
+      <strong title={product.name}>{product.name}</strong>
+      <span title={product.sku}>{product.sku}</span>
+      {variants.length ? (
+        <em className="pos-variant-badge">
+          <Layers3 size={12} />
+          {variants.length} varian
+        </em>
+      ) : null}
+      <div>
+        <b>{productPriceLabel(product)}</b>
+        <small>Stok {stock}</small>
+      </div>
+    </button>
+  );
+});
+
 export function PosTerminal({ products, store, shiftId = null }: { products: Product[]; store: Store; shiftId?: string | null }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -56,7 +95,8 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   const [error, setError] = useState("");
   const [invoice, setInvoice] = useState("");
   const [saleId, setSaleId] = useState("");
-  const [visibleLimit, setVisibleLimit] = useState(80);
+  const [visibleLimit, setVisibleLimit] = useState(40);
+
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
@@ -171,19 +211,17 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
 
   return <div className="pos-layout pos-layout-v231">
     <section className="pos-products">
-      <div className={`pos-search ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk / varian..." value={query} onChange={(event) => { setQuery(event.target.value); setVisibleLimit(80); }} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={21}/><span>Scan</span></button></div>
-      <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => { setCategory(name); setVisibleLimit(80); }}>{name}</button>)}</div>
-      <div className="product-grid">{filtered.map((product) => { const variants = activeVariants(product); const stock = availableStock(product); return <button className="pos-product" key={product.id} onClick={() => chooseProduct(product)} disabled={stock <= 0}>
-        <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="card"/><strong title={product.name}>{product.name}</strong><span title={product.sku}>{product.sku}</span>{variants.length ? <em className="pos-variant-badge"><Layers3 size={12}/>{variants.length} varian</em> : null}<div><b>{productPriceLabel(product)}</b><small>Stok {stock}</small></div>
-      </button>; })}</div>
+      <div className={`pos-search ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk / varian..." value={query} onChange={(event) => { setQuery(event.target.value); setVisibleLimit(40); }} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={21}/><span>Scan</span></button></div>
+      <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => { setCategory(name); setVisibleLimit(40); }}>{name}</button>)}</div>
+      <div className="product-grid">{filtered.map((product) => <PosProductCard key={product.id} product={product} onChoose={chooseProduct} />)}</div>
       {!allFiltered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
-      {allFiltered.length ? <div className="catalog-status"><span>Menampilkan <strong>{filtered.length.toLocaleString("id-ID")}</strong> dari {allFiltered.length.toLocaleString("id-ID")} produk</span>{filtered.length < allFiltered.length ? <button type="button" className="button secondary" onClick={() => setVisibleLimit((current) => current + 80)}>Tampilkan lebih banyak</button> : null}</div> : null}
+      {allFiltered.length ? <div className="catalog-status"><span>Menampilkan <strong>{filtered.length.toLocaleString("id-ID")}</strong> dari {allFiltered.length.toLocaleString("id-ID")} produk</span>{filtered.length < allFiltered.length ? <button type="button" className="button secondary" onClick={() => setVisibleLimit((current) => current + 40)}>Tampilkan lebih banyak</button> : null}</div> : null}
     </section>
 
     <aside className="cart-panel desktop-cart-panel">{cartContent()}</aside>
     <button type="button" className={`mobile-cart-dock ${itemCount ? "has-items" : ""}`} onClick={() => setMobileCartOpen(true)}><span className="mobile-cart-icon"><ShoppingCart size={21}/>{itemCount ? <b>{itemCount}</b> : null}</span><span><strong>{itemCount ? `${itemCount} item di keranjang` : "Keranjang kosong"}</strong><small>{itemCount ? "Sentuh untuk lihat dan bayar" : "Pilih produk untuk mulai transaksi"}</small></span><strong>{formatCurrency(grandTotal)}</strong></button>
     {mobileCartOpen ? <div className="mobile-cart-backdrop" onClick={() => setMobileCartOpen(false)}><section className="mobile-cart-sheet" onClick={(event) => event.stopPropagation()}>{cartContent(true)}</section></div> : null}
-    <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onDetected={useBarcode}/>
+    {scannerOpen ? <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onDetected={useBarcode}/> : null}
 
     {variantProduct ? <div className="modal-backdrop variant-picker-backdrop"><div className="modal-card variant-picker-modal"><div className="modal-header"><div><h2>Pilih varian</h2><p>{variantProduct.name} · pilih varian dengan stok yang tersedia.</p></div><button className="icon-button" onClick={() => setVariantProduct(null)}><X size={20}/></button></div><div className="variant-picker-product"><ProductVisual name={variantProduct.name} imageUrl={variantProduct.image_url} definition={variantProduct.visual?.code} size="thumb"/><div><strong>{variantProduct.name}</strong><span>{variantProduct.brand || variantProduct.sku}</span></div></div><div className="variant-picker-list">{activeVariants(variantProduct).map((variant) => <button type="button" key={variant.id} disabled={(variant.selected_stock ?? 0) <= 0} onClick={() => { addSelected(variantProduct, variant); setVariantProduct(null); setError(""); }}><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span><em>Stok {variant.selected_stock ?? 0} {variantProduct.unit}</em></div><b>{formatCurrency(variant.selling_price)}</b><Plus size={17}/></button>)}</div></div></div> : null}
 
