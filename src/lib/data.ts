@@ -150,6 +150,7 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
 
   const profile = await getCurrentProfile();
   const allowedStoreIds = permittedStoreIds(profile);
+  console.log("[DEBUG getProductsWithStocks] profile role:", profile.role, "allowedStoreIds:", allowedStoreIds?.size);
   if (storeId && allowedStoreIds && !allowedStoreIds.has(storeId)) return [];
   if (!includeInactive && !storeId && allowedStoreIds && allowedStoreIds.size === 0) return [];
   const canViewCosts = profile.role === "owner" || profile.role === "admin";
@@ -162,12 +163,15 @@ export async function getProductsWithStocks(storeId?: string | null, includeInac
     getVariantInventory(scopedStoreIds),
   ]);
 
-  return buildProducts(meta, inventoryRows, variantRows, {
+  console.log("[DEBUG getProductsWithStocks] meta size:", meta?.size, "inv rows:", inventoryRows?.length, "var rows:", variantRows?.length);
+  const products = buildProducts(meta, inventoryRows, variantRows, {
     storeId,
     allowedStoreIds,
     includeInactive,
     canViewCosts,
   });
+  console.log("[DEBUG getProductsWithStocks] RETURNED products length:", products.length);
+  return products;
 }
 
 export async function getStoreCatalog(storeId: string): Promise<Product[]> {

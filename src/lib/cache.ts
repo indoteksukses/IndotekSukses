@@ -141,7 +141,9 @@ export async function getCachedStores() {
 // ─── PRODUCT METADATA (tanpa stok) ──────────────────────────────────────────
 
 async function fetchProductMetaList(): Promise<any[]> {
+  console.log("[DEBUG fetchProductMetaList] START");
   const reader = await getReader();
+  console.log("[DEBUG fetchProductMetaList] reader exists:", Boolean(reader));
   if (!reader) return [];
 
   let { data: products, error } = await fetchAllRows<any>(
@@ -161,11 +163,14 @@ async function fetchProductMetaList(): Promise<any[]> {
         .range(from, to),
   );
 
+  console.log("[DEBUG fetchProductMetaList] query products count:", products?.length, "error:", error?.message);
+
   if ((error || !products || products.length === 0)) {
-    // Fallback: direct simple query if complex nested join failed
+    console.log("[DEBUG fetchProductMetaList] trying simple fallback query...");
     const simple = await fetchAllRows<any>((from, to) =>
       reader.from("products").select("*").order("id").range(from, to),
     );
+    console.log("[DEBUG fetchProductMetaList] simple count:", simple.data?.length, "error:", simple.error?.message);
     if (simple.data && simple.data.length > 0) {
       products = simple.data;
       error = null;
@@ -223,6 +228,7 @@ async function fetchProductMetaList(): Promise<any[]> {
       variants,
     });
   }
+  console.log("[DEBUG fetchProductMetaList] final list count:", list.length);
   return list;
 }
 
