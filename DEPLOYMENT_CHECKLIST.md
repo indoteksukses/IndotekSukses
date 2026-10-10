@@ -1,0 +1,21 @@
+# Deployment Checklist Indotek Sukses v2.7.0
+
+- [ ] Backup database Supabase.
+- [ ] Pastikan migration varian v2.6.0 (`202608040012_product_variants.sql`) sudah terpasang.
+- [ ] Jalankan `202608040013_variant_stock_per_branch.sql` sampai selesai tanpa menyorot sebagian query.
+- [ ] Jalankan `VERIFY_VARIANT_STOCK_v2.7.0.sql` dan pastikan pemeriksaan struktur bernilai `true`.
+- [ ] Pastikan `baris_stok_varian_yang_belum_dibuat = 0`.
+- [ ] Pastikan `agregat_stok_tidak_sinkron = 0`.
+- [ ] Deploy seluruh source v2.7.0, bukan hanya file yang berubah.
+- [ ] Pastikan Vercel menggunakan Node.js 24.x.
+- [ ] Pastikan `NEXT_PUBLIC_DEMO_MODE=false`.
+- [ ] Pastikan URL, publishable key, dan service-role key berasal dari project Supabase yang sama.
+- [ ] Tunggu deployment Vercel berstatus **Ready**.
+- [ ] Logout, tutup tab lama, login kembali, lalu tekan `Ctrl + Shift + R`.
+- [ ] Uji stok berbeda untuk minimal dua varian pada dua cabang.
+- [ ] Uji Stok Masuk dan Stok Keluar dengan varian.
+- [ ] Uji Transfer Antartoko: buat, kirim, dan terima varian.
+- [ ] Uji PO multi-cabang dengan varian lalu terima barang.
+- [ ] Uji penjualan, pembatalan, retur, dan stok opname varian.
+- [ ] Pastikan tombol hapus varian tetap berada di dalam kartu.
+- [ ] Periksa tombol Master Produk pada HP.

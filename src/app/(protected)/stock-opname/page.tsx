@@ -1,0 +1,17 @@
+import { ClipboardCheck } from "lucide-react";
+import { PageHeader, StatusBadge } from "@/components/ui";
+import { CompleteStocktake, CreateStocktake, StocktakeDetails } from "@/components/forms/stocktake-manager";
+import { getProductsWithStocks, getStocktakes, getStores } from "@/lib/data";
+import { formatDateTime } from "@/lib/format";
+
+export const metadata = { title: "Stok Opname" };
+
+export default async function StockOpnamePage({ searchParams }: { searchParams: Promise<{ store?: string }> }) {
+  const params = await searchParams;
+  const [rows, stores, products] = await Promise.all([getStocktakes(params.store), getStores(), getProductsWithStocks()]);
+  return <>
+    <PageHeader title="Stok Opname" description="Cocokkan stok sistem dengan fisik, lihat rincian, dan buat penyesuaian yang tercatat otomatis." actions={<CreateStocktake stores={stores}/>}/>
+    <div className="mini-stats"><div><span>Total opname</span><strong>{rows.length}</strong></div><div><span>Draft</span><strong>{rows.filter((row:any)=>row.status==="draft").length}</strong></div><div><span>Selesai</span><strong>{rows.filter((row:any)=>row.status==="completed").length}</strong></div><div><span>Cabang aktif</span><strong>{stores.length}</strong></div></div>
+    <div className="panel table-panel"><table><thead><tr><th>Nomor</th><th>Tanggal</th><th>Toko</th><th>Status</th><th>Aksi</th></tr></thead><tbody>{rows.map((row:any)=><tr key={row.id}><td><div className="product-cell"><div className="product-thumb"><ClipboardCheck size={20}/></div><div><strong>{row.stocktake_number}</strong><span>{row.id.slice(0,8)}</span></div></div></td><td>{formatDateTime(row.created_at)}</td><td>{row.store_name}</td><td><StatusBadge tone={row.status==="completed"?"success":"warning"}>{row.status}</StatusBadge></td><td><div className="table-actions-inline"><StocktakeDetails stocktake={row}/>{row.status==="draft"?<CompleteStocktake stocktake={row} products={products}/>:null}</div></td></tr>)}</tbody></table></div>
+  </>;
+}
