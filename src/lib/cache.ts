@@ -16,6 +16,7 @@
 import { revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/pagination";
 import type { Product, ProductVisual, Store } from "@/lib/types";
 
@@ -56,6 +57,13 @@ export function invalidateTags(...tags: string[]) {
 
 // ─── helper reader ──────────────────────────────────────────────────────────
 
+function getPublicReader(): any {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
+  return createSupabaseClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
 async function getReader(): Promise<any> {
   const serviceKey =
     process.env.SUPABASE_SECRET_KEY ||
@@ -67,14 +75,14 @@ async function getReader(): Promise<any> {
       // fallback
     }
   }
+  // Public reader avoids PostgreSQL's "revoke select from authenticated" bug on public.products
+  const pub = getPublicReader();
+  if (pub) return pub;
+
   try {
     return await createClient();
   } catch {
-    try {
-      return createAdminClient();
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 
@@ -243,7 +251,7 @@ export async function getCachedProductMeta(): Promise<Map<string, any>> {
     meta.set(item.id, item);
   }
   if (meta.size === 0) return meta;
-  return memSet(key, meta, 60);
+  return memSet(key, meta, 120);
 }
 
 // ─── INVENTORY OVERVIEW (stok produk per toko) ──────────────────────────────
@@ -253,7 +261,8 @@ export async function getInventoryOverview(scopedStoreIds: string[] | null): Pro
   const hit = memGet<any[]>(key);
   if (hit) return hit;
 
-  const supabase = await createClient();
+  const supabase = await getReader();
+  if (!supabase) return [];
   const { data } = await fetchAllRows<any>((from, to) => {
     let query = supabase
       .from("inventory_overview")
@@ -267,7 +276,7 @@ export async function getInventoryOverview(scopedStoreIds: string[] | null): Pro
     if (scopedStoreIds?.length) query = query.in("store_id", scopedStoreIds);
     return query;
   });
-  return memSet(key, (data ?? []) as any[], 15);
+  return memSet(key, (data ?? []) as any[], 60);
 }
 
 // ─── VARIANT INVENTORY (stok varian per toko) ───────────────────────────────
@@ -288,7 +297,7 @@ export async function getVariantInventory(scopedStoreIds: string[] | null): Prom
     if (scopedStoreIds?.length) query = query.in("store_id", scopedStoreIds);
     return query;
   });
-  return memSet(key, (data ?? []) as any[], 15);
+  return memSet(key, (data ?? []) as any[], 60);
 }
 
 // ─── BUILDER: gabungkan meta + stok menjadi Product[] ───────────────────────

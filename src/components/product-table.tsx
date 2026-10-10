@@ -29,7 +29,7 @@ export function ProductTable({ products, categories, visuals, stores, canEdit }:
   const [status, setStatus] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
   const indexedProducts = useMemo(() => products.map((product) => ({
