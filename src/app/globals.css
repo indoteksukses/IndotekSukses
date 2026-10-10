@@ -485,18 +485,310 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
   .avatar-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 }
 
-/* v2.4.0 network inventory, portal product picker, supplier management and multi-branch purchasing. */
-.product-picker-backdrop{position:fixed;inset:0;z-index:498;border:0;background:rgba(10,25,46,.48);backdrop-filter:blur(1px)}
-.product-picker-portal{position:fixed;z-index:500;top:var(--picker-top);left:var(--picker-left);width:var(--picker-width);max-height:var(--picker-max-height);display:flex;flex-direction:column;background:#fff;border:1px solid #b9c9dc;border-radius:14px;box-shadow:0 22px 58px rgba(9,32,64,.27);overflow:hidden}
-.product-picker-portal.placement-up{transform-origin:bottom center}.product-picker-portal.placement-down{transform-origin:top center}
-.product-picker-portal .combobox-search{min-height:52px;flex:none;background:#fff}.product-picker-portal .combobox-search input{font-size:13px!important}
-.product-picker-close{width:34px;height:34px;display:grid;place-items:center;flex:none;border:0;border-radius:9px;background:#eef3f8;color:#52657e;cursor:pointer}
-.product-picker-portal .combobox-results{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
-.product-picker-portal .combobox-results>button{min-height:58px;padding:12px 14px}.product-picker-portal .combobox-results strong{font-size:12px}.product-picker-portal .combobox-results span{font-size:9px}.product-picker-portal .combobox-stock{font-size:11px}
-.product-picker-portal.is-mobile{border-radius:18px;max-height:var(--picker-max-height)}
-.product-picker-portal.is-mobile .combobox-results>button>div:first-child{min-width:0;max-width:calc(100% - 76px)}
-.product-picker-portal.is-mobile .combobox-results strong{white-space:normal;line-height:1.25;overflow:visible;text-overflow:clip}
-.product-picker-portal.is-mobile .combobox-results span{white-space:normal;overflow-wrap:anywhere}
+/* v2.8.2: Product Search Select & Variant Portal with high z-index and rich styling */
+.product-picker-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:2990!important;
+  border:0;
+  background:rgba(10,25,46,.25);
+  backdrop-filter:blur(1px);
+}
+.product-picker-portal{
+  position:fixed!important;
+  z-index:3000!important;
+  top:var(--picker-top);
+  left:var(--picker-left);
+  width:var(--picker-width);
+  max-height:var(--picker-max-height);
+  display:flex;
+  flex-direction:column;
+  background:#fff;
+  border:1px solid #b3c5dc;
+  border-radius:14px;
+  box-shadow:0 24px 60px rgba(9,32,64,.3), 0 4px 16px rgba(9,32,64,.08);
+  overflow:hidden;
+  animation:pickerFadeIn .15s ease-out;
+}
+@keyframes pickerFadeIn{
+  from{opacity:0;transform:scale(.98)}
+  to{opacity:1;transform:scale(1)}
+}
+.product-picker-portal.placement-up{transform-origin:bottom center}
+.product-picker-portal.placement-down{transform-origin:top center}
+.product-picker-portal .combobox-search{
+  min-height:52px;
+  flex:none;
+  background:#f8fafc;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 14px;
+  border-bottom:1px solid #e2e8f0;
+  color:#64748b;
+}
+.product-picker-portal .combobox-search input{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:0!important;
+  width:100%;
+  height:44px!important;
+  padding:0!important;
+  font-size:13px!important;
+  font-weight:600;
+  color:var(--ink);
+}
+.combobox-clear-input{
+  width:26px;
+  height:26px;
+  display:grid;
+  place-items:center;
+  flex:none;
+  border:0;
+  border-radius:50%;
+  background:#e2e8f0;
+  color:#475569;
+  cursor:pointer;
+  transition:.15s;
+}
+.combobox-clear-input:hover{
+  background:#cbd5e1;
+  color:#0f172a;
+}
+.product-picker-close{
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  flex:none;
+  border:0;
+  border-radius:8px;
+  background:#edf2f7;
+  color:#475569;
+  cursor:pointer;
+  transition:.15s;
+}
+.product-picker-close:hover{
+  background:#e2e8f0;
+  color:#0f172a;
+}
+.product-picker-portal .combobox-results{
+  flex:1;
+  min-height:0;
+  max-height:none;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+.product-picker-portal .combobox-results>button{
+  width:100%;
+  border:0;
+  border-bottom:1px solid #edf2f7;
+  background:#fff;
+  min-height:56px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  cursor:pointer;
+  transition:background .12s ease;
+}
+.product-picker-portal .combobox-results>button:hover{
+  background:#f1f6ff;
+}
+.product-picker-portal .combobox-results>button.selected{
+  background:#e8f1ff;
+  border-left:3px solid var(--blue);
+}
+.picker-item-copy{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  flex:1;
+  gap:3px;
+}
+.picker-item-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.picker-item-title strong{
+  font-size:12px;
+  color:var(--ink);
+  font-weight:700;
+}
+.picker-variant-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 8px;
+  border-radius:6px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1d4ed8;
+  font-size:11px;
+  font-weight:700;
+}
+.picker-item-meta{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:10px;
+  color:var(--muted);
+  flex-wrap:wrap;
+}
+.picker-sku{
+  font-family:monospace;
+  font-weight:600;
+  color:#475569;
+}
+.picker-cat{
+  color:#64748b;
+}
+.picker-barcode{
+  color:#94a3b8;
+  font-size:9.5px;
+}
+.product-picker-portal .combobox-stock{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none;
+  text-align:right;
+}
+.product-picker-portal .stock-number{
+  display:flex;
+  align-items:baseline;
+  gap:3px;
+  font-size:12px;
+}
+.product-picker-portal .stock-number b{
+  font-size:13px;
+  font-weight:800;
+  color:#0f172a;
+}
+.product-picker-portal .stock-number small{
+  font-size:10px;
+  color:#64748b;
+}
+.picker-check{
+  color:var(--blue);
+  flex:none;
+}
+.product-picker-portal .empty-inline{
+  padding:32px 20px;
+  text-align:center;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  color:var(--muted);
+}
+.product-picker-portal .empty-inline strong{
+  font-size:13px;
+  color:var(--ink);
+}
+.product-picker-portal .empty-inline span{
+  font-size:11px;
+}
+.product-picker-portal .combobox-hint{
+  padding:8px 14px;
+  background:#f8fafc;
+  border-top:1px solid #e2e8f0;
+  font-size:10px;
+  color:#64748b;
+}
+
+/* Trigger button styling */
+.product-combobox{
+  position:relative;
+  width:100%;
+}
+.product-combobox-trigger{
+  width:100%;
+  min-height:44px;
+  border:1px solid #b8cbe3;
+  border-radius:10px;
+  background:#fff;
+  padding:7px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .15s, box-shadow .15s;
+}
+.product-combobox-trigger:hover{
+  border-color:#7ba8df;
+  background:#fafcff;
+}
+.product-combobox-trigger.is-open{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(11,76,194,.12);
+}
+.trigger-content{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  flex:1;
+  gap:2px;
+}
+.trigger-title{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.trigger-title strong{
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.selected-variant-label{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  padding:1px 6px;
+  border-radius:5px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1d4ed8;
+  font-size:10px;
+  font-weight:700;
+}
+.trigger-subtitle{
+  font-size:10px;
+  color:var(--muted);
+  font-family:inherit;
+}
+.trigger-placeholder{
+  font-size:12px;
+  color:#94a3b8;
+  font-weight:500;
+}
+.trigger-icons{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:none;
+  color:#64748b;
+}
+.chevron-icon{
+  transition:transform .18s ease;
+}
+.chevron-icon.rotated{
+  transform:rotate(180deg);
+}
+
+.product-picker-portal.is-mobile{
+  border-radius:16px;
+}
 
 .inventory-mobile-card>header .product-visual-thumb,.inventory-table .product-visual-thumb{width:40px;height:42px;flex:none;border-radius:10px}
 .inventory-table .product-cell>.product-visual{width:42px;height:44px;flex:none}

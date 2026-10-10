@@ -5,6 +5,8 @@ import { getCurrentProfile, getProductsWithStocks, getStores, getTransferRequest
 import { formatDateTime } from "@/lib/format";
 
 export const metadata={title:"Transfer Antartoko"};
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export default async function TransfersPage({searchParams}:{searchParams:Promise<{store?:string}>}){
   const params=await searchParams;
   const[transfers,requests,stores,products,profile]=await Promise.all([getTransfers(params.store),getTransferRequests(params.store),getStores(),getProductsWithStocks(),getCurrentProfile()]);

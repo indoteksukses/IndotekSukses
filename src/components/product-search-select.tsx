@@ -9,7 +9,7 @@ type PickerPosition = { mobile: boolean; top: number; left: number; width: numbe
 type ItemOption = { product: Product; variant: ProductVariant | null; key: string };
 
 export function ProductSearchSelect({
-  products,
+  products = [],
   value,
   variantValue = null,
   onChange,
@@ -23,93 +23,308 @@ export function ProductSearchSelect({
   placeholder?: string;
   storeId?: string;
 }) {
-  const options = useMemo<ItemOption[]>(() => products.flatMap<ItemOption>((product) => {
-    const variants = (product.variants ?? []).filter((variant) => variant.is_active);
-    return variants.length
-      ? variants.map((variant) => ({ product, variant, key: `${product.id}:${variant.id}` }))
-      : [{ product, variant: null, key: `${product.id}:base` }];
-  }), [products]);
-  const selected = options.find((option) => option.product.id === value && (option.variant?.id ?? null) === (variantValue ?? null));
+  const options = useMemo<ItemOption[]>(() => {
+    if (!products || !Array.isArray(products) || products.length === 0) return [];
+    return products.flatMap<ItemOption>((product) => {
+      const activeVariants = (product.variants ?? []).filter((variant) => variant.is_active);
+      if (activeVariants.length > 0) {
+        return activeVariants.map((variant) => ({
+          product,
+          variant,
+          key: `${product.id}:${variant.id}`,
+        }));
+      }
+      return [{ product, variant: null, key: `${product.id}:base` }];
+    });
+  }, [products]);
+
+  const selected = useMemo(() => {
+    return options.find(
+      (option) =>
+        option.product.id === value &&
+        (option.variant?.id ?? null) === (variantValue ?? null)
+    );
+  }, [options, value, variantValue]);
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [position, setPosition] = useState<PickerPosition>({ mobile: false, top: 0, left: 0, width: 480, maxHeight: 440, placement: "down" });
+  const [position, setPosition] = useState<PickerPosition>({
+    mobile: false,
+    top: 0,
+    left: 0,
+    width: 520,
+    maxHeight: 440,
+    placement: "down",
+  });
+
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Multi-term search: split keywords by whitespace so that "Amplas 100", "Angker DCA", etc. always match
   const filtered = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    const rows = keyword ? options.filter(({ product, variant }) => `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.category ?? ""} ${product.brand ?? ""} ${variant?.name ?? ""} ${variant?.sku ?? ""} ${variant?.barcode ?? ""}`.toLowerCase().includes(keyword)) : options;
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return options.slice(0, 150);
+
+    const terms = trimmed.split(/\s+/).filter(Boolean);
+    const rows = options.filter(({ product, variant }) => {
+      const haystack = `${product.name} ${variant?.name ?? ""} ${product.sku ?? ""} ${variant?.sku ?? ""} ${product.barcode ?? ""} ${variant?.barcode ?? ""} ${product.category ?? ""} ${product.brand ?? ""}`.toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    });
     return rows.slice(0, 150);
   }, [options, query]);
 
   const calculatePosition = () => {
     const trigger = triggerRef.current;
     if (!trigger || typeof window === "undefined") return;
-    const mobile = window.innerWidth < 1180;
-    if (mobile) {
-      const margin = window.innerWidth <= 480 ? 8 : 16;
-      const top = Math.max(68, Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-picker-top")) || 76);
-      setPosition({ mobile: true, top, left: margin, width: window.innerWidth - margin * 2, maxHeight: Math.max(260, window.innerHeight - top - margin), placement: "down" });
+
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      const margin = 12;
+      const top = Math.max(64, Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-picker-top")) || 72);
+      setPosition({
+        mobile: true,
+        top,
+        left: margin,
+        width: window.innerWidth - margin * 2,
+        maxHeight: Math.max(260, window.innerHeight - top - margin - 16),
+        placement: "down",
+      });
       return;
     }
+
     const rect = trigger.getBoundingClientRect();
     const pad = 12;
-    const desired = Math.min(520, Math.max(320, window.innerHeight * .68));
+    const desired = Math.min(520, Math.max(320, window.innerHeight * 0.65));
     const below = window.innerHeight - rect.bottom - pad;
     const above = rect.top - pad;
-    const placement: "up" | "down" = below >= Math.min(360, desired) || below >= above ? "down" : "up";
-    const maxHeight = Math.max(240, Math.min(desired, placement === "down" ? below : above));
-    const width = Math.min(620, Math.max(rect.width, 470));
+    const placement: "up" | "down" = below >= 260 || below >= above ? "down" : "up";
+    const maxHeight = Math.max(220, Math.min(desired, placement === "down" ? below : above));
+    const width = Math.min(680, Math.max(rect.width, 500));
     const left = Math.min(Math.max(pad, rect.left), window.innerWidth - width - pad);
-    const top = placement === "down" ? rect.bottom + 7 : Math.max(pad, rect.top - maxHeight - 7);
+    const top = placement === "down" ? rect.bottom + 6 : Math.max(pad, rect.top - maxHeight - 6);
+
     setPosition({ mobile: false, top, left, width, maxHeight, placement });
   };
 
-  useEffect(() => setMounted(true), []);
+  const toggleOpen = () => {
+    if (!open) {
+      calculatePosition();
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useLayoutEffect(() => {
     if (!open) return;
     calculatePosition();
     const update = () => calculatePosition();
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
-    return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
   }, [open]);
+
   useEffect(() => {
     if (!open) return;
-    const close = (event: PointerEvent) => { const target = event.target as Node; if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false); };
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
-    document.addEventListener("pointerdown", close); document.addEventListener("keydown", escape);
-    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); };
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 50);
+
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", escape);
+    };
   }, [open]);
 
-  const style = { "--picker-top": `${position.top}px`, "--picker-left": `${position.left}px`, "--picker-width": `${position.width}px`, "--picker-max-height": `${position.maxHeight}px` } as CSSProperties;
+  const style = {
+    "--picker-top": `${position.top}px`,
+    "--picker-left": `${position.left}px`,
+    "--picker-width": `${position.width}px`,
+    "--picker-max-height": `${position.maxHeight}px`,
+  } as CSSProperties;
+
   const stockFor = (option: ItemOption) => {
-    if (option.variant) return storeId ? option.variant.stocks?.[storeId]?.quantity_available ?? 0 : option.variant.total_stock ?? 0;
-    return storeId ? option.product.stocks[storeId]?.quantity_available ?? 0 : option.product.total_stock;
+    if (option.variant) {
+      return storeId
+        ? option.variant.stocks?.[storeId]?.quantity_available ?? 0
+        : option.variant.total_stock ?? 0;
+    }
+    return storeId
+      ? option.product.stocks?.[storeId]?.quantity_available ?? 0
+      : option.product.total_stock ?? 0;
   };
 
-  const menu = open && mounted ? createPortal(<>
-    {position.mobile ? <button type="button" className="product-picker-backdrop" aria-label="Tutup pilihan produk" onClick={() => setOpen(false)}/> : null}
-    <div ref={menuRef} className={`product-picker-portal ${position.mobile ? "is-mobile" : "is-desktop"} placement-${position.placement}`} style={style}>
-      <div className="combobox-search"><Search size={18}/><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholder}/><button type="button" className="product-picker-close" onClick={() => setOpen(false)} aria-label="Tutup"><X size={18}/></button></div>
-      <div className="combobox-results variant-aware-results">{filtered.map((option) => {
-        const active = option.product.id === value && (option.variant?.id ?? null) === (variantValue ?? null);
-        return <button type="button" key={option.key} className={active ? "selected" : ""} onClick={() => { onChange(option.product.id, option.variant?.id ?? null); setOpen(false); setQuery(""); }}>
-          <div className="picker-item-copy"><strong>{option.product.name}</strong>{option.variant ? <em><Layers3 size={13}/>{option.variant.name}</em> : null}<span>{option.variant?.sku || option.product.sku} · {option.product.category || "Tanpa kategori"}</span></div>
-          <div className="combobox-stock"><b>{stockFor(option)}</b> {option.product.unit}{active ? <Check size={15}/> : null}</div>
-        </button>;
-      })}{!filtered.length ? <div className="empty-inline">Produk atau varian tidak ditemukan.</div> : null}</div>
-      {options.length > 150 && !query ? <div className="combobox-hint">Menampilkan 150 pilihan pertama. Gunakan pencarian untuk menemukan varian lebih cepat.</div> : null}
-    </div>
-  </>, document.body) : null;
+  const menu = open && mounted ? createPortal(
+    <>
+      <div
+        className="product-picker-backdrop"
+        aria-hidden="true"
+        onClick={() => setOpen(false)}
+      />
+      <div
+        ref={menuRef}
+        className={`product-picker-portal ${position.mobile ? "is-mobile" : "is-desktop"} placement-${position.placement}`}
+        style={style}
+      >
+        <div className="combobox-search">
+          <Search size={18} />
+          <input
+            ref={searchInputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={placeholder}
+          />
+          {query ? (
+            <button
+              type="button"
+              className="combobox-clear-input"
+              onClick={() => setQuery("")}
+              aria-label="Bersihkan pencarian"
+            >
+              <X size={15} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="product-picker-close"
+            onClick={() => setOpen(false)}
+            aria-label="Tutup"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-  return <div className="product-combobox" ref={rootRef}>
-    <button ref={triggerRef} type="button" className="product-combobox-trigger" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
-      <div>{selected ? <><strong>{selected.product.name}</strong>{selected.variant ? <em className="selected-variant-label"><Layers3 size={12}/>{selected.variant.name}</em> : null}<span>{selected.variant?.sku || selected.product.sku}{storeId ? ` · stok ${stockFor(selected)} ${selected.product.unit}` : ""}</span></> : <span>{placeholder}</span>}</div>
-      {selected ? <span className="combobox-clear" onClick={(event) => { event.stopPropagation(); onChange("", null); setQuery(""); }}><X size={15}/></span> : <ChevronDown size={17}/>} 
-    </button>
-    {menu}
-  </div>;
+        <div className="combobox-results variant-aware-results">
+          {filtered.map((option) => {
+            const active =
+              option.product.id === value &&
+              (option.variant?.id ?? null) === (variantValue ?? null);
+            const stockQty = stockFor(option);
+
+            return (
+              <button
+                type="button"
+                key={option.key}
+                className={active ? "selected" : ""}
+                onClick={() => {
+                  onChange(option.product.id, option.variant?.id ?? null);
+                  setOpen(false);
+                  setQuery("");
+                }}
+              >
+                <div className="picker-item-copy">
+                  <div className="picker-item-title">
+                    <strong>{option.product.name}</strong>
+                    {option.variant ? (
+                      <span className="picker-variant-badge">
+                        <Layers3 size={12} />
+                        <span>{option.variant.name}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="picker-item-meta">
+                    <span className="picker-sku">{option.variant?.sku || option.product.sku}</span>
+                    {option.product.category ? <span className="picker-cat">· {option.product.category}</span> : null}
+                    {option.variant?.barcode || option.product.barcode ? (
+                      <span className="picker-barcode">({option.variant?.barcode || option.product.barcode})</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="combobox-stock">
+                  <span className="stock-number">
+                    <b>{stockQty}</b>
+                    <small>{option.product.unit}</small>
+                  </span>
+                  {active ? <Check size={16} className="picker-check" /> : null}
+                </div>
+              </button>
+            );
+          })}
+
+          {!filtered.length ? (
+            <div className="empty-inline">
+              <strong>Produk atau varian tidak ditemukan.</strong>
+              <span>Coba kata kunci lain seperti nama produk, varian, SKU, atau barcode.</span>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="combobox-hint">
+          {options.length > 150 && !query
+            ? `Menampilkan 150 produk/varian pertama dari ${options.length} total item. Ketik untuk mencari.`
+            : query
+            ? `Ditemukan ${filtered.length} produk/varian cocok.`
+            : `Total ${options.length} item tersedia.`}
+        </div>
+      </div>
+    </>,
+    document.body
+  ) : null;
+
+  return (
+    <div className="product-combobox" ref={rootRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`product-combobox-trigger ${open ? "is-open" : ""}`}
+        onClick={toggleOpen}
+        aria-expanded={open}
+      >
+        <div className="trigger-content">
+          {selected ? (
+            <>
+              <div className="trigger-title">
+                <strong>{selected.product.name}</strong>
+                {selected.variant ? (
+                  <span className="selected-variant-label">
+                    <Layers3 size={11} />
+                    <span>{selected.variant.name}</span>
+                  </span>
+                ) : null}
+              </div>
+              <span className="trigger-subtitle">
+                {selected.variant?.sku || selected.product.sku}
+                {storeId ? ` · Stok ${stockFor(selected)} ${selected.product.unit}` : ""}
+              </span>
+            </>
+          ) : (
+            <span className="trigger-placeholder">{placeholder}</span>
+          )}
+        </div>
+        <div className="trigger-icons">
+          {selected ? (
+            <span
+              className="combobox-clear"
+              role="button"
+              aria-label="Hapus pilihan"
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange("", null);
+                setQuery("");
+              }}
+            >
+              <X size={14} />
+            </span>
+          ) : null}
+          <ChevronDown size={16} className={`chevron-icon ${open ? "rotated" : ""}`} />
+        </div>
+      </button>
+      {menu}
+    </div>
+  );
 }
