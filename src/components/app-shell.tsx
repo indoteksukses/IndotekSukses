@@ -11,6 +11,7 @@ import {
 import type { Store as StoreType, SystemSettings, UserProfile } from "@/lib/types";
 import { ProfileMenu } from "@/components/profile-menu";
 import { UserAvatar } from "@/components/user-avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const groups = [
   {
@@ -176,6 +177,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
           </div>
           <div className="topbar-right">
             <div className="system-status"><span/> Sistem aktif</div>
+            <ThemeToggle />
             <Link className="icon-button" href={selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports"} prefetch={false} title="Ringkasan laporan" onMouseEnter={() => router.prefetch(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports")} onFocus={() => router.prefetch(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports")} onClick={(event) => { if (isModifiedNavigation(event)) return; beginNavigation(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports"); }}>{navigatingHref?.startsWith("/reports") ? <LoaderCircle className="loading-spinner" size={19}/> : <BarChart3 size={19}/>}</Link>
             <ProfileMenu profile={profile} stores={stores}/>
           </div>
