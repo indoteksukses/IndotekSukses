@@ -46,6 +46,12 @@ export function invalidateTags(...tags: string[]) {
     // Purge semua cache di memori yang mengandung tag
     for (const key of memStore.keys()) {
       if (key.includes(tag)) memStore.delete(key);
+      if (tag === "catalog" && (key.includes("dashboard") || key.includes("inventory_network"))) {
+        memStore.delete(key);
+      }
+      if (tag === "sales" && key.includes("dashboard")) {
+        memStore.delete(key);
+      }
     }
     try {
       (revalidateTag as any)(tag, "max");
@@ -54,6 +60,7 @@ export function invalidateTags(...tags: string[]) {
     }
   }
 }
+
 
 // ─── helper reader ──────────────────────────────────────────────────────────
 

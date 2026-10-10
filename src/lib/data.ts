@@ -2,8 +2,10 @@ import { demoMovements, demoProducts, demoProfile, demoSettings, demoStores } fr
 import { hasSupabaseEnv, isDemoMode } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractSessionFromCookieList } from "@/lib/supabase/session";
 import { fetchAllRows } from "@/lib/pagination";
 import {
   getCachedCategories,
@@ -22,23 +24,51 @@ const demo = isDemoMode || !hasSupabaseEnv;
 
 export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<UserProfile> {
   if (demo) return demoProfile;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  const hit = memGet<UserProfile>(`user_profile_${user.id}`);
-  if (hit) return hit;
+  // FAST PATH: Ekstrak user id dari cookie tanpa round-trip jaringan (0.05ms)
+  let userId: string | null = null;
+  let userEmail: string | null = null;
+  let userMetadata: any = null;
+
+  try {
+    const cookieStore = await cookies();
+    const sessionInfo = extractSessionFromCookieList(cookieStore.getAll());
+    if (sessionInfo && !sessionInfo.isExpired) {
+      userId = sessionInfo.userId;
+      userEmail = sessionInfo.email;
+      userMetadata = sessionInfo.userMetadata;
+    }
+  } catch {
+    // Dipanggil di luar request context
+  }
+
+  if (userId) {
+    const hit = memGet<UserProfile>(`user_profile_${userId}`);
+    if (hit) return hit;
+  }
+
+  const supabase = await createClient();
+  if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+    userId = user.id;
+    userEmail = user.email ?? null;
+    userMetadata = user.user_metadata;
+  }
+
+  const hitAgain = memGet<UserProfile>(`user_profile_${userId}`);
+  if (hitAgain) return hitAgain;
 
   const [{ data: profile }, { data: access }] = await Promise.all([
-    supabase.from("profiles").select("id,full_name,email,username,phone,role,primary_store_id,is_active,avatar_key,deleted_at").eq("id", user.id).single(),
-    supabase.from("user_store_access").select("store_id").eq("user_id", user.id),
+    supabase.from("profiles").select("id,full_name,email,username,phone,role,primary_store_id,is_active,avatar_key,deleted_at").eq("id", userId).single(),
+    supabase.from("user_store_access").select("store_id").eq("user_id", userId),
   ]);
   if (!profile) {
     const fallback: UserProfile = {
-      id: user.id,
-      full_name: String(user.user_metadata?.full_name ?? user.email ?? "Pengguna"),
-      email: user.email ?? null,
-      username: user.email ? user.email.split("@")[0] : null,
+      id: userId,
+      full_name: String(userMetadata?.full_name ?? userEmail ?? "Pengguna"),
+      email: userEmail ?? null,
+      username: userEmail ? userEmail.split("@")[0] : null,
       phone: null,
       role: "owner",
       primary_store_id: null,
@@ -46,10 +76,10 @@ export const getCurrentProfile = cache(async function getCurrentProfile(): Promi
       avatar_key: "ocean",
       store_ids: [],
     };
-    return memSet(`user_profile_${user.id}`, fallback, 30);
+    return memSet(`user_profile_${userId}`, fallback, 60);
   }
   const result = { ...profile, store_ids: (access ?? []).map((row: any) => String(row.store_id)) } as UserProfile;
-  return memSet(`user_profile_${user.id}`, result, 30);
+  return memSet(`user_profile_${userId}`, result, 60);
 });
 
 function permittedStoreIds(profile: UserProfile) {
@@ -103,21 +133,30 @@ export async function getProductsWithNetworkStocks(): Promise<Product[]> {
   const canViewCosts = profile.role === "owner" || profile.role === "admin";
   const allowedStoreIds = permittedStoreIds(profile);
 
-  // Use cache for product metadata; inventory_network_snapshot for live stock
-  const supabase = await createClient();
-  const [meta, catalogResult, variantRows] = await Promise.all([
-    getCachedProductMeta(),
-    fetchAllRows<any>((from, to) =>
+  // Cached RPC snapshot (60 detik TTL)
+  const cacheKey = "inventory_network_snapshot";
+  let snapshotData = memGet<any[]>(cacheKey);
+  if (!snapshotData) {
+    const supabase = await createClient();
+    const catalogResult = await fetchAllRows<any>((from, to) =>
       supabase
         .rpc("inventory_network_snapshot")
         .order("product_id")
         .order("store_id")
         .range(from, to),
-    ),
+    );
+    if (!catalogResult.error && catalogResult.data) {
+      snapshotData = memSet(cacheKey, catalogResult.data as any[], 60);
+    } else {
+      snapshotData = [];
+    }
+  }
+
+  const [meta, variantRows] = await Promise.all([
+    getCachedProductMeta(),
     getVariantInventory(allowedStoreIds ? [...allowedStoreIds] : null),
   ]);
-  if (catalogResult.error || !catalogResult.data) return [];
-  return buildProducts(meta, catalogResult.data as any[], variantRows, {
+  return buildProducts(meta, snapshotData, variantRows, {
     allowedStoreIds,
     canViewCosts,
   });
@@ -183,6 +222,10 @@ export async function getStoreCatalog(storeId: string): Promise<Product[]> {
 
 export async function getRecentMovements(storeId?: string | null, limit = 30): Promise<Movement[]> {
   if (demo) return storeId ? demoMovements.filter((row) => demoStores.find((store) => store.id === storeId)?.name === row.store) : demoMovements;
+  const cacheKey = `movements_${storeId ?? "all"}_${limit}`;
+  const hit = memGet<Movement[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase
     .from("stock_movements")
@@ -192,7 +235,7 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
   if (storeId) query = query.eq("store_id", storeId);
   const { data, error } = await query;
   if (error) return [];
-  return (data ?? []).map((row: any) => ({
+  const list = (data ?? []).map((row: any) => ({
     id: String(row.id),
     time: String(row.created_at),
     store: row.stores?.name ?? "Toko",
@@ -211,6 +254,7 @@ export async function getRecentMovements(storeId?: string | null, limit = 30): P
     reversed_at: row.reversed_at,
     correction_reason: row.correction_reason,
   }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getSales(storeId?: string | null, limit = 100): Promise<SaleSummary[]> {
@@ -218,11 +262,15 @@ export async function getSales(storeId?: string | null, limit = 100): Promise<Sa
     { id: "sale-1", invoice_number: "IDS-20260731-000001", store_name: demoStores[0].name, cashier_name: "Rina Kasir", grand_total: 255000, status: "completed", completed_at: "2026-07-31T13:20:00+07:00", customer_name: "Pelanggan Umum" },
     { id: "sale-2", invoice_number: "IDS-20260731-000002", store_name: demoStores[1].name, cashier_name: "Dedi Kasir", grand_total: 155000, status: "completed", completed_at: "2026-07-31T14:10:00+07:00" },
   ];
+  const cacheKey = `sales_list_${storeId ?? "all"}_${limit}`;
+  const hit = memGet<SaleSummary[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("sales").select("id,invoice_number,grand_total,status,completed_at,customer_name,stores(name),profiles!sales_cashier_id_fkey(full_name)").order("completed_at", { ascending: false }).limit(limit);
   if (storeId) query = query.eq("store_id", storeId);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({
+  const list = (data ?? []).map((row: any) => ({
     id: row.id,
     invoice_number: row.invoice_number,
     store_name: row.stores?.name ?? "Toko",
@@ -232,6 +280,7 @@ export async function getSales(storeId?: string | null, limit = 100): Promise<Sa
     completed_at: row.completed_at,
     customer_name: row.customer_name,
   }));
+  return memSet(cacheKey, list, 30);
 }
 
 async function getDashboardProducts(storeId?: string | null): Promise<Product[]> {
@@ -262,7 +311,33 @@ async function getDashboardProducts(storeId?: string | null): Promise<Product[]>
   });
 }
 
-export async function getDashboardSnapshot(storeId?: string | null) {
+export type DashboardSnapshot = {
+  products: Product[];
+  movements: Movement[];
+  stores: Store[];
+  storeStats: Array<{
+    store: Store;
+    revenue: number;
+    transactions: number;
+    units: number;
+  }>;
+  dailyTrend: Array<{
+    date: string;
+    revenue: number;
+    transactions: number;
+    units: number;
+  }>;
+  revenue: number;
+  transactions: number;
+  units: number;
+};
+
+export async function getDashboardSnapshot(storeId?: string | null): Promise<DashboardSnapshot> {
+  const cacheKey = `dashboard_snapshot_${storeId ?? "all"}`;
+  const hit = memGet<DashboardSnapshot>(cacheKey);
+  if (hit) return hit;
+
+
   const dayKeys = Array.from({ length: 7 }, (_, index) => {
     const date = new Date();
     date.setUTCDate(date.getUTCDate() - (6 - index));
@@ -305,7 +380,8 @@ export async function getDashboardSnapshot(storeId?: string | null) {
       transactions: [12, 17, 15, 24, 20, 29, 42][index],
       units: [18, 25, 21, 39, 31, 48, 67][index],
     }));
-    return { products, movements, stores, storeStats, dailyTrend, revenue: storeId ? storeStats.find((row) => row.store.id === storeId)?.revenue ?? 0 : storeStats.reduce((sum, row) => sum + row.revenue, 0), transactions: storeId ? storeStats.find((row) => row.store.id === storeId)?.transactions ?? 0 : storeStats.reduce((sum, row) => sum + row.transactions, 0), units: storeId ? storeStats.find((row) => row.store.id === storeId)?.units ?? 0 : storeStats.reduce((sum, row) => sum + row.units, 0) };
+    const demoResult = { products, movements, stores, storeStats, dailyTrend, revenue: storeId ? storeStats.find((row) => row.store.id === storeId)?.revenue ?? 0 : storeStats.reduce((sum, row) => sum + row.revenue, 0), transactions: storeId ? storeStats.find((row) => row.store.id === storeId)?.transactions ?? 0 : storeStats.reduce((sum, row) => sum + row.transactions, 0), units: storeId ? storeStats.find((row) => row.store.id === storeId)?.units ?? 0 : storeStats.reduce((sum, row) => sum + row.units, 0) };
+    return memSet(cacheKey, demoResult, 30);
   }
 
   const sales = salesResult.data;
@@ -339,7 +415,7 @@ export async function getDashboardSnapshot(storeId?: string | null) {
     }
   }
 
-  return {
+  const result = {
     products,
     movements,
     stores,
@@ -349,6 +425,7 @@ export async function getDashboardSnapshot(storeId?: string | null) {
     transactions,
     units,
   };
+  return memSet(cacheKey, result, 30);
 }
 
 export async function getFinancialReport(storeId: string | null | undefined, from: string, to: string): Promise<FinancialReport> {
@@ -379,9 +456,13 @@ export async function getSalesForPeriod(storeId: string | null | undefined, from
 
 export async function getSuppliers() {
   if (demo) return [{ id: "sup-1", name: "PT Sumber Teknologi", contact_name: "Bapak Arif", phone: "0812-1111-2222", email: "sales@sumber.test", is_active: true }];
+  const cacheKey = "suppliers_list";
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   const { data } = await supabase.from("suppliers").select("*").order("name");
-  return data ?? [];
+  return memSet(cacheKey, data ?? [], 60);
 }
 
 export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> {
@@ -440,39 +521,58 @@ export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> 
 
 export async function getUsers(): Promise<UserProfile[]> {
   if (demo) return [demoProfile, { id: "u2", full_name: "Rina Kasir", email: "rina@example.com", username: "rina", phone: null, role: "cashier", primary_store_id: demoStores[0].id, is_active: true, store_ids: [demoStores[0].id] } as UserProfile];
+  const cacheKey = "users_list";
+  const hit = memGet<UserProfile[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   const [{ data: profiles }, { data: access }] = await Promise.all([
     supabase.from("profiles").select("id,full_name,email,username,phone,role,primary_store_id,is_active,avatar_key,deleted_at").is("deleted_at", null).order("full_name"),
     supabase.from("user_store_access").select("user_id,store_id"),
   ]);
-  return (profiles ?? []).map((profile: any) => ({ ...profile, store_ids: (access ?? []).filter((row: any) => row.user_id === profile.id).map((row: any) => row.store_id) })) as UserProfile[];
+  const list = (profiles ?? []).map((profile: any) => ({ ...profile, store_ids: (access ?? []).filter((row: any) => row.user_id === profile.id).map((row: any) => row.store_id) })) as UserProfile[];
+  return memSet(cacheKey, list, 60);
 }
 
 export async function getShifts(storeId?: string | null) {
   if (demo) return [{ id: "shift-1", store_id: demoStores[0].id, cashier_id: demoProfile.id, store_name: demoStores[0].name, cashier_name: demoProfile.full_name, opening_cash: 500000, status: "open", opened_at: "2026-07-31T08:00:00+07:00", expected_cash: null, actual_cash: null, cash_difference: null }];
+  const cacheKey = `shifts_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("cashier_shifts").select("id,store_id,cashier_id,opening_cash,expected_cash,actual_cash,cash_difference,status,opened_at,closed_at,stores(name),profiles!cashier_shifts_cashier_id_fkey(full_name)").order("opened_at", { ascending: false }).limit(100);
   if (storeId) query = query.eq("store_id", storeId);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name ?? "Toko", cashier_name: row.profiles?.full_name ?? "Karyawan toko" }));
+  const list = (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name ?? "Toko", cashier_name: row.profiles?.full_name ?? "Karyawan toko" }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getTransfers(storeId?: string | null) {
   if (demo) return [{ id: "tr-1", transfer_number: "TRF-20260731-001", source_name: demoStores[0].name, destination_name: demoStores[1].name, status: "in_transit", requested_at: "2026-07-31T10:00:00+07:00", notes: "Restok cabang timur" }];
+  const cacheKey = `transfers_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("stock_transfers").select("id,transfer_number,status,requested_at,notes,source_store_id,destination_store_id,source:stores!stock_transfers_source_store_id_fkey(name),destination:stores!stock_transfers_destination_store_id_fkey(name)").order("requested_at", { ascending: false });
   if (storeId) query = query.or(`source_store_id.eq.${storeId},destination_store_id.eq.${storeId}`);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, source_name: row.source?.name, destination_name: row.destination?.name }));
+  const list = (data ?? []).map((row: any) => ({ ...row, source_name: row.source?.name, destination_name: row.destination?.name }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getTransferRequests(storeId?: string | null) {
   if (demo) return [];
+  const cacheKey = `transfer_requests_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("stock_transfer_requests").select("id,request_number,status,quantity,notes,created_at,source_store_id,destination_store_id,product_id,variant_id,products(name,sku,unit),product_variants(name,sku),source:stores!stock_transfer_requests_source_store_id_fkey(name,code),destination:stores!stock_transfer_requests_destination_store_id_fkey(name,code),profiles!stock_transfer_requests_requested_by_fkey(full_name)").order("created_at", { ascending: false }).limit(100);
   if (storeId) query = query.or(`source_store_id.eq.${storeId},destination_store_id.eq.${storeId}`);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({
+  const list = (data ?? []).map((row: any) => ({
     ...row,
     product_name: row.products?.name ?? "Produk",
     product_sku: row.products?.sku ?? "",
@@ -484,10 +584,15 @@ export async function getTransferRequests(storeId?: string | null) {
     destination_name: row.destination?.name ?? "Toko tujuan",
     requester_name: row.profiles?.full_name ?? "Karyawan",
   }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getPurchases(storeId?: string | null) {
   if (demo) return [{ id: "po-1", po_number: "PO-20260731-001", supplier_id: "sup-1", supplier_name: "PT Sumber Teknologi", store_name: demoStores[0].name, store_names: [demoStores[0].name], receiving_scope: "single", status: "pending", subtotal: 3250000, discount: 0, shipping_cost: 0, total: 3250000, notes: null, created_at: "2026-07-31T09:00:00+07:00", items: [] }];
+  const cacheKey = `purchases_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
 
   const normalize = (row: any) => {
@@ -526,13 +631,16 @@ export async function getPurchases(storeId?: string | null) {
   };
 
   const { data: overview, error: overviewError } = await supabase.rpc("purchase_orders_overview", { p_store_id: storeId || null });
-  if (!overviewError && overview) return (overview as any[]).map(normalize);
+  if (!overviewError && overview) {
+    const list = (overview as any[]).map(normalize);
+    return memSet(cacheKey, list, 30);
+  }
 
   // Compatibility fallback for databases where migration 009 has not yet run.
   let query = supabase.from("purchase_orders").select("id,po_number,supplier_id,destination_store_id,receiving_scope,status,subtotal,discount,shipping_cost,total,notes,created_at,received_at,suppliers(name),stores(name,code),purchase_order_items(id,product_id,variant_id,quantity_ordered,quantity_received,unit_cost,subtotal,products(name,sku,unit),product_variants(name,sku),purchase_order_allocations(id,store_id,quantity,quantity_received,stores(name,code)))").order("created_at", { ascending: false });
   const { data, error } = await query;
   if (error) return [];
-  return (data ?? []).map((row: any) => {
+  const list = (data ?? []).map((row: any) => {
     const items = (row.purchase_order_items ?? []).map((item: any) => ({
       id: String(item.id), product_id: String(item.product_id), variant_id: item.variant_id ? String(item.variant_id) : null, name: item.products?.name ?? "Produk",
       variant_name: item.product_variants?.name ?? null, variant_sku: item.product_variants?.sku ?? null, sku: item.products?.sku ?? "", unit: item.products?.unit ?? "pcs",
@@ -552,31 +660,47 @@ export async function getPurchases(storeId?: string | null) {
       items,
     });
   });
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getStocktakes(storeId?: string | null) {
   if (demo) return [{ id: "st-1", stocktake_number: "SO-20260731-001", store_id: demoStores[0].id, store_name: demoStores[0].name, status: "draft", created_at: "2026-07-31T18:00:00+07:00" }];
+  const cacheKey = `stocktakes_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("stocktakes").select("id,stocktake_number,status,created_at,store_id,stores(name)").order("created_at", { ascending: false });
   if (storeId) query = query.eq("store_id", storeId);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name }));
+  const list = (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getReturns(storeId?: string | null) {
   if (demo) return [{ id: "ret-1", return_number: "RET-20260731-001", store_name: demoStores[0].name, return_type: "customer", resolution: "refund", status: "completed", refund_amount: 85000, created_at: "2026-07-31T15:30:00+07:00" }];
+  const cacheKey = `returns_${storeId ?? "all"}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   let query = supabase.from("returns").select("id,return_number,return_type,resolution,status,refund_amount,created_at,store_id,stores(name)").order("created_at", { ascending: false });
   if (storeId) query = query.eq("store_id", storeId);
   const { data } = await query;
-  return (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name }));
+  const list = (data ?? []).map((row: any) => ({ ...row, store_name: row.stores?.name }));
+  return memSet(cacheKey, list, 30);
 }
 
 export async function getAuditLogs(limit = 100) {
   if (demo) return [{ id: 1, created_at: "2026-07-31T16:00:00+07:00", action: "UPDATE", table_name: "products", record_id: "p1", user_name: "Owner Indotek Sukses", store_name: null }];
+  const cacheKey = `audit_logs_${limit}`;
+  const hit = memGet<any[]>(cacheKey);
+  if (hit) return hit;
+
   const supabase = await createClient();
   const { data } = await supabase.from("audit_logs").select("id,created_at,action,table_name,record_id,profiles(full_name),stores(name)").order("created_at", { ascending: false }).limit(limit);
-  return (data ?? []).map((row: any) => ({ ...row, user_name: row.profiles?.full_name, store_name: row.stores?.name }));
+  const list = (data ?? []).map((row: any) => ({ ...row, user_name: row.profiles?.full_name, store_name: row.stores?.name }));
+  return memSet(cacheKey, list, 30);
 }
 
 
