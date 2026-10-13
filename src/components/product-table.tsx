@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { ProductVisual } from "@/components/product-visual";
@@ -224,14 +224,14 @@ export function ProductTable({
                 <div className="product-mobile-variant-list">
                   {variants.map((variant) => (
                     <article className="product-mobile-variant-card" key={variant.id}>
-                      <header>
-                        <div className="product-variant-cell">
+                      <header className="product-mobile-variant-card-header">
+                        <div className="product-mobile-variant-lead">
                           <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
-                          <div className="variant-card-info">
-                            <strong className="variant-name-text">{variant.name}</strong>
-                            <div className="variant-meta-row">
+                          <div className="product-mobile-variant-info">
+                            <strong className="product-mobile-variant-title">{variant.name}</strong>
+                            <div className="product-mobile-variant-meta">
                               <span className={`variant-brand-tag ${!product.brand ? "muted" : ""}`}>
-                                <Tag size={11} />
+                                <Tag size={10} />
                                 {product.brand || "Tanpa Merek"}
                               </span>
                               <span className="variant-sku-tag">{variant.sku || "Tanpa SKU"}</span>
@@ -243,28 +243,38 @@ export function ProductTable({
                           {variant.is_active ? "Aktif" : "Nonaktif"}
                         </StatusBadge>
                       </header>
-                      <div className="product-mobile-variant-metrics">
+                      <div className={`product-mobile-variant-metrics ${canEdit ? "has-cost" : "no-cost"}`}>
                         {canEdit ? (
-                          <div>
-                            <span>Modal</span>
-                            <strong>{formatCurrency(variant.cost_price)}</strong>
+                          <div className="variant-metric-box">
+                            <span className="metric-label">Modal</span>
+                            <strong className="metric-value">{formatCurrency(variant.cost_price)}</strong>
                           </div>
                         ) : null}
-                        <div>
-                          <span>Harga jual</span>
-                          <strong>{formatCurrency(variant.selling_price)}</strong>
+                        <div className="variant-metric-box highlight">
+                          <span className="metric-label">Harga jual</span>
+                          <strong className="metric-value selling">{formatCurrency(variant.selling_price)}</strong>
                         </div>
-                        <div>
-                          <span>Stok total</span>
-                          <strong>{variant.total_stock} {product.unit}</strong>
+                        <div className="variant-metric-box">
+                          <span className="metric-label">Stok total</span>
+                          <strong className="metric-value stock">{variant.total_stock} <small>{product.unit}</small></strong>
                         </div>
                       </div>
-                      <div className="product-mobile-branch-chips">
-                        {stores.map((store) => (
-                          <span key={store.id}>
-                            <b>{store.code}</b>{variant.stocks?.[store.id]?.quantity_available ?? 0} {product.unit}
-                          </span>
-                        ))}
+                      <div className="product-mobile-branch-section">
+                        <div className="product-mobile-branch-title">
+                          <Building2 size={12}/>
+                          <span>Stok cabang:</span>
+                        </div>
+                        <div className="product-mobile-branch-chips">
+                          {stores.map((store) => {
+                            const qty = variant.stocks?.[store.id]?.quantity_available ?? 0;
+                            return (
+                              <span className={`branch-chip ${qty > 0 ? "in-stock" : "out-of-stock"}`} key={store.id}>
+                                <b>{store.code}</b>
+                                <em>{qty.toLocaleString("id-ID")} {product.unit}</em>
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     </article>
                   ))}
