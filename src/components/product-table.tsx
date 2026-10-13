@@ -203,9 +203,12 @@ export function ProductTable({
                       <header>
                         <div className="product-variant-cell">
                           <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
-                          <div>
-                            <strong>{variant.name}</strong>
-                            <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                          <div className="variant-card-info">
+                            <strong className="variant-name-text">{variant.name}</strong>
+                            <div className="variant-meta-row">
+                              <span className="variant-sku-tag">{variant.sku || "Tanpa SKU"}</span>
+                              {variant.barcode ? <span className="variant-barcode-tag">{variant.barcode}</span> : null}
+                            </div>
                           </div>
                         </div>
                         <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
@@ -311,38 +314,59 @@ export function ProductTable({
                     <tr className="product-variant-detail-row">
                       <td colSpan={9}>
                         <div className="product-variant-detail">
-                          <header>
-                            <div>
-                              <strong>Varian {product.name}</strong>
-                              <span>Setiap varian memiliki stok terpisah pada setiap cabang.</span>
+                          <header className="product-variant-detail-header">
+                            <div className="product-variant-detail-heading">
+                              <strong>Daftar Varian · {product.name}</strong>
+                              <span>Setiap varian memiliki SKU, barcode, harga, dan stok terpisah pada setiap cabang.</span>
                             </div>
-                            <small>{variants.filter((variant) => variant.is_active).length} aktif dari {variants.length}</small>
+                            <small className="variant-summary-counter">{variants.filter((variant) => variant.is_active).length} aktif dari {variants.length} total varian</small>
                           </header>
                           <div className="product-variant-detail-list">
                             {variants.map((variant) => (
-                              <article key={variant.id}>
-                                <div className="product-variant-cell">
-                                  <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
-                                  <div>
-                                    <strong>{variant.name}</strong>
-                                    <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                              <article className="product-variant-card" key={variant.id}>
+                                <div className="variant-card-main">
+                                  <div className="product-variant-cell">
+                                    <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
+                                    <div className="variant-card-info">
+                                      <div className="variant-card-title-row">
+                                        <strong className="variant-name-text">{variant.name}</strong>
+                                        <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
+                                          {variant.is_active ? "Aktif" : "Nonaktif"}
+                                        </StatusBadge>
+                                      </div>
+                                      <div className="variant-meta-row">
+                                        <span className="variant-sku-tag">{variant.sku || "Tanpa SKU"}</span>
+                                        {variant.barcode ? <span className="variant-barcode-tag">{variant.barcode}</span> : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="variant-metrics-group">
+                                    {canEdit ? (
+                                      <div className="variant-metric-item">
+                                        <span className="metric-tag">Modal</span>
+                                        <strong className="metric-num">{formatCurrency(variant.cost_price)}</strong>
+                                      </div>
+                                    ) : null}
+                                    <div className="variant-metric-item">
+                                      <span className="metric-tag">Harga Jual</span>
+                                      <strong className="metric-num selling-price">{formatCurrency(variant.selling_price)}</strong>
+                                    </div>
+                                    <div className="variant-metric-item">
+                                      <span className="metric-tag">Total Stok</span>
+                                      <strong className="metric-num stock-num">{variant.total_stock} {product.unit}</strong>
+                                    </div>
                                   </div>
                                 </div>
-                                {canEdit ? <div><span>Modal</span><strong>{formatCurrency(variant.cost_price)}</strong></div> : null}
-                                <div><span>Jual</span><strong>{formatCurrency(variant.selling_price)}</strong></div>
-                                <div className="variant-detail-stock">
-                                  <span>Stok total</span>
-                                  <strong>{variant.total_stock} {product.unit}</strong>
-                                </div>
-                                <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
-                                  {variant.is_active ? "Aktif" : "Nonaktif"}
-                                </StatusBadge>
                                 <div className="variant-detail-branches">
-                                  {stores.map((store) => (
-                                    <span key={store.id}>
-                                      <b>{store.code}</b>{variant.stocks?.[store.id]?.quantity_available ?? 0} {product.unit}
-                                    </span>
-                                  ))}
+                                  <span className="branch-label">Stok Cabang:</span>
+                                  <div className="branch-chips-wrap">
+                                    {stores.map((store) => (
+                                      <span className="branch-stock-chip" key={store.id}>
+                                        <b>{store.code}</b>
+                                        <em>{variant.stocks?.[store.id]?.quantity_available ?? 0} {product.unit}</em>
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               </article>
                             ))}
