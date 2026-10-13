@@ -4075,8 +4075,27 @@ html.dark .theme-toggle-btn:hover,
 /* ================================================================
    Product & Variant Barcode Scanner Integration
    ================================================================ */
-.modal-backdrop.scanner-backdrop {
-  z-index: 250 !important;
+.modal-backdrop.scanner-backdrop,
+.scanner-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100dvh !important;
+  z-index: 99999 !important;
+  display: grid !important;
+  place-items: center !important;
+  background: rgba(8, 20, 38, 0.82) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  pointer-events: auto !important;
+}
+
+.scanner-modal {
+  position: relative !important;
+  z-index: 100000 !important;
+  width: min(620px, calc(100vw - 26px)) !important;
+  box-shadow: 0 35px 90px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
 }
 
 .field-with-scanner {

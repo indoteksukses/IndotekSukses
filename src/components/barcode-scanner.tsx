@@ -144,7 +144,14 @@ export function BarcodeScanner({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="modal-backdrop scanner-backdrop">
+    <div
+      className="modal-backdrop scanner-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="modal-card scanner-modal">
         <div className="modal-header">
           <div>
