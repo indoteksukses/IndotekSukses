@@ -166,10 +166,14 @@ export const getSystemSettings = cache(async function getSystemSettings(): Promi
   if (demo) return demoSettings;
   const hit = memGet<SystemSettings>("system_settings");
   if (hit) return hit;
-  const supabase = createAdminClient();
-  const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer,logo_url").eq("id", 1).maybeSingle();
-  const res = data ? { ...demoSettings, ...data } : demoSettings;
-  return memSet("system_settings", res, 120);
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer,logo_url").eq("id", 1).maybeSingle();
+    const res = data ? { ...demoSettings, ...data } : demoSettings;
+    return memSet("system_settings", res, 120);
+  } catch {
+    return demoSettings;
+  }
 });
 
 export async function getAppContext() {

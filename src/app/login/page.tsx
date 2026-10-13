@@ -3,7 +3,7 @@ import { getSystemSettings } from "@/lib/data";
 import { login } from "./actions";
 import { LoginErrorAlert } from "./error-alert";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const settings = await getSystemSettings();
