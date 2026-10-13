@@ -993,6 +993,15 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
 .variant-picker-product strong{font-size:12px}.variant-picker-product span{font-size:10px}.variant-picker-list strong{font-size:12px}.variant-picker-list span{font-size:10px}.variant-picker-list b{font-size:12px}.pos-variant-badge,.cart-variant-name{font-size:9px}
 .movement-variant-label{font-size:10px;color:#315c91;font-weight:800}
 
+/* Variant Visual Thumbnails */
+.variant-item-leading{display:flex;align-items:center;gap:10px;min-width:0}
+.variant-item-leading .product-visual-thumb{width:38px;height:38px;flex:none;border-radius:9px}
+.inventory-variant-name .product-visual-thumb,
+.variant-mobile-title-wrap .product-visual-thumb,
+.product-variant-cell .product-visual-thumb{width:32px;height:32px;flex:none;border-radius:8px}
+.variant-mobile-title-wrap,
+.product-variant-cell{display:flex;align-items:center;gap:9px;min-width:0}
+
 @media(max-width:1050px){
   .variant-editor-row{grid-template-columns:28px minmax(170px,1fr) 135px 135px 120px 120px 68px;padding-right:54px;overflow:hidden}
 }

@@ -201,9 +201,12 @@ export function ProductTable({
                   {variants.map((variant) => (
                     <article className="product-mobile-variant-card" key={variant.id}>
                       <header>
-                        <div>
-                          <strong>{variant.name}</strong>
-                          <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                        <div className="product-variant-cell">
+                          <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
+                          <div>
+                            <strong>{variant.name}</strong>
+                            <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                          </div>
                         </div>
                         <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
                           {variant.is_active ? "Aktif" : "Nonaktif"}
@@ -318,9 +321,12 @@ export function ProductTable({
                           <div className="product-variant-detail-list">
                             {variants.map((variant) => (
                               <article key={variant.id}>
-                                <div>
-                                  <strong>{variant.name}</strong>
-                                  <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                                <div className="product-variant-cell">
+                                  <ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/>
+                                  <div>
+                                    <strong>{variant.name}</strong>
+                                    <span>{variant.sku || "Tanpa SKU"}{variant.barcode ? ` · ${variant.barcode}` : ""}</span>
+                                  </div>
                                 </div>
                                 {canEdit ? <div><span>Modal</span><strong>{formatCurrency(variant.cost_price)}</strong></div> : null}
                                 <div><span>Jual</span><strong>{formatCurrency(variant.selling_price)}</strong></div>

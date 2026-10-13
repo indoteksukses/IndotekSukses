@@ -173,7 +173,7 @@ export function InventoryTable({
           {variants.length ? <div className="variant-inventory-mobile-list">{variants.map((variant) => {
             const variantTotal = stores.reduce((sum, store) => sum + (variant.stocks?.[store.id]?.quantity_on_hand ?? 0), 0);
             const variantCondition = calculateVariantCondition(variant, stores, product.minimum_stock);
-            return <section className="variant-inventory-mobile-card" key={variant.id}><header><div><Layers3 size={15}/><span><strong>{variant.name}</strong><small>{variant.sku || "Tanpa SKU varian"}</small></span></div><div><b>{variantTotal} {product.unit}</b><StatusBadge tone={tone(variantCondition)}>{label(variantCondition)}</StatusBadge></div></header><div className="inventory-mobile-branches">{variantStoreRows(product, variant)}</div></section>;
+            return <section className="variant-inventory-mobile-card" key={variant.id}><header><div className="variant-mobile-title-wrap"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><span><strong>{variant.name}</strong><small>{variant.sku || "Tanpa SKU varian"}</small></span></div><div><b>{variantTotal} {product.unit}</b><StatusBadge tone={tone(variantCondition)}>{label(variantCondition)}</StatusBadge></div></header><div className="inventory-mobile-branches">{variantStoreRows(product, variant)}</div></section>;
           })}</div> : <div className="inventory-mobile-branches">{stores.map((store) => {
             const row = product.stocks[store.id];
             return <div className="inventory-mobile-branch" key={store.id}><div><strong>{store.name}</strong><span>{store.code}</span></div><div className="inventory-mobile-stock"><strong>{row?.quantity_on_hand ?? 0} <small>{product.unit}</small></strong><span>{row?.quantity_reserved ? `${row.quantity_reserved} dipesan` : "Stok tersedia"}</span></div>{editable.has(store.id) ? (
@@ -223,7 +223,7 @@ export function InventoryTable({
           ) : "—"}</td></tr>
           {variants.map((variant) => {
             const variantCondition = calculateVariantCondition(variant, stores, product.minimum_stock);
-            return <tr className="inventory-variant-row" key={variant.id}><td className="sticky-col" data-label="Varian"><div className="inventory-variant-name"><Layers3 size={15}/><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU varian"}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
+            return <tr className="inventory-variant-row" key={variant.id}><td className="sticky-col" data-label="Varian"><div className="inventory-variant-name"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU varian"}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
               const row = variant.stocks?.[store.id];
               return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}</span></div>{editable.has(store.id) ? (
                 <button
