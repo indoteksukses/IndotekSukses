@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, Search, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, ScanBarcode, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ModalPortal } from "@/components/modal-portal";
+import { BarcodeScanner } from "@/components/barcode-scanner";
 import { formatCurrency } from "@/lib/format";
 import type { Product, ProductVariant, ProductVisual as ProductVisualType, Store } from "@/lib/types";
 
@@ -19,6 +20,10 @@ type VariantDraft = {
   selling_price: number;
   is_active: boolean;
 };
+
+type ScannerTarget =
+  | { type: "product"; name: string }
+  | { type: "variant"; key: string; name: string };
 
 type SavedProduct = {
   id: string;
@@ -95,6 +100,8 @@ export function ProductModal({
 
   const [categoryId, setCategoryId] = useState(product?.category_id ?? "");
   const [brand, setBrand] = useState(product?.brand || "Tanpa Merek");
+  const [productBarcode, setProductBarcode] = useState(product?.barcode ?? "");
+  const [scannerTarget, setScannerTarget] = useState<ScannerTarget | null>(null);
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
   const [visualId, setVisualId] = useState(product?.visual_id ?? visuals[0]?.id ?? "");
   const [visualQuery, setVisualQuery] = useState("");
@@ -120,6 +127,8 @@ export function ProductModal({
     setError("");
     setCategoryId(product?.category_id ?? "");
     setBrand(product?.brand || "Tanpa Merek");
+    setProductBarcode(product?.barcode ?? "");
+    setScannerTarget(null);
     setImageUrl(product?.image_url ?? "");
     setVisualId(product?.visual_id ?? visuals[0]?.id ?? "");
     setVisualQuery("");
@@ -132,6 +141,19 @@ export function ProductModal({
     setVariantDetailsOpen(true);
     setBaseCost(Number(product?.cost_price ?? 0));
     setBaseSelling(Number(product?.selling_price ?? 0));
+  };
+
+  useEffect(() => {
+    resetEditor();
+  }, [product]);
+
+  const handleBarcodeDetected = (code: string) => {
+    if (scannerTarget?.type === "product") {
+      setProductBarcode(code);
+    } else if (scannerTarget?.type === "variant") {
+      patchVariant(scannerTarget.key, { barcode: code });
+    }
+    setScannerTarget(null);
   };
 
   const openEditor = () => { resetEditor(); setOpenState(true); };
@@ -184,6 +206,7 @@ export function ProductModal({
             id: product?.id,
             category_id: categoryId,
             brand: brand.trim(),
+            barcode: productBarcode.trim() || null,
             cost_price: variantMode ? Number(fallbackVariant?.cost_price ?? 0) : baseCost,
             selling_price: variantMode ? Number(fallbackVariant?.selling_price ?? 0) : baseSelling,
             image_url: visualMode === "image" ? imageUrl.trim() : null,
@@ -219,7 +242,27 @@ export function ProductModal({
         finally { setSaving(false); }
       }}>
         <label className="span-2">Nama produk<input name="name" defaultValue={product?.name ?? ""} required placeholder="Contoh: Gerinda Tangan Modern"/></label>
-        <label>SKU produk<input name="sku" defaultValue={product?.sku ?? ""} required placeholder="GRD-MOD-001"/></label><label>Barcode produk<input name="barcode" defaultValue={product?.barcode ?? ""} placeholder="Opsional jika barcode ada pada varian"/></label>
+        <label>SKU produk<input name="sku" defaultValue={product?.sku ?? ""} required placeholder="GRD-MOD-001"/></label>
+        <label className="field-with-scanner">
+          <span>Barcode produk</span>
+          <div className="input-scanner-wrap">
+            <input
+              name="barcode"
+              value={productBarcode}
+              onChange={(event) => setProductBarcode(event.target.value)}
+              placeholder="Opsional jika barcode ada pada varian"
+            />
+            <button
+              type="button"
+              className="scanner-trigger-button"
+              onClick={() => setScannerTarget({ type: "product", name: product?.name || "Produk Utama" })}
+              title="Scan barcode produk"
+            >
+              <ScanBarcode size={15}/>
+              <span>Scan</span>
+            </button>
+          </div>
+        </label>
         <label>Kategori<select name="category_id" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required><option value="" disabled>Pilih kategori</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
         <label>Merek<input name="brand" value={brand} onChange={(event) => setBrand(event.target.value)} required placeholder="Contoh: Modern"/></label>
 
@@ -246,7 +289,25 @@ export function ProductModal({
               </div>
               <div className="variant-editor-fields">
                 <label><span>SKU varian</span><input value={variant.sku} onChange={(event) => patchVariant(variant.key, { sku: event.target.value })} placeholder="Opsional"/></label>
-                <label><span>Barcode</span><input value={variant.barcode} onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })} placeholder="Opsional"/></label>
+                <label className="field-with-scanner">
+                  <span>Barcode</span>
+                  <div className="input-scanner-wrap">
+                    <input
+                      value={variant.barcode}
+                      onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })}
+                      placeholder="Opsional"
+                    />
+                    <button
+                      type="button"
+                      className="scanner-trigger-button compact"
+                      onClick={() => setScannerTarget({ type: "variant", key: variant.key, name: variant.name || `Varian ${index + 1}` })}
+                      title={`Scan barcode ${variant.name || `varian ${index + 1}`}`}
+                    >
+                      <ScanBarcode size={14}/>
+                      <span>Scan</span>
+                    </button>
+                  </div>
+                </label>
                 <label><span>Harga modal</span><input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
                 <label><span>Harga jual</span><input type="number" min="0" step="1" value={variant.selling_price || ""} onChange={(event) => patchVariant(variant.key, { selling_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
               </div>
@@ -265,5 +326,14 @@ export function ProductModal({
         <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button type="submit" className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
       </form>
     </div></div></ModalPortal> : null}
+    {scannerTarget ? (
+      <BarcodeScanner
+        open={Boolean(scannerTarget)}
+        onClose={() => setScannerTarget(null)}
+        onDetected={handleBarcodeDetected}
+        title={scannerTarget.type === "product" ? `Scan Barcode: ${scannerTarget.name || "Produk Utama"}` : `Scan Barcode: ${scannerTarget.name || "Varian"}`}
+        description="Arahkan kamera ke barcode produk/varian atau gunakan barcode scanner fisik."
+      />
+    ) : null}
   </>;
 }

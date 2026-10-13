@@ -2,10 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Keyboard, ScanLine, X } from "lucide-react";
+import { ModalPortal } from "@/components/modal-portal";
 
 type ScannerControls = { stop: () => void };
 
-export function BarcodeScanner({ open, onClose, onDetected }: { open: boolean; onClose: () => void; onDetected: (code: string) => void }) {
+export function BarcodeScanner({
+  open,
+  onClose,
+  onDetected,
+  title = "Scan barcode",
+  description = "Kamera membaca barcode 1D/2D. Scanner USB atau Bluetooth juga dapat digunakan.",
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDetected: (code: string) => void;
+  title?: string;
+  description?: string;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const controlsRef = useRef<ScannerControls | null>(null);
@@ -101,10 +114,26 @@ export function BarcodeScanner({ open, onClose, onDetected }: { open: boolean; o
   }, [finish, open, stopResources]);
 
   if (!open) return null;
-  return <div className="modal-backdrop scanner-backdrop"><div className="modal-card scanner-modal">
-    <div className="modal-header"><div><h2>Scan barcode</h2><p>Kamera membaca barcode 1D/2D. Scanner USB atau Bluetooth juga dapat digunakan.</p></div><button className="icon-button" onClick={onClose}><X size={20}/></button></div>
-    <div className="scanner-view"><video ref={videoRef} playsInline muted/><div className="scanner-frame"><ScanLine size={36}/></div></div>
-    <div className="scanner-status"><Camera size={17}/><span>{status}</span></div>
-    <form className="scanner-manual" onSubmit={(event) => { event.preventDefault(); finish(manual); }}><Keyboard size={17}/><input value={manual} onChange={(event) => setManual(event.target.value)} placeholder="Atau ketik / scan dengan alat eksternal"/><button className="button primary">Gunakan</button></form>
-  </div></div>;
+  return (
+    <ModalPortal>
+      <div className="modal-backdrop scanner-backdrop">
+        <div className="modal-card scanner-modal">
+          <div className="modal-header">
+            <div>
+              <h2>{title}</h2>
+              <p>{description}</p>
+            </div>
+            <button className="icon-button" onClick={onClose}><X size={20}/></button>
+          </div>
+          <div className="scanner-view"><video ref={videoRef} playsInline muted/><div className="scanner-frame"><ScanLine size={36}/></div></div>
+          <div className="scanner-status"><Camera size={17}/><span>{status}</span></div>
+          <form className="scanner-manual" onSubmit={(event) => { event.preventDefault(); finish(manual); }}>
+            <Keyboard size={17}/>
+            <input value={manual} onChange={(event) => setManual(event.target.value)} placeholder="Atau ketik / scan dengan alat eksternal"/>
+            <button className="button primary">Gunakan</button>
+          </form>
+        </div>
+      </div>
+    </ModalPortal>
+  );
 }
