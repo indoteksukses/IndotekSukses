@@ -993,6 +993,47 @@ html[data-print-summary="0"] [data-report-section="summary"],html[data-print-inv
 .variant-inventory-mobile-card>header b{font-size:12px}
 .variant-inventory-mobile-card .inventory-mobile-branches{padding:8px}
 
+/* ─── BRAND BADGES & TAGS (ALL VIEWS) ───────────────────────────── */
+.product-brand-tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:750;color:#1e40af;background:#eff6ff;padding:3px 9px;border-radius:6px;border:1px solid #bfdbfe;white-space:nowrap;letter-spacing:-.01em}
+.product-brand-tag.muted{color:#64748b;background:#f8fafc;border-color:#e2e8f0;font-weight:600;border-style:dashed}
+.product-mobile-brand-row{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.product-unit-text,.product-cell-unit{font-size:11px;color:var(--muted);font-weight:600}
+.brand-highlight{color:#1e40af;font-weight:800}
+
+.variant-heading-title-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.variant-header-brand-badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#1e40af;background:#eff6ff;padding:3px 10px;border-radius:99px;border:1px solid #bfdbfe}
+.variant-header-brand-badge b{font-weight:800;color:#1d4ed8}
+.variant-header-brand-badge.muted{color:#64748b;background:#f8fafc;border-color:#cbd5e1;border-style:dashed}
+.variant-header-category-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:650;color:#475569;background:#f1f5f9;padding:3px 9px;border-radius:99px;border:1px solid #e2e8f0}
+
+.variant-brand-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:750;color:#1e40af;background:#eff6ff;padding:2px 8px;border-radius:6px;border:1px solid #bfdbfe;white-space:nowrap}
+.variant-brand-tag.muted{color:#64748b;background:#f8fafc;border-color:#cbd5e1;border-style:dashed;font-weight:600}
+
+/* POS product submeta & brand */
+.pos-product-submeta{display:flex;align-items:center;gap:6px;margin:3px 0 7px;flex-wrap:wrap}
+.pos-brand-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:750;color:#1e40af;background:#eff6ff;padding:2px 6px;border-radius:5px;border:1px solid #bfdbfe;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.pos-brand-pill.muted{color:#64748b;background:#f8fafc;border-color:#e2e8f0;font-weight:600;border-style:dashed}
+.pos-sku-text{font-size:9.5px;color:var(--muted);font-family:var(--font-mono,monospace)}
+
+/* POS variant picker tags */
+.variant-picker-tags{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.variant-brand-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#1e40af;background:#eff6ff;padding:2.5px 8px;border-radius:99px;border:1px solid #bfdbfe}
+.variant-brand-chip.muted{color:#64748b;background:#f8fafc;border-color:#cbd5e1;border-style:dashed}
+.variant-cat-chip,.variant-sku-chip{font-size:10.5px;color:var(--muted);background:#f1f5f9;padding:2.5px 8px;border-radius:99px;border:1px solid #e2e8f0}
+.variant-item-subtags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:2px 0}
+.variant-item-brand{display:inline-flex;align-items:center;font-size:10px;font-weight:750;color:#1e40af;background:#eff6ff;padding:1px 6px;border-radius:4px;border:1px solid #bfdbfe}
+.variant-item-brand.muted{color:#64748b;background:#f8fafc;border-color:#cbd5e1;border-style:dashed;font-weight:600}
+
+/* Inventory table & cards brand pill */
+.inventory-product-meta,.inventory-variant-meta,.inventory-mobile-tags,.variant-mobile-meta-tags{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}
+.inventory-brand-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:750;color:#1e40af;background:#eff6ff;padding:1.5px 6px;border-radius:5px;border:1px solid #bfdbfe;white-space:nowrap}
+.inventory-brand-pill.muted{color:#64748b;background:#f8fafc;border-color:#cbd5e1;border-style:dashed;font-weight:600}
+.inventory-brand-pill.variant{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+
+/* Combobox picker brand */
+.picker-brand{font-weight:700;color:#1e40af}
+.picker-brand.muted{color:var(--muted);font-weight:normal}
+
 /* ─── PRODUCT VARIANT DETAIL DRAWER (MASTER PRODUK) ──────────────── */
 .product-variant-detail-row>td{padding:0!important;background:#f4f8fd!important;border-top:1px solid #d9e5f2!important;border-bottom:2px solid #cbdbee!important}
 .product-variant-detail{padding:16px 22px 20px}
@@ -2197,6 +2238,72 @@ html.dark .variant-barcode-tag,
   background: #141f33 !important;
   border-color: #223455 !important;
   color: #94a3b8 !important;
+}
+html.dark .product-brand-tag,
+[data-theme="dark"] .product-brand-tag,
+html.dark .variant-brand-tag,
+[data-theme="dark"] .variant-brand-tag,
+html.dark .pos-brand-pill,
+[data-theme="dark"] .pos-brand-pill,
+html.dark .variant-brand-chip,
+[data-theme="dark"] .variant-brand-chip,
+html.dark .variant-item-brand,
+[data-theme="dark"] .variant-item-brand,
+html.dark .inventory-brand-pill,
+[data-theme="dark"] .inventory-brand-pill {
+  background: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  color: #93c5fd !important;
+}
+html.dark .product-brand-tag.muted,
+[data-theme="dark"] .product-brand-tag.muted,
+html.dark .variant-brand-tag.muted,
+[data-theme="dark"] .variant-brand-tag.muted,
+html.dark .pos-brand-pill.muted,
+[data-theme="dark"] .pos-brand-pill.muted,
+html.dark .variant-brand-chip.muted,
+[data-theme="dark"] .variant-brand-chip.muted,
+html.dark .variant-item-brand.muted,
+[data-theme="dark"] .variant-item-brand.muted,
+html.dark .inventory-brand-pill.muted,
+[data-theme="dark"] .inventory-brand-pill.muted {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #64748b !important;
+}
+html.dark .variant-header-brand-badge,
+[data-theme="dark"] .variant-header-brand-badge {
+  background: rgba(37, 99, 235, 0.22) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  color: #bfdbfe !important;
+}
+html.dark .variant-header-brand-badge b,
+[data-theme="dark"] .variant-header-brand-badge b {
+  color: #93c5fd !important;
+}
+html.dark .variant-header-category-badge,
+[data-theme="dark"] .variant-header-category-badge,
+html.dark .variant-cat-chip,
+[data-theme="dark"] .variant-cat-chip,
+html.dark .variant-sku-chip,
+[data-theme="dark"] .variant-sku-chip {
+  background: #18253e !important;
+  border-color: #23375b !important;
+  color: #94a3b8 !important;
+}
+html.dark .inventory-brand-pill.variant,
+[data-theme="dark"] .inventory-brand-pill.variant {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+html.dark .brand-highlight,
+[data-theme="dark"] .brand-highlight {
+  color: #93c5fd !important;
+}
+html.dark .picker-brand,
+[data-theme="dark"] .picker-brand {
+  color: #93c5fd !important;
 }
 html.dark .variant-metric-item .metric-tag,
 [data-theme="dark"] .variant-metric-item .metric-tag {

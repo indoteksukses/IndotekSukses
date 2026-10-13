@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { ProductVisual } from "@/components/product-visual";
@@ -38,6 +38,7 @@ export function ProductTable({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
   const [status, setStatus] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -47,6 +48,15 @@ export function ProductTable({
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      const b = p.brand?.trim();
+      if (b) set.add(b);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
+  }, [products]);
+
   const indexedProducts = useMemo(() => products.map((product) => ({
     product,
     searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${(product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ")}`.toLocaleLowerCase("id-ID"),
@@ -55,8 +65,9 @@ export function ProductTable({
   const filtered = useMemo(() => indexedProducts.filter(({ product, searchText }) =>
     (!normalizedQuery || searchText.includes(normalizedQuery))
     && (!category || product.category === category)
+    && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
     && (!status || (status === "active" ? product.is_active : !product.is_active))
-  ).map(({ product }) => product), [indexedProducts, normalizedQuery, category, status]);
+  ).map(({ product }) => product), [indexedProducts, normalizedQuery, category, brandFilter, status]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -104,6 +115,10 @@ export function ProductTable({
           <option value="">Semua kategori</option>
           {categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}
         </select>
+        <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); resetView(); }}>
+          <option value="">Semua merek</option>
+          {brands.map((item) => <option value={item} key={item}>{item}</option>)}
+        </select>
         <select className="select" value={status} onChange={(event) => { setStatus(event.target.value); resetView(); }}>
           <option value="">Semua status</option>
           <option value="active">Aktif</option>
@@ -135,7 +150,12 @@ export function ProductTable({
                 <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/>
                 <div className="product-mobile-title">
                   <strong>{product.name}</strong>
-                  <span>{product.brand || "Tanpa Merek"}</span>
+                  <div className="product-mobile-brand-row">
+                    <span className={`product-brand-tag ${!product.brand ? "muted" : ""}`}>
+                      {product.brand || "Tanpa Merek"}
+                    </span>
+                    <span className="product-unit-text">Satuan: {product.unit}</span>
+                  </div>
                 </div>
                 <div className="product-mobile-head-actions">
                   <StatusBadge tone={product.is_active ? "success" : "neutral"}>
@@ -152,6 +172,10 @@ export function ProductTable({
               </header>
 
               <div className="product-mobile-meta-grid">
+                <div>
+                  <span>Merek</span>
+                  <strong className="brand-highlight">{product.brand || "Tanpa Merek"}</strong>
+                </div>
                 <div>
                   <span>SKU</span>
                   <strong>{product.sku}</strong>
@@ -206,6 +230,10 @@ export function ProductTable({
                           <div className="variant-card-info">
                             <strong className="variant-name-text">{variant.name}</strong>
                             <div className="variant-meta-row">
+                              <span className={`variant-brand-tag ${!product.brand ? "muted" : ""}`}>
+                                <Tag size={11} />
+                                {product.brand || "Tanpa Merek"}
+                              </span>
                               <span className="variant-sku-tag">{variant.sku || "Tanpa SKU"}</span>
                               {variant.barcode ? <span className="variant-barcode-tag">{variant.barcode}</span> : null}
                             </div>
@@ -254,6 +282,7 @@ export function ProductTable({
             <tr>
               <th>Produk</th>
               <th>SKU / Barcode</th>
+              <th>Merek</th>
               <th>Kategori</th>
               <th>Modal</th>
               <th>Harga jual</th>
@@ -275,7 +304,7 @@ export function ProductTable({
                         <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/>
                         <div>
                           <strong>{product.name}</strong>
-                          <span>{product.brand || `Satuan: ${product.unit}`}</span>
+                          <span className="product-cell-unit">Satuan: {product.unit}</span>
                           {variants.length ? (
                             <button type="button" className="variant-count-button" onClick={() => toggleExpanded(product.id)}>
                               <Layers3 size={13}/>{variants.length} varian {isExpanded ? <ChevronUp size={13}/> : <ChevronDown size={13}/>}
@@ -287,6 +316,11 @@ export function ProductTable({
                     <td data-label="SKU / Barcode">
                       <strong>{product.sku}</strong>
                       <small>{product.barcode || (variants.length ? "Barcode per varian" : "Tanpa barcode")}</small>
+                    </td>
+                    <td data-label="Merek">
+                      <span className={`product-brand-tag ${!product.brand ? "muted" : ""}`}>
+                        {product.brand || "Tanpa Merek"}
+                      </span>
                     </td>
                     <td data-label="Kategori">{product.category || "—"}</td>
                     <td data-label="Modal" className="restricted-value">{canEdit ? rangeLabel(product, "cost_price") : "Terkunci"}</td>
@@ -312,11 +346,20 @@ export function ProductTable({
                   </tr>
                   {variants.length && isExpanded ? (
                     <tr className="product-variant-detail-row">
-                      <td colSpan={9}>
+                      <td colSpan={10}>
                         <div className="product-variant-detail">
                           <header className="product-variant-detail-header">
                             <div className="product-variant-detail-heading">
-                              <strong>Daftar Varian · {product.name}</strong>
+                              <div className="variant-heading-title-group">
+                                <strong>Daftar Varian · {product.name}</strong>
+                                <span className={`variant-header-brand-badge ${!product.brand ? "muted" : ""}`}>
+                                  <Tag size={12}/>
+                                  Merek: <b>{product.brand || "Tanpa Merek"}</b>
+                                </span>
+                                {product.category ? (
+                                  <span className="variant-header-category-badge">{product.category}</span>
+                                ) : null}
+                              </div>
                               <span>Setiap varian memiliki SKU, barcode, harga, dan stok terpisah pada setiap cabang.</span>
                             </div>
                             <small className="variant-summary-counter">{variants.filter((variant) => variant.is_active).length} aktif dari {variants.length} total varian</small>
@@ -335,6 +378,10 @@ export function ProductTable({
                                         </StatusBadge>
                                       </div>
                                       <div className="variant-meta-row">
+                                        <span className={`variant-brand-tag ${!product.brand ? "muted" : ""}`}>
+                                          <Tag size={11} />
+                                          {product.brand || "Tanpa Merek"}
+                                        </span>
                                         <span className="variant-sku-tag">{variant.sku || "Tanpa SKU"}</span>
                                         {variant.barcode ? <span className="variant-barcode-tag">{variant.barcode}</span> : null}
                                       </div>

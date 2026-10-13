@@ -237,7 +237,8 @@ export function ProductSearchSelect({
                     ) : null}
                   </div>
                   <div className="picker-item-meta">
-                    <span className="picker-sku">{option.variant?.sku || option.product.sku}</span>
+                    <span className={`picker-brand ${!option.product.brand ? "muted" : ""}`}>{option.product.brand || "Tanpa Merek"}</span>
+                    <span className="picker-sku">· {option.variant?.sku || option.product.sku}</span>
                     {option.product.category ? <span className="picker-cat">· {option.product.category}</span> : null}
                     {option.variant?.barcode || option.product.barcode ? (
                       <span className="picker-barcode">({option.variant?.barcode || option.product.barcode})</span>

@@ -65,6 +65,7 @@ export function InventoryTable({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
   const [condition, setCondition] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -84,6 +85,14 @@ export function InventoryTable({
     () => [...new Set(products.map((product) => product.category).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "id")),
     [products],
   );
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      const b = p.brand?.trim();
+      if (b) set.add(b);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
+  }, [products]);
   const editable = useMemo(() => new Set(editableStoreIds), [editableStoreIds]);
   const indexedProducts = useMemo(() => products.map((product) => {
     const variants = (product.variants ?? []).filter((variant) => variant.is_active);
@@ -92,15 +101,16 @@ export function InventoryTable({
     return {
       product,
       state,
-      searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${variantText}`.toLocaleLowerCase("id-ID"),
+      searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${variantText}`.toLocaleLowerCase("id-ID"),
     };
   }), [products, stores]);
 
   const filteredEntries = useMemo(() => indexedProducts.filter(({ product, searchText, state }) =>
     (!normalizedQuery || searchText.includes(normalizedQuery))
     && (!category || product.category === category)
+    && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
     && (!condition || state === condition)
-  ), [indexedProducts, normalizedQuery, category, condition]);
+  ), [indexedProducts, normalizedQuery, category, brandFilter, condition]);
   const filtered = useMemo(() => filteredEntries.map(({ product }) => product), [filteredEntries]);
   const stateByProductId = useMemo(() => new Map(filteredEntries.map(({ product, state }) => [product.id, state])), [filteredEntries]);
 
@@ -119,6 +129,7 @@ export function InventoryTable({
       return {
         Produk: name,
         SKU: sku,
+        Merek: product.brand || "",
         Toko: store.name,
         KodeToko: store.code,
         StokFisik: stock?.quantity_on_hand ?? 0,
@@ -153,8 +164,9 @@ export function InventoryTable({
 
   return <>
     <div className="toolbar-card inventory-toolbar">
-      <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={18}/><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari produk, varian, barcode, atau SKU..."/></div>
+      <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={18}/><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari produk, varian, barcode, SKU, atau merek..."/></div>
       <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="">Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+      <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); setPage(1); }}><option value="">Semua merek</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
       <select className="select" value={condition} onChange={(event) => { setCondition(event.target.value); setPage(1); }}><option value="">Semua kondisi stok</option><option value="safe">Aman</option><option value="low">Menipis</option><option value="out">Habis</option></select>
       <label className="product-page-size"><span>Per halaman</span><select className="select" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
       <CsvButton filename="stok-indotek-sukses" getRows={getRows} disabled={!filtered.length} label="Ekspor stok"/>
@@ -168,12 +180,12 @@ export function InventoryTable({
         const total = stores.reduce((sum, store) => sum + (product.stocks[store.id]?.quantity_available ?? 0), 0);
         const conditionValue = stateByProductId.get(product.id) ?? "out";
         return <article className="inventory-mobile-card" key={product.id}>
-          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></header>
+          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><div className="inventory-mobile-tags"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></header>
           <div className="inventory-mobile-metrics"><div><span>Minimum</span><strong>{product.minimum_stock} <small>{product.unit}</small></strong></div><div><span>Total</span><strong>{total} <small>{product.unit}</small></strong></div><div className="inventory-condition"><span>Kondisi</span><StatusBadge tone={tone(conditionValue)}>{label(conditionValue)}</StatusBadge></div></div>
           {variants.length ? <div className="variant-inventory-mobile-list">{variants.map((variant) => {
             const variantTotal = stores.reduce((sum, store) => sum + (variant.stocks?.[store.id]?.quantity_on_hand ?? 0), 0);
             const variantCondition = calculateVariantCondition(variant, stores, product.minimum_stock);
-            return <section className="variant-inventory-mobile-card" key={variant.id}><header><div className="variant-mobile-title-wrap"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><span><strong>{variant.name}</strong><small>{variant.sku || "Tanpa SKU varian"}</small></span></div><div><b>{variantTotal} {product.unit}</b><StatusBadge tone={tone(variantCondition)}>{label(variantCondition)}</StatusBadge></div></header><div className="inventory-mobile-branches">{variantStoreRows(product, variant)}</div></section>;
+            return <section className="variant-inventory-mobile-card" key={variant.id}><header><div className="variant-mobile-title-wrap"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><span><strong>{variant.name}</strong><div className="variant-mobile-meta-tags"><span className={`inventory-brand-pill variant ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><small>{variant.sku || "Tanpa SKU varian"}</small></div></span></div><div><b>{variantTotal} {product.unit}</b><StatusBadge tone={tone(variantCondition)}>{label(variantCondition)}</StatusBadge></div></header><div className="inventory-mobile-branches">{variantStoreRows(product, variant)}</div></section>;
           })}</div> : <div className="inventory-mobile-branches">{stores.map((store) => {
             const row = product.stocks[store.id];
             return <div className="inventory-mobile-branch" key={store.id}><div><strong>{store.name}</strong><span>{store.code}</span></div><div className="inventory-mobile-stock"><strong>{row?.quantity_on_hand ?? 0} <small>{product.unit}</small></strong><span>{row?.quantity_reserved ? `${row.quantity_reserved} dipesan` : "Stok tersedia"}</span></div>{editable.has(store.id) ? (
@@ -204,7 +216,7 @@ export function InventoryTable({
         const variants = (product.variants ?? []).filter((variant) => variant.is_active);
         const productCondition = stateByProductId.get(product.id) ?? "out";
         return <Fragment key={product.id}>
-          <tr className={variants.length ? "inventory-product-summary-row" : ""}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
+          <tr className={variants.length ? "inventory-product-summary-row" : ""}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><div className="inventory-product-meta"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
             const row = product.stocks[store.id];
             return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}</span></div>{!variants.length && editable.has(store.id) ? (
               <button
@@ -223,7 +235,7 @@ export function InventoryTable({
           ) : "—"}</td></tr>
           {variants.map((variant) => {
             const variantCondition = calculateVariantCondition(variant, stores, product.minimum_stock);
-            return <tr className="inventory-variant-row" key={variant.id}><td className="sticky-col" data-label="Varian"><div className="inventory-variant-name"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><div><strong>{variant.name}</strong><span>{variant.sku || "Tanpa SKU varian"}</span></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
+            return <tr className="inventory-variant-row" key={variant.id}><td className="sticky-col" data-label="Varian"><div className="inventory-variant-name"><ProductVisual name={`${product.name} - ${variant.name}`} imageUrl={product.image_url} definition={product.visual?.code} size="thumb" animated={false}/><div><strong>{variant.name}</strong><div className="inventory-variant-meta"><span className={`inventory-brand-pill variant ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{variant.sku || "Tanpa SKU varian"}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
               const row = variant.stocks?.[store.id];
               return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}</span></div>{editable.has(store.id) ? (
                 <button
