@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, Keyboard, ScanLine, X } from "lucide-react";
-import { ModalPortal } from "@/components/modal-portal";
 
 type ScannerControls = { stop: () => void };
 
@@ -33,7 +33,10 @@ export function BarcodeScanner({
     controlsRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (videoRef.current) {
+      try { videoRef.current.pause(); } catch {}
+      videoRef.current.srcObject = null;
+    }
   }, []);
 
   const finish = useCallback((value: string) => {
@@ -44,28 +47,49 @@ export function BarcodeScanner({
     onClose();
   }, [onClose, onDetected, stopResources]);
 
+  // Lock scroll while scanner modal is open
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add("modal-open");
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
 
+    const waitForVideoElement = async (maxWaitMs = 3000): Promise<HTMLVideoElement | null> => {
+      const start = Date.now();
+      while (!videoRef.current && Date.now() - start < maxWaitMs) {
+        if (cancelled) return null;
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      return videoRef.current;
+    };
+
     const startNativeDetector = async () => {
       const Detector = (window as any).BarcodeDetector;
       if (!Detector) return false;
+      const videoEl = await waitForVideoElement();
+      if (!videoEl || cancelled) return false;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
       if (cancelled) { stream.getTracks().forEach((track) => track.stop()); return true; }
       streamRef.current = stream;
-      if (!videoRef.current) return true;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+      videoEl.srcObject = stream;
+      try { await videoEl.play(); } catch {}
+
       const detector = new Detector({ formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e", "qr_code", "data_matrix"] });
       setStatus("Arahkan barcode ke kotak pemindai.");
       let busy = false;
       const scan = async () => {
         if (cancelled) return;
-        if (!busy && videoRef.current?.readyState === 4) {
+        if (!busy && videoRef.current && videoRef.current.readyState >= 2) {
           busy = true;
           try {
             const codes = await detector.detect(videoRef.current);
@@ -81,13 +105,17 @@ export function BarcodeScanner({
     };
 
     const startZxingFallback = async () => {
+      const videoEl = await waitForVideoElement();
+      if (!videoEl || cancelled) return;
+
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      if (cancelled || !videoRef.current) return;
+      if (cancelled) return;
+
       const reader = new BrowserMultiFormatReader();
-      setStatus("Arahkan barcode ke kotak pemindai. Mode kompatibilitas aktif.");
+      setStatus("Arahkan barcode ke kotak pemindai.");
       const controls = await reader.decodeFromConstraints(
         { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-        videoRef.current,
+        videoEl,
         (result) => {
           const value = result?.getText?.();
           if (value && !cancelled) { cancelled = true; finish(value); }
@@ -113,27 +141,37 @@ export function BarcodeScanner({
     return () => { cancelled = true; stopResources(); };
   }, [finish, open, stopResources]);
 
-  if (!open) return null;
-  return (
-    <ModalPortal>
-      <div className="modal-backdrop scanner-backdrop">
-        <div className="modal-card scanner-modal">
-          <div className="modal-header">
-            <div>
-              <h2>{title}</h2>
-              <p>{description}</p>
-            </div>
-            <button className="icon-button" onClick={onClose}><X size={20}/></button>
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="modal-backdrop scanner-backdrop">
+      <div className="modal-card scanner-modal">
+        <div className="modal-header">
+          <div>
+            <h2>{title}</h2>
+            <p>{description}</p>
           </div>
-          <div className="scanner-view"><video ref={videoRef} playsInline muted/><div className="scanner-frame"><ScanLine size={36}/></div></div>
-          <div className="scanner-status"><Camera size={17}/><span>{status}</span></div>
-          <form className="scanner-manual" onSubmit={(event) => { event.preventDefault(); finish(manual); }}>
-            <Keyboard size={17}/>
-            <input value={manual} onChange={(event) => setManual(event.target.value)} placeholder="Atau ketik / scan dengan alat eksternal"/>
-            <button className="button primary">Gunakan</button>
-          </form>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Tutup pemindai barcode">
+            <X size={20}/>
+          </button>
         </div>
+        <div className="scanner-view">
+          <video ref={videoRef} playsInline muted autoPlay />
+          <div className="scanner-frame">
+            <ScanLine size={36}/>
+          </div>
+        </div>
+        <div className="scanner-status">
+          <Camera size={17}/>
+          <span>{status}</span>
+        </div>
+        <form className="scanner-manual" onSubmit={(event) => { event.preventDefault(); finish(manual); }}>
+          <Keyboard size={17}/>
+          <input value={manual} onChange={(event) => setManual(event.target.value)} placeholder="Atau ketik / scan dengan alat eksternal"/>
+          <button type="submit" className="button primary">Gunakan</button>
+        </form>
       </div>
-    </ModalPortal>
+    </div>,
+    document.body
   );
 }
