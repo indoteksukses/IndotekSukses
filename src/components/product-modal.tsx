@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, ScanBarcode, Search, Trash2, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, ScanBarcode, Search, Sparkles, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ModalPortal } from "@/components/modal-portal";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { generateEan13Barcode } from "@/lib/barcode";
 import { formatCurrency } from "@/lib/format";
 import type { Product, ProductVariant, ProductVisual as ProductVisualType, Store } from "@/lib/types";
 
@@ -245,7 +246,7 @@ export function ProductModal({
         <label>SKU produk<input name="sku" defaultValue={product?.sku ?? ""} required placeholder="GRD-MOD-001"/></label>
         <div className="field-with-scanner">
           <label htmlFor="product-main-barcode">Barcode produk</label>
-          <div className="input-scanner-wrap">
+          <div className="input-scanner-wrap has-cluster">
             <input
               id="product-main-barcode"
               name="barcode"
@@ -253,21 +254,36 @@ export function ProductModal({
               onChange={(event) => setProductBarcode(event.target.value)}
               placeholder="Opsional jika barcode ada pada varian"
             />
-            <button
-              type="button"
-              className="scanner-trigger-button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const nameInput = document.querySelector<HTMLInputElement>('.product-form-modal input[name="name"]');
-                const productName = nameInput?.value?.trim() || product?.name || "Produk Utama";
-                setScannerTarget({ type: "product", name: productName });
-              }}
-              title="Scan barcode produk"
-            >
-              <ScanBarcode size={15}/>
-              <span>Scan</span>
-            </button>
+            <div className="scanner-buttons-cluster">
+              <button
+                type="button"
+                className="scanner-action-btn scan"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const nameInput = document.querySelector<HTMLInputElement>('.product-form-modal input[name="name"]');
+                  const productName = nameInput?.value?.trim() || product?.name || "Produk Utama";
+                  setScannerTarget({ type: "product", name: productName });
+                }}
+                title="Scan barcode produk"
+              >
+                <ScanBarcode size={13}/>
+                <span>Scan</span>
+              </button>
+              <button
+                type="button"
+                className="scanner-action-btn generate"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setProductBarcode(generateEan13Barcode("20"));
+                }}
+                title="Buat barcode acak standar EAN-13"
+              >
+                <Sparkles size={13}/>
+                <span>Buat</span>
+              </button>
+            </div>
           </div>
         </div>
         <label>Kategori<select name="category_id" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required><option value="" disabled>Pilih kategori</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
@@ -298,26 +314,41 @@ export function ProductModal({
                 <label><span>SKU varian</span><input value={variant.sku} onChange={(event) => patchVariant(variant.key, { sku: event.target.value })} placeholder="Opsional"/></label>
                 <div className="field-with-scanner">
                   <label htmlFor={`variant-barcode-${variant.key}`}>Barcode</label>
-                  <div className="input-scanner-wrap">
+                  <div className="input-scanner-wrap has-cluster">
                     <input
                       id={`variant-barcode-${variant.key}`}
                       value={variant.barcode}
                       onChange={(event) => patchVariant(variant.key, { barcode: event.target.value })}
                       placeholder="Opsional"
                     />
-                    <button
-                      type="button"
-                      className="scanner-trigger-button compact"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setScannerTarget({ type: "variant", key: variant.key, name: variant.name || `Varian ${index + 1}` });
-                      }}
-                      title={`Scan barcode ${variant.name || `varian ${index + 1}`}`}
-                    >
-                      <ScanBarcode size={14}/>
-                      <span>Scan</span>
-                    </button>
+                    <div className="scanner-buttons-cluster">
+                      <button
+                        type="button"
+                        className="scanner-action-btn scan compact"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setScannerTarget({ type: "variant", key: variant.key, name: variant.name || `Varian ${index + 1}` });
+                        }}
+                        title={`Scan barcode ${variant.name || `varian ${index + 1}`}`}
+                      >
+                        <ScanBarcode size={12}/>
+                        <span>Scan</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="scanner-action-btn generate compact"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          patchVariant(variant.key, { barcode: generateEan13Barcode("20") });
+                        }}
+                        title="Buat barcode acak standar EAN-13"
+                      >
+                        <Sparkles size={12}/>
+                        <span>Buat</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <label><span>Harga modal</span><input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label>

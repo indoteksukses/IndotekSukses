@@ -1,9 +1,10 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
+import { Barcode, Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
+import { BarcodePrintModal } from "@/components/barcode-print-modal";
 import { ProductVisual } from "@/components/product-visual";
 import { StatusBadge } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
@@ -44,6 +45,8 @@ export function ProductTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
+  const [barcodeModalVariantId, setBarcodeModalVariantId] = useState<string | undefined>(undefined);
 
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
@@ -133,6 +136,22 @@ export function ProductTable({
           </select>
         </label>
         <CsvButton filename="master-produk-indotek" getRows={getRows} disabled={!filtered.length} label="Ekspor produk"/>
+        <button
+          type="button"
+          className="button secondary product-toolbar-barcode-btn"
+          onClick={() => {
+            const target = filtered[0] || products[0];
+            if (target) {
+              setBarcodeModalProduct(target);
+              setBarcodeModalVariantId(undefined);
+            }
+          }}
+          disabled={!products.length}
+          title="Buka panel buat & cetak barcode produk"
+        >
+          <Barcode size={16}/>
+          <span>Cetak Barcode</span>
+        </button>
       </div>
 
       <div className="product-result-summary">
@@ -161,6 +180,18 @@ export function ProductTable({
                   <StatusBadge tone={product.is_active ? "success" : "neutral"}>
                     {product.is_active ? "Aktif" : "Nonaktif"}
                   </StatusBadge>
+                  <button
+                    type="button"
+                    className="button secondary sm product-mobile-barcode-action-btn"
+                    onClick={() => {
+                      setBarcodeModalProduct(product);
+                      setBarcodeModalVariantId(undefined);
+                    }}
+                    title="Cetak barcode"
+                  >
+                    <Barcode size={13}/>
+                    <span>Barcode</span>
+                  </button>
                   {canEdit ? (
                     <div className="product-mobile-edit">
                       <button type="button" className="button secondary sm" onClick={() => setEditingProduct(product)}>
@@ -239,9 +270,23 @@ export function ProductTable({
                             </div>
                           </div>
                         </div>
-                        <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
-                          {variant.is_active ? "Aktif" : "Nonaktif"}
-                        </StatusBadge>
+                        <div className="product-mobile-variant-header-actions">
+                          <button
+                            type="button"
+                            className="product-mobile-variant-barcode-btn"
+                            onClick={() => {
+                              setBarcodeModalProduct(product);
+                              setBarcodeModalVariantId(variant.id);
+                            }}
+                            title={`Cetak barcode ${variant.name}`}
+                          >
+                            <Barcode size={12}/>
+                            <span>Barcode</span>
+                          </button>
+                          <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
+                            {variant.is_active ? "Aktif" : "Nonaktif"}
+                          </StatusBadge>
+                        </div>
                       </header>
                       <div className={`product-mobile-variant-metrics ${canEdit ? "has-cost" : "no-cost"}`}>
                         {canEdit ? (
@@ -347,11 +392,25 @@ export function ProductTable({
                       </StatusBadge>
                     </td>
                     <td data-label="Aksi">
-                      {canEdit ? (
-                        <button type="button" className="table-action" onClick={() => setEditingProduct(product)}>
-                          Edit
+                      <div className="product-table-actions-cell">
+                        <button
+                          type="button"
+                          className="table-action barcode-btn"
+                          onClick={() => {
+                            setBarcodeModalProduct(product);
+                            setBarcodeModalVariantId(undefined);
+                          }}
+                          title="Cetak atau buat barcode produk ini"
+                        >
+                          <Barcode size={13}/>
+                          <span>Barcode</span>
                         </button>
-                      ) : null}
+                        {canEdit ? (
+                          <button type="button" className="table-action" onClick={() => setEditingProduct(product)}>
+                            Edit
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                   {variants.length && isExpanded ? (
@@ -383,9 +442,23 @@ export function ProductTable({
                                     <div className="variant-card-info">
                                       <div className="variant-card-title-row">
                                         <strong className="variant-name-text">{variant.name}</strong>
-                                        <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
-                                          {variant.is_active ? "Aktif" : "Nonaktif"}
-                                        </StatusBadge>
+                                        <div className="variant-card-badges-actions">
+                                          <button
+                                            type="button"
+                                            className="variant-inline-barcode-btn"
+                                            onClick={() => {
+                                              setBarcodeModalProduct(product);
+                                              setBarcodeModalVariantId(variant.id);
+                                            }}
+                                            title={`Cetak barcode ${variant.name}`}
+                                          >
+                                            <Barcode size={12}/>
+                                            <span>Cetak Barcode</span>
+                                          </button>
+                                          <StatusBadge tone={variant.is_active ? "success" : "neutral"}>
+                                            {variant.is_active ? "Aktif" : "Nonaktif"}
+                                          </StatusBadge>
+                                        </div>
                                       </div>
                                       <div className="variant-meta-row">
                                         <span className={`variant-brand-tag ${!product.brand ? "muted" : ""}`}>
@@ -466,6 +539,19 @@ export function ProductTable({
           product={editingProduct}
           isOpen={Boolean(editingProduct)}
           onClose={() => setEditingProduct(null)}
+        />
+      ) : null}
+
+      {barcodeModalProduct ? (
+        <BarcodePrintModal
+          open={Boolean(barcodeModalProduct)}
+          onClose={() => {
+            setBarcodeModalProduct(null);
+            setBarcodeModalVariantId(undefined);
+          }}
+          products={products}
+          initialProductId={barcodeModalProduct.id}
+          initialVariantId={barcodeModalVariantId}
         />
       ) : null}
     </>
