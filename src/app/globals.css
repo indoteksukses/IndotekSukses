@@ -1768,8 +1768,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   color:#728197;
   transition:border-color .18s ease,box-shadow .18s ease;
 }
-.search-box:focus-within{border-color:#8eafe3;box-shadow:0 0 0 3px rgba(21,94,239,.09)}
-.search-box input{min-width:0}
+.search-box:focus-within{border-color:#94a3b8!important;box-shadow:none!important;outline:none!important}
+.search-box input{min-width:0;border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;-webkit-tap-highlight-color:transparent!important}
+.search-box input:focus,.search-box input:focus-visible,.search-box input:hover{border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important}
 .search-box.is-busy{padding-right:34px}
 .search-box.is-busy::after{
   content:"";
@@ -1833,8 +1834,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 }
 .pos-product:hover:not(:disabled){border-color:#a9c4ea!important;transform:translateY(-2px);box-shadow:0 13px 26px rgba(15,35,66,.09)}
 .pos-product:disabled{filter:saturate(.65);opacity:.58}
-.pos-search{border-color:#d4dfec!important;box-shadow:0 5px 16px rgba(15,35,66,.045)}
-.pos-search:focus-within{border-color:#8eafe3!important;box-shadow:0 0 0 3px rgba(21,94,239,.09)}
+.pos-search{border-color:#d4dfec!important;box-shadow:none!important}
+.pos-search:focus-within{border-color:#94a3b8!important;box-shadow:none!important;outline:none!important}
+.pos-search input{border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;-webkit-tap-highlight-color:transparent!important}
+.pos-search input:focus,.pos-search input:focus-visible,.pos-search input:hover{border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important}
 .pos-search.is-busy::after{content:"";width:15px;height:15px;margin-right:4px;border:2px solid #d2deeb;border-top-color:var(--blue);border-radius:50%;animation:indotek-spin .7s linear infinite}
 .category-chips{scrollbar-width:none}
 .category-chips::-webkit-scrollbar{display:none}
@@ -5446,6 +5449,116 @@ html.dark .variant-inline-barcode-btn,
   border-color: #334155 !important;
   color: #a5b4fc !important;
 }
+
+/* ==========================================================================
+   Clean Search Box & Inputs (Remove blue line / oval focus outlines)
+   ========================================================================== */
+
+.search-box,
+.pos-search,
+.activity-search-v23,
+.activity-search,
+.category-search,
+.invoice-search,
+.visual-search-input,
+.visual-library-search,
+.barcode-product-search-wrap {
+  outline: none !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.search-box:focus-within,
+.pos-search:focus-within,
+.activity-search-v23:focus-within,
+.activity-search:focus-within,
+.category-search:focus-within,
+.invoice-search:focus-within,
+.visual-search-input:focus-within,
+.visual-library-search:focus-within,
+.barcode-product-search-wrap:focus-within {
+  border-color: #94a3b8 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.search-box input,
+.pos-search input,
+.activity-search-v23 input,
+.activity-search input,
+.category-search input,
+.invoice-search input,
+.visual-search-input input,
+.visual-library-search input,
+.combobox-search input,
+.barcode-product-filter-input,
+.barcode-product-search-wrap input {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.search-box input:focus,
+.search-box input:focus-visible,
+.search-box input:hover,
+.search-box input:active,
+.pos-search input:focus,
+.pos-search input:focus-visible,
+.pos-search input:hover,
+.pos-search input:active,
+.activity-search-v23 input:focus,
+.activity-search-v23 input:focus-visible,
+.activity-search input:focus,
+.activity-search input:focus-visible,
+.category-search input:focus,
+.category-search input:focus-visible,
+.invoice-search input:focus,
+.invoice-search input:focus-visible,
+.visual-search-input input:focus,
+.visual-search-input input:focus-visible,
+.visual-library-search input:focus,
+.visual-library-search input:focus-visible,
+.combobox-search input:focus,
+.combobox-search input:focus-visible,
+.barcode-product-filter-input:focus,
+.barcode-product-filter-input:focus-visible,
+.barcode-product-search-wrap input:focus {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Dark mode for clean search focus */
+html.dark .search-box:focus-within,
+html.dark .pos-search:focus-within,
+html.dark .activity-search-v23:focus-within,
+html.dark .activity-search:focus-within,
+html.dark .category-search:focus-within,
+html.dark .invoice-search:focus-within,
+html.dark .visual-search-input:focus-within,
+html.dark .visual-library-search:focus-within,
+html.dark .barcode-product-search-wrap:focus-within,
+[data-theme="dark"] .search-box:focus-within,
+[data-theme="dark"] .pos-search:focus-within,
+[data-theme="dark"] .activity-search-v23:focus-within,
+[data-theme="dark"] .activity-search:focus-within,
+[data-theme="dark"] .category-search:focus-within,
+[data-theme="dark"] .invoice-search:focus-within,
+[data-theme="dark"] .visual-search-input:focus-within,
+[data-theme="dark"] .visual-library-search:focus-within,
+[data-theme="dark"] .barcode-product-search-wrap:focus-within {
+  border-color: #3b5072 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 
 
 
