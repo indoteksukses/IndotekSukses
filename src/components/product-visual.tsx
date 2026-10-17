@@ -46,7 +46,7 @@ function resolvePaint(value: string | undefined, palette: Record<string, string>
 }
 
 function CustomShapes({ elements, palette }: { elements: ProductVisualElement[]; palette: Record<string, string> }) {
-  return <>{elements.slice(0, 30).map((element, index) => {
+  return <>{elements.slice(0, 120).map((element, index) => {
     const common = {
       key: `${element.type}-${index}`,
       fill: resolvePaint(element.fill, palette, "none"),

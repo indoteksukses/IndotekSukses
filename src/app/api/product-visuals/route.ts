@@ -42,12 +42,12 @@ function normalizeElement(input: unknown): ProductVisualElement {
   };
   if (type === "path") {
     const d = String(raw.d ?? "");
-    if (!d || d.length > 800 || !pathPattern.test(d)) throw new Error("Path custom tidak valid");
+    if (!d || d.length > 3000 || !pathPattern.test(d)) throw new Error("Path custom tidak valid");
     return { ...base, d };
   }
   if (type === "polygon") {
     const points = String(raw.points ?? "");
-    if (!points || points.length > 500 || !pointsPattern.test(points)) throw new Error("Titik polygon tidak valid");
+    if (!points || points.length > 2000 || !pointsPattern.test(points)) throw new Error("Titik polygon tidak valid");
     return { ...base, points };
   }
   if (type === "line") return { ...base, x1: number(raw.x1), y1: number(raw.y1), x2: number(raw.x2), y2: number(raw.y2) };
@@ -73,7 +73,7 @@ function normalizeCode(input: unknown): ProductVisualDefinition {
   }
   if (shape === "custom") {
     if (!Array.isArray(value.elements) || value.elements.length === 0) throw new Error("Visual custom membutuhkan minimal satu elemen");
-    if (value.elements.length > 30) throw new Error("Visual custom maksimal 30 elemen");
+    if (value.elements.length > 120) throw new Error("Visual custom maksimal 120 elemen");
     result.elements = value.elements.map(normalizeElement);
   }
   return result;
