@@ -106,52 +106,61 @@ export function ProductTable({
   return (
     <>
       <div className="toolbar-card product-toolbar">
-        <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
-          <Search size={18}/>
-          <input
-            value={query}
-            onChange={(event) => { setQuery(event.target.value); resetView(); }}
-            placeholder="Cari produk, varian, SKU, barcode, atau merek..."
-          />
+        <div className="product-toolbar-top">
+          <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
+            <Search size={18}/>
+            <input
+              value={query}
+              onChange={(event) => { setQuery(event.target.value); resetView(); }}
+              placeholder="Cari produk, varian, SKU, barcode, atau merek..."
+            />
+          </div>
+          <div className="product-toolbar-filters">
+            <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); resetView(); }}>
+              <option value="">Semua kategori</option>
+              {categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}
+            </select>
+            <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); resetView(); }}>
+              <option value="">Semua merek</option>
+              {brands.map((item) => <option value={item} key={item}>{item}</option>)}
+            </select>
+            <select className="select" value={status} onChange={(event) => { setStatus(event.target.value); resetView(); }}>
+              <option value="">Semua status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+          </div>
         </div>
-        <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); resetView(); }}>
-          <option value="">Semua kategori</option>
-          {categories.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}
-        </select>
-        <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); resetView(); }}>
-          <option value="">Semua merek</option>
-          {brands.map((item) => <option value={item} key={item}>{item}</option>)}
-        </select>
-        <select className="select" value={status} onChange={(event) => { setStatus(event.target.value); resetView(); }}>
-          <option value="">Semua status</option>
-          <option value="active">Aktif</option>
-          <option value="inactive">Nonaktif</option>
-        </select>
-        <label className="product-page-size">
-          <span>Per halaman</span>
-          <select className="select" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); resetView(); }}>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </label>
-        <CsvButton filename="master-produk-indotek" getRows={getRows} disabled={!filtered.length} label="Ekspor produk"/>
-        <button
-          type="button"
-          className="button secondary product-toolbar-barcode-btn"
-          onClick={() => {
-            const target = filtered[0] || products[0];
-            if (target) {
-              setBarcodeModalProduct(target);
-              setBarcodeModalVariantId(undefined);
-            }
-          }}
-          disabled={!products.length}
-          title="Buka panel buat & cetak barcode produk"
-        >
-          <Barcode size={16}/>
-          <span>Cetak Barcode</span>
-        </button>
+
+        <div className="product-toolbar-bottom">
+          <label className="product-page-size">
+            <span className="product-page-size-label">Per halaman</span>
+            <select className="select compact" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); resetView(); }}>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </label>
+          <div className="product-toolbar-actions">
+            <CsvButton filename="master-produk-indotek" getRows={getRows} disabled={!filtered.length} label="Ekspor produk"/>
+            <button
+              type="button"
+              className="button secondary product-toolbar-barcode-btn"
+              onClick={() => {
+                const target = filtered[0] || products[0];
+                if (target) {
+                  setBarcodeModalProduct(target);
+                  setBarcodeModalVariantId(undefined);
+                }
+              }}
+              disabled={!products.length}
+              title="Buka panel buat & cetak barcode produk"
+            >
+              <Barcode size={16}/>
+              <span>Cetak Barcode</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="product-result-summary">

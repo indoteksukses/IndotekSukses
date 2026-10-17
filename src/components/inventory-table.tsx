@@ -164,12 +164,23 @@ export function InventoryTable({
 
   return <>
     <div className="toolbar-card inventory-toolbar">
-      <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={18}/><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari produk, varian, barcode, SKU, atau merek..."/></div>
-      <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="">Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
-      <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); setPage(1); }}><option value="">Semua merek</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
-      <select className="select" value={condition} onChange={(event) => { setCondition(event.target.value); setPage(1); }}><option value="">Semua kondisi stok</option><option value="safe">Aman</option><option value="low">Menipis</option><option value="out">Habis</option></select>
-      <label className="product-page-size"><span>Per halaman</span><select className="select" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
-      <CsvButton filename="stok-indotek-sukses" getRows={getRows} disabled={!filtered.length} label="Ekspor stok"/>
+      <div className="inventory-toolbar-top">
+        <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
+          <Search size={18}/>
+          <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari produk, varian, barcode, SKU, atau merek..."/>
+        </div>
+        <div className="inventory-toolbar-filters">
+          <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="">Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
+          <select className="select" value={brandFilter} onChange={(event) => { setBrandFilter(event.target.value); setPage(1); }}><option value="">Semua merek</option>{brands.map((name) => <option key={name}>{name}</option>)}</select>
+          <select className="select" value={condition} onChange={(event) => { setCondition(event.target.value); setPage(1); }}><option value="">Semua kondisi stok</option><option value="safe">Aman</option><option value="low">Menipis</option><option value="out">Habis</option></select>
+        </div>
+      </div>
+      <div className="inventory-toolbar-bottom">
+        <label className="product-page-size"><span>Per halaman</span><select className="select compact" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
+        <div className="inventory-toolbar-actions">
+          <CsvButton filename="stok-indotek-sukses" getRows={getRows} disabled={!filtered.length} label="Ekspor stok"/>
+        </div>
+      </div>
     </div>
 
     <div className="product-result-summary inventory-result-summary"><strong>{filtered.length.toLocaleString("id-ID")}</strong><span>dari {products.length.toLocaleString("id-ID")} produk · menampilkan {filtered.length ? pageStart + 1 : 0}–{Math.min(pageStart + pageSize, filtered.length)}</span></div>
