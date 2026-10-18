@@ -75,7 +75,7 @@ export function ThermalPrinterSettings({ settings }: ThermalPrinterSettingsProps
 
       <div className="thermal-settings-content">
         {/* Status Card */}
-        <div className={`thermal-status-card ${isConnected ? "is-connected" : state.status === "error" ? "is-error" : ""}`}>
+        <div className={`thermal-status-card ${isConnected ? "is-connected" : "is-disconnected"}`}>
           <div className="thermal-status-indicator">
             <span className={`status-dot ${isConnected ? "connected" : isConnecting ? "connecting" : "disconnected"}`} />
             <div>

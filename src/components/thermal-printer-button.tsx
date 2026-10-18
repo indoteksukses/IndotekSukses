@@ -27,7 +27,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
       <>
         <button
           type="button"
-          className={`topbar-printer-button ${isConnected ? "is-connected" : ""} ${className}`}
+          className={`topbar-printer-button ${isConnected ? "is-connected" : "is-disconnected"} ${className}`}
           onClick={() => setModalOpen(true)}
           title={`Printer Thermal (${state.paperWidth}mm) - ${isConnected ? `Terhubung: ${state.deviceName}` : "Belum Terhubung (Klik untuk sambung)"}`}
           aria-label="Pengaturan Printer Thermal"
@@ -38,7 +38,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
           </div>
           <span className="topbar-printer-label">
             <span className="printer-text">Printer</span>
-            <span className="printer-badge">{state.paperWidth}mm</span>
           </span>
         </button>
 
@@ -52,7 +51,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
       <>
         <button
           type="button"
-          className={`sidebar-printer-button ${isConnected ? "is-connected" : ""} ${className}`}
+          className={`sidebar-printer-button ${isConnected ? "is-connected" : "is-disconnected"} ${className}`}
           onClick={() => setModalOpen(true)}
           title={`Pengaturan Printer Thermal (${state.paperWidth}mm)`}
         >
@@ -62,7 +61,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
           </div>
           <div className="sidebar-printer-info">
             <strong>Printer Thermal</strong>
-            <small>{isConnected ? `${state.deviceName || "Terhubung"} (${state.paperWidth}mm)` : `Kertas ${state.paperWidth}mm · Offline`}</small>
+            <small>{isConnected ? `${state.deviceName || "Terhubung"} (${state.paperWidth}mm)` : `Kertas ${state.paperWidth}mm · Belum Terhubung`}</small>
           </div>
         </button>
 
@@ -76,7 +75,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
       <>
         <button
           type="button"
-          className={`pos-printer-btn ${isConnected ? "is-connected" : ""} ${className}`}
+          className={`pos-printer-btn ${isConnected ? "is-connected" : "is-disconnected"} ${className}`}
           onClick={() => setModalOpen(true)}
           title={`Printer Thermal (${state.paperWidth}mm) - ${isConnected ? `Terhubung: ${state.deviceName}` : "Belum Terhubung (Klik untuk sambungkan)"}`}
           aria-label="Pengaturan Printer Thermal Struk"
@@ -85,10 +84,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
             <Printer size={18} />
             <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
           </div>
-          <span className="pos-printer-label">
-            <span className="pos-printer-text">Printer</span>
-            <span className="pos-printer-badge">{state.paperWidth}mm</span>
-          </span>
+          <span className="pos-printer-text">Printer</span>
         </button>
 
         <ThermalPrinterModal open={modalOpen} onClose={() => setModalOpen(false)} />
@@ -100,7 +96,7 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
     <>
       <button
         type="button"
-        className={`button secondary compact-printer-btn ${isConnected ? "is-connected" : ""} ${className}`}
+        className={`button secondary compact-printer-btn ${isConnected ? "is-connected" : "is-disconnected"} ${className}`}
         onClick={() => setModalOpen(true)}
         title={`Printer Thermal (${state.paperWidth}mm) - ${isConnected ? `Terhubung: ${state.deviceName}` : "Belum Terhubung"}`}
         aria-label="Pengaturan Printer Thermal"
@@ -110,7 +106,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
           <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
         </div>
         <span className="compact-printer-text">Printer</span>
-        <span className="compact-printer-badge">{state.paperWidth}mm</span>
       </button>
 
       <ThermalPrinterModal open={modalOpen} onClose={() => setModalOpen(false)} />

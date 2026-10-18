@@ -112,7 +112,7 @@ export function ReceiptActions({
           {/* Thermal Connection Status / Trigger */}
           <button
             type="button"
-            className={`button secondary thermal-toggle-btn ${isConnected ? "is-connected" : ""}`}
+            className={`button secondary thermal-toggle-btn ${isConnected ? "is-connected" : "is-disconnected"}`}
             onClick={() => setModalOpen(true)}
             title="Pengaturan Printer Thermal (Bluetooth / USB Serial)"
           >
@@ -122,7 +122,7 @@ export function ReceiptActions({
                 <Radio size={14} /> {printerState.deviceName || "Thermal OK"}
               </span>
             ) : (
-              <span>
+              <span className="thermal-device-label is-disconnected">
                 <Settings2 size={14} /> Sambung Printer
               </span>
             )}

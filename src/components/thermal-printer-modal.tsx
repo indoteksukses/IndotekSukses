@@ -79,7 +79,7 @@ export function ThermalPrinterModal({ open, onClose, settings }: ThermalPrinterM
 
         <div className="thermal-modal-body">
           {/* Status Box */}
-          <div className={`thermal-status-card ${isConnected ? "is-connected" : state.status === "error" ? "is-error" : ""}`}>
+          <div className={`thermal-status-card ${isConnected ? "is-connected" : "is-disconnected"}`}>
             <div className="thermal-status-indicator">
               <span className={`status-dot ${isConnected ? "connected" : isConnecting ? "connecting" : "disconnected"}`} />
               <div>
