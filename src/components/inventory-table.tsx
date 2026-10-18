@@ -1,14 +1,15 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, FileText, Layers3, PencilLine, Search, X } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, FileText, Layers3, Loader2, PencilLine, Search, Sparkles, X } from "lucide-react";
 import { CriticalStockModal } from "@/components/critical-stock-modal";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductVisual } from "@/components/product-visual";
 import { StockEditModal } from "@/components/stock-edit-button";
 import { TransferRequestModal } from "@/components/transfer-request-button";
 import { StatusBadge } from "@/components/ui";
-import type { Product, ProductVariant, Store, SystemSettings, UserProfile } from "@/lib/types";
+import { executeAISearch } from "@/lib/ai-search-client";
+import type { AIMatchItem, Product, ProductVariant, Store, SystemSettings, UserProfile } from "@/lib/types";
 
 function calculateStockCondition(product: Product, stores: Store[]): "out" | "low" | "safe" {
   const variants = product.variants;
@@ -79,6 +80,13 @@ export function InventoryTable({
   const [requestProduct, setRequestProduct] = useState<Product | null>(null);
   const [showCriticalPdfModal, setShowCriticalPdfModal] = useState(false);
 
+  // AI Search states
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiMatches, setAiMatches] = useState<AIMatchItem[]>([]);
+  const [aiInterpretation, setAiInterpretation] = useState("");
+  const [aiError, setAiError] = useState("");
+
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
@@ -100,6 +108,8 @@ export function InventoryTable({
     return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
   }, [products]);
   const editable = useMemo(() => new Set(editableStoreIds), [editableStoreIds]);
+  const aiMatchMap = useMemo(() => new Map(aiMatches.map((m) => [m.product_id, m])), [aiMatches]);
+
   const indexedProducts = useMemo(() => products.map((product) => {
     const variants = (product.variants ?? []).filter((variant) => variant.is_active);
     const state = calculateStockCondition(product, stores);
@@ -111,14 +121,68 @@ export function InventoryTable({
     };
   }), [products, stores]);
 
-  const filteredEntries = useMemo(() => indexedProducts.filter(({ product, searchText, state }) =>
-    (!normalizedQuery || searchText.includes(normalizedQuery))
-    && (!category || product.category === category)
-    && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
-    && (!condition || state === condition)
-  ), [indexedProducts, normalizedQuery, category, brandFilter, condition]);
+  const filteredEntries = useMemo(() => {
+    if (aiActive && aiMatches.length > 0) {
+      const entryMap = new Map(indexedProducts.map((entry) => [entry.product.id, entry]));
+      const list: typeof indexedProducts = [];
+      for (const m of aiMatches) {
+        const entry = entryMap.get(m.product_id);
+        if (entry && !list.includes(entry)) {
+          if ((!category || entry.product.category === category)
+            && (!brandFilter || (entry.product.brand?.trim() || "Tanpa Merek") === brandFilter)
+            && (!condition || entry.state === condition)) {
+            list.push(entry);
+          }
+        }
+      }
+      return list;
+    }
+
+    return indexedProducts.filter(({ product, searchText, state }) =>
+      (!normalizedQuery || searchText.includes(normalizedQuery))
+      && (!category || product.category === category)
+      && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
+      && (!condition || state === condition)
+    );
+  }, [aiActive, aiMatches, indexedProducts, normalizedQuery, category, brandFilter, condition]);
+
   const filtered = useMemo(() => filteredEntries.map(({ product }) => product), [filteredEntries]);
   const stateByProductId = useMemo(() => new Map(filteredEntries.map(({ product, state }) => [product.id, state])), [filteredEntries]);
+
+  const handleAISearch = async (manualQuery?: string) => {
+    const q = (typeof manualQuery === "string" ? manualQuery : query).trim();
+    if (!q) return;
+
+    setAiSearching(true);
+    setAiError("");
+    try {
+      const res = await executeAISearch(q);
+      if (!res.success) {
+        setAiError(res.error || "Pencarian AI gagal");
+        return;
+      }
+      setAiInterpretation(res.interpretation || "");
+      setAiMatches(res.matches || []);
+      setAiActive(true);
+      setPage(1);
+      if (!res.matches || res.matches.length === 0) {
+        setAiError(`AI tidak menemukan produk yang pas untuk "${q}". Coba jelaskan fungsinya dengan kalimat lain.`);
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Pencarian AI gagal");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const clearAISearch = () => {
+    setAiActive(false);
+    setAiMatches([]);
+    setAiInterpretation("");
+    setAiError("");
+    setQuery("");
+    setPage(1);
+  };
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -171,9 +235,38 @@ export function InventoryTable({
   return <>
     <div className="toolbar-card inventory-toolbar">
       <div className="inventory-toolbar-top">
-        <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
+        <div className={`search-box ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
           <Search size={18}/>
-          <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Cari produk, varian, barcode, SKU, atau merek..."/>
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+              if (aiActive) {
+                setAiActive(false);
+                setAiMatches([]);
+                setAiInterpretation("");
+                setAiError("");
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && query.trim()) {
+                event.preventDefault();
+                handleAISearch();
+              }
+            }}
+            placeholder="Cari produk, varian, barcode, SKU, merek, atau sebutan apa saja..."
+          />
+          <button
+            type="button"
+            className={`table-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
+            title="Pencarian Cerdas AI (Pahami istilah slang, fungsi barang, atau sebutan pembeli)"
+            onClick={() => handleAISearch()}
+            disabled={aiSearching}
+          >
+            {aiSearching ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+            <span>{aiSearching ? "AI..." : "AI"}</span>
+          </button>
         </div>
         <div className="inventory-toolbar-filters">
           <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="">Semua kategori</option>{categories.map((name) => <option key={name}>{name}</option>)}</select>
@@ -197,6 +290,35 @@ export function InventoryTable({
       </div>
     </div>
 
+    {aiError ? (
+      <div className="alert error table-ai-error" style={{ margin: "10px 0" }}>
+        {aiError}
+      </div>
+    ) : null}
+
+    {aiActive ? (
+      <div className="table-ai-banner">
+        <div className="table-ai-banner-left">
+          <span className="table-ai-sparkle-pill">
+            <Sparkles size={13} />
+            <span>Analisis AI</span>
+          </span>
+          <div className="table-ai-banner-text">
+            <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
+            <small>Ditemukan {filtered.length} produk di inventori yang sesuai dengan pencarian Anda.</small>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="table-ai-clear-btn"
+          onClick={clearAISearch}
+        >
+          <X size={14} />
+          <span>Bersihkan AI</span>
+        </button>
+      </div>
+    ) : null}
+
     <div className="product-result-summary inventory-result-summary"><strong>{filtered.length.toLocaleString("id-ID")}</strong><span>dari {products.length.toLocaleString("id-ID")} produk · menampilkan {filtered.length ? pageStart + 1 : 0}–{Math.min(pageStart + pageSize, filtered.length)}</span></div>
 
     <div className="inventory-mobile-list">
@@ -204,8 +326,9 @@ export function InventoryTable({
         const variants = (product.variants ?? []).filter((variant) => variant.is_active);
         const total = stores.reduce((sum, store) => sum + (product.stocks[store.id]?.quantity_available ?? 0), 0);
         const conditionValue = stateByProductId.get(product.id) ?? "out";
-        return <article className="inventory-mobile-card" key={product.id}>
-          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><div className="inventory-mobile-tags"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></header>
+        const aiMatch = aiMatchMap.get(product.id);
+        return <article className={`inventory-mobile-card ${aiMatch ? "is-ai-matched" : ""}`} key={product.id}>
+          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch ? <span className="table-row-ai-badge" title={aiMatch.reason}><Sparkles size={11} /><span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span></span> : null}<div className="inventory-mobile-tags"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></header>
           <div className="inventory-mobile-metrics"><div><span>Minimum</span><strong>{product.minimum_stock} <small>{product.unit}</small></strong></div><div><span>Total</span><strong>{total} <small>{product.unit}</small></strong></div><div className="inventory-condition"><span>Kondisi</span><StatusBadge tone={tone(conditionValue)}>{label(conditionValue)}</StatusBadge></div></div>
           {variants.length ? <div className="variant-inventory-mobile-list">{variants.map((variant) => {
             const variantTotal = stores.reduce((sum, store) => sum + (variant.stocks?.[store.id]?.quantity_on_hand ?? 0), 0);
@@ -240,8 +363,9 @@ export function InventoryTable({
       {pagedProducts.map((product) => {
         const variants = (product.variants ?? []).filter((variant) => variant.is_active);
         const productCondition = stateByProductId.get(product.id) ?? "out";
+        const aiMatch = aiMatchMap.get(product.id);
         return <Fragment key={product.id}>
-          <tr className={variants.length ? "inventory-product-summary-row" : ""}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong><div className="inventory-product-meta"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
+          <tr className={`${variants.length ? "inventory-product-summary-row" : ""} ${aiMatch ? "table-row-ai-match" : ""}`}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch ? <span className="table-row-ai-badge" title={aiMatch.reason}><Sparkles size={11} /><span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span></span> : null}<div className="inventory-product-meta"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
             const row = product.stocks[store.id];
             return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}</span></div>{!variants.length && editable.has(store.id) ? (
               <button

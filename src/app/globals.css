@@ -8745,7 +8745,7 @@ html.dark .thermal-status-card.is-connected .thermal-status-indicator strong,
   min-width: 68px !important;
   border: 0 !important;
   border-left: 1px solid var(--line, #e2e8f0) !important;
-  border-radius: 0 !important;
+  border-radius: 0 12px 12px 0 !important;
   background: transparent !important;
   color: var(--blue, #0b4cc2) !important;
   display: inline-flex !important;
@@ -9912,6 +9912,310 @@ html.dark .ai-guide-box p,
 [data-theme="dark"] .ai-guide-box p {
   color: #94a3b8;
 }
+
+/* ==========================================================================
+   UNIVERSAL AI PRODUCT SEARCH (TABLES & COMBOBOXES)
+   ========================================================================== */
+
+/* Universal Table AI Search Button */
+.search-box .table-ai-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.search-box .table-ai-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #4338ca;
+}
+
+.search-box .table-ai-btn.is-active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+
+.search-box .table-ai-btn.is-searching {
+  opacity: 0.8;
+}
+
+/* Universal Table AI Result Banner */
+.table-ai-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 14px 0;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(124, 58, 237, 0.05));
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.04);
+}
+
+.table-ai-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.table-ai-sparkle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+
+.table-ai-banner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.table-ai-banner-text strong {
+  font-size: 12.5px;
+  color: var(--ink, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-ai-banner-text small {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+  margin-top: 1px;
+}
+
+.table-ai-clear-btn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: var(--surface, #ffffff);
+  color: var(--ink, #0f172a);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.table-ai-clear-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* Row highlights for AI matched products */
+tr.table-row-ai-match {
+  background: rgba(99, 102, 241, 0.04) !important;
+}
+
+.product-mobile-card.is-ai-matched,
+.inventory-mobile-card.is-ai-matched {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.03) 0%, var(--surface, #ffffff) 50%) !important;
+}
+
+.table-row-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* Combobox (ProductSearchSelect) AI styles */
+.combobox-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.combobox-ai-btn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.combobox-ai-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #4338ca;
+}
+
+.combobox-ai-btn.is-active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.combobox-ai-btn.is-searching {
+  opacity: 0.8;
+}
+
+.combobox-ai-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 11px;
+}
+
+.combobox-ai-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #4f46e5;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.combobox-ai-banner-left span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combobox-ai-clear-btn {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.combobox-ai-clear-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink, #0f172a);
+}
+
+.combobox-ai-error {
+  padding: 6px 12px;
+  background: var(--red-soft, #fef2f2);
+  color: var(--red, #ef4444);
+  font-size: 11px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.combobox-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox-results button.is-ai-matched {
+  background: rgba(99, 102, 241, 0.03);
+}
+
+/* Dark mode support */
+html.dark .search-box .table-ai-btn,
+[data-theme="dark"] .search-box .table-ai-btn,
+html.dark .combobox-ai-btn,
+[data-theme="dark"] .combobox-ai-btn {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+}
+
+html.dark .table-ai-banner,
+[data-theme="dark"] .table-ai-banner {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+html.dark .table-ai-clear-btn,
+[data-theme="dark"] .table-ai-clear-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html.dark .table-row-ai-badge,
+[data-theme="dark"] .table-row-ai-badge,
+html.dark .combobox-ai-badge,
+[data-theme="dark"] .combobox-ai-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+html.dark .combobox-ai-banner,
+[data-theme="dark"] .combobox-ai-banner {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+html.dark .combobox-ai-banner-left,
+[data-theme="dark"] .combobox-ai-banner-left {
+  color: #a5b4fc;
+}
+
+html.dark tr.table-row-ai-match,
+[data-theme="dark"] tr.table-row-ai-match {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
 
 
 

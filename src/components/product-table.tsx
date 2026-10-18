@@ -1,14 +1,15 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { Barcode, Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, PackageOpen, Search, Tag } from "lucide-react";
+import { Barcode, Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, Loader2, PackageOpen, Search, Sparkles, Tag, X } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { BarcodePrintModal } from "@/components/barcode-print-modal";
 import { ProductVisual } from "@/components/product-visual";
 import { StatusBadge } from "@/components/ui";
+import { executeAISearch } from "@/lib/ai-search-client";
 import { formatCurrency } from "@/lib/format";
-import type { Product, ProductVisual as ProductVisualType, Store } from "@/lib/types";
+import type { AIMatchItem, Product, ProductVisual as ProductVisualType, Store } from "@/lib/types";
 
 type Category = { id: string; name: string };
 
@@ -48,6 +49,13 @@ export function ProductTable({
   const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
   const [barcodeModalVariantId, setBarcodeModalVariantId] = useState<string | undefined>(undefined);
 
+  // AI Search states
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiMatches, setAiMatches] = useState<AIMatchItem[]>([]);
+  const [aiInterpretation, setAiInterpretation] = useState("");
+  const [aiError, setAiError] = useState("");
+
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
@@ -60,17 +68,37 @@ export function ProductTable({
     return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
   }, [products]);
 
+  const aiMatchMap = useMemo(() => new Map(aiMatches.map((m) => [m.product_id, m])), [aiMatches]);
+
   const indexedProducts = useMemo(() => products.map((product) => ({
     product,
     searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${(product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ")}`.toLocaleLowerCase("id-ID"),
   })), [products]);
 
-  const filtered = useMemo(() => indexedProducts.filter(({ product, searchText }) =>
-    (!normalizedQuery || searchText.includes(normalizedQuery))
-    && (!category || product.category === category)
-    && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
-    && (!status || (status === "active" ? product.is_active : !product.is_active))
-  ).map(({ product }) => product), [indexedProducts, normalizedQuery, category, brandFilter, status]);
+  const filtered = useMemo(() => {
+    if (aiActive && aiMatches.length > 0) {
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      const list: Product[] = [];
+      for (const m of aiMatches) {
+        const prod = productMap.get(m.product_id);
+        if (prod && !list.includes(prod)) {
+          if ((!category || prod.category === category)
+            && (!brandFilter || (prod.brand?.trim() || "Tanpa Merek") === brandFilter)
+            && (!status || (status === "active" ? prod.is_active : !prod.is_active))) {
+            list.push(prod);
+          }
+        }
+      }
+      return list;
+    }
+
+    return indexedProducts.filter(({ product, searchText }) =>
+      (!normalizedQuery || searchText.includes(normalizedQuery))
+      && (!category || product.category === category)
+      && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
+      && (!status || (status === "active" ? product.is_active : !product.is_active))
+    ).map(({ product }) => product);
+  }, [aiActive, aiMatches, products, indexedProducts, normalizedQuery, category, brandFilter, status]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -99,6 +127,41 @@ export function ProductTable({
     setExpanded(null);
   };
 
+  const handleAISearch = async (manualQuery?: string) => {
+    const q = (typeof manualQuery === "string" ? manualQuery : query).trim();
+    if (!q) return;
+
+    setAiSearching(true);
+    setAiError("");
+    try {
+      const res = await executeAISearch(q, { includeInactive: true });
+      if (!res.success) {
+        setAiError(res.error || "Pencarian AI gagal");
+        return;
+      }
+      setAiInterpretation(res.interpretation || "");
+      setAiMatches(res.matches || []);
+      setAiActive(true);
+      resetView();
+      if (!res.matches || res.matches.length === 0) {
+        setAiError(`AI tidak menemukan produk yang cocok untuk "${q}". Coba jelaskan fungsinya atau gunakan kata kunci lain.`);
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Pencarian AI gagal");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const clearAISearch = () => {
+    setAiActive(false);
+    setAiMatches([]);
+    setAiInterpretation("");
+    setAiError("");
+    setQuery("");
+    resetView();
+  };
+
   const toggleExpanded = (productId: string) => {
     setExpanded((current) => current === productId ? null : productId);
   };
@@ -107,13 +170,38 @@ export function ProductTable({
     <>
       <div className="toolbar-card product-toolbar">
         <div className="product-toolbar-top">
-          <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
+          <div className={`search-box ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
             <Search size={18}/>
             <input
               value={query}
-              onChange={(event) => { setQuery(event.target.value); resetView(); }}
-              placeholder="Cari produk, varian, SKU, barcode, atau merek..."
+              onChange={(event) => {
+                setQuery(event.target.value);
+                resetView();
+                if (aiActive) {
+                  setAiActive(false);
+                  setAiMatches([]);
+                  setAiInterpretation("");
+                  setAiError("");
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && query.trim()) {
+                  event.preventDefault();
+                  handleAISearch();
+                }
+              }}
+              placeholder="Cari produk, varian, SKU, barcode, merek, atau sebutan apa saja..."
             />
+            <button
+              type="button"
+              className={`table-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
+              title="Pencarian Cerdas AI (Pahami istilah slang, fungsi barang, atau sebutan pembeli)"
+              onClick={() => handleAISearch()}
+              disabled={aiSearching}
+            >
+              {aiSearching ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+              <span>{aiSearching ? "AI..." : "AI"}</span>
+            </button>
           </div>
           <div className="product-toolbar-filters">
             <select className="select" value={category} onChange={(event) => { setCategory(event.target.value); resetView(); }}>
@@ -163,6 +251,35 @@ export function ProductTable({
         </div>
       </div>
 
+      {aiError ? (
+        <div className="alert error table-ai-error" style={{ margin: "10px 0" }}>
+          {aiError}
+        </div>
+      ) : null}
+
+      {aiActive ? (
+        <div className="table-ai-banner">
+          <div className="table-ai-banner-left">
+            <span className="table-ai-sparkle-pill">
+              <Sparkles size={13} />
+              <span>Analisis AI</span>
+            </span>
+            <div className="table-ai-banner-text">
+              <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
+              <small>Ditemukan {filtered.length} produk di katalog yang sesuai dengan pencarian Anda.</small>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="table-ai-clear-btn"
+            onClick={clearAISearch}
+          >
+            <X size={14} />
+            <span>Bersihkan AI</span>
+          </button>
+        </div>
+      ) : null}
+
       <div className="product-result-summary">
         <strong>{filtered.length.toLocaleString("id-ID")}</strong>
         <span>dari {products.length.toLocaleString("id-ID")} produk · menampilkan {filtered.length ? pageStart + 1 : 0}–{Math.min(pageStart + pageSize, filtered.length)}</span>
@@ -172,12 +289,19 @@ export function ProductTable({
         {pagedProducts.map((product) => {
           const variants = product.variants ?? [];
           const isExpanded = expanded === product.id;
+          const aiMatch = aiMatchMap.get(product.id);
           return (
-            <article className="product-mobile-card" key={product.id}>
+            <article className={`product-mobile-card ${aiMatch ? "is-ai-matched" : ""}`} key={product.id}>
               <header className="product-mobile-card-head">
                 <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/>
                 <div className="product-mobile-title">
                   <strong>{product.name}</strong>
+                  {aiMatch ? (
+                    <span className="table-row-ai-badge" title={aiMatch.reason}>
+                      <Sparkles size={11} />
+                      <span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span>
+                    </span>
+                  ) : null}
                   <div className="product-mobile-brand-row">
                     <span className={`product-brand-tag ${!product.brand ? "muted" : ""}`}>
                       {product.brand || "Tanpa Merek"}
@@ -360,14 +484,21 @@ export function ProductTable({
             {pagedProducts.map((product) => {
               const variants = product.variants ?? [];
               const isExpanded = expanded === product.id;
+              const aiMatch = aiMatchMap.get(product.id);
               return (
                 <Fragment key={product.id}>
-                  <tr>
+                  <tr className={aiMatch ? "table-row-ai-match" : ""}>
                     <td data-label="Produk">
                       <div className="product-cell">
                         <ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/>
                         <div>
                           <strong>{product.name}</strong>
+                          {aiMatch ? (
+                            <span className="table-row-ai-badge" title={aiMatch.reason}>
+                              <Sparkles size={11} />
+                              <span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span>
+                            </span>
+                          ) : null}
                           <span className="product-cell-unit">Satuan: {product.unit}</span>
                           {variants.length ? (
                             <button type="button" className="variant-count-button" onClick={() => toggleExpanded(product.id)}>

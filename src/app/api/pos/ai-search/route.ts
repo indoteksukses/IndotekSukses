@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const query = String(body.query ?? "").trim();
     const storeId = body.store_id ? String(body.store_id) : undefined;
+    const includeInactive = Boolean(body.include_inactive);
 
     if (!query) {
       return NextResponse.json({ success: true, query: "", matches: [] });
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
           query,
           matches: [],
           error:
-            "Pengaturan AI belum lengkap. Harap masukkan Base URL dan Nama Model di menu Pengaturan atau melalui tombol Pengaturan AI di POS.",
+            "Pengaturan AI belum lengkap. Harap masukkan Base URL dan Nama Model di menu Pengaturan (Pengaturan Sistem > Pengaturan AI).",
         },
         { status: 400 }
       );
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     // Load store catalog
-    const products: Product[] = await getProductsWithStocks(storeId, false);
+    const products: Product[] = await getProductsWithStocks(storeId, includeInactive);
     if (!products || products.length === 0) {
       return NextResponse.json({
         success: true,
@@ -88,39 +89,40 @@ export async function POST(request: Request) {
       };
     });
 
-    const systemPrompt = `Anda adalah asisten pencarian cerdas katalog barang toko teknik & bangunan "Indotek Sukses".
-Tugas Anda adalah memetakan perkataan pembeli (yang seringkali menggunakan bahasa sehari-hari, bahasa tukang, nama daerah/slang, atau deskripsi fungsi) ke produk dan varian yang tepat di katalog toko kami.
+    const systemPrompt = `Anda adalah AI Search Engine Semantik UNIVERSAL untuk seluruh katalog barang toko "Indotek Sukses".
+Tugas Anda adalah memetakan kueri pencarian APA PUN dari pengguna (pembeli, kasir, admin gudang, maupun manajer) ke produk dan varian yang paling tepat di katalog toko.
 
-Karakteristik permintaan pembeli:
-1. Istilah Sehari-hari / Slang:
-   - "kran leher angsa / lentur / cuci piring" -> Kran Sink Fleksibel
-   - "batu gerinda tipis potong besi" -> Batu Gerinda Potong WD
-   - "lem paralon pipa" -> Lem Pipa PVC
-   - "mata bor beton" -> Mata Bor Tembok / Beton
-   - "stop kontak colokan panjang" -> Stop Kontak Kabel
-   - "kabel serabut merah hitam" -> Kabel Twin / Speaker / NYAF
-   - "kunci inggris sedang" -> Kunci Inggris 8" / 10"
-   - "obeng bolak balik" -> Obeng 2 Way
-   - "gembok leher panjang" -> Gembok Long
-2. Ukuran atau varian spesifik (misal: 4 inch, 10mm, 3 meter, meja vs tembok).
+Kueri pencarian bisa berupa:
+1. SEBUTAN SEHARI-HARI / SLANG / BAHASA TUKANG / NAMA ALTERNATIF:
+   - Contoh: "sanyo", "drat", "nepel", "tang cucut", "tang buaya", "kunci inggris", "batu gerinda wd", "lem alteco / lem setan / lem korea", "perlak", "seal tape", "lem bakar / glue gun", "kabel serabut merah hitam", "obeng bolak-balik", "gembok leher panjang", "baut roofing / baja ringan", "fitting colokan gantung", "mata sok", "mata gerinda asah/potong", dll.
+2. DESKRIPSI FUNGSI / KEGUNAAN / MASALAH / SOLUSI:
+   - Contoh: "buat nambal atap seng bocor", "alat potong kabel kawat", "buat sambungan pipa leter L atau T", "alat buat buka baut yang macet / slek", "kran cuci piring yang bisa ditekuk lehernya", "lampu tidur warna kuning hangat", "colokan listrik cabang 3 atau 4", "buat nempel keramik / granit", "pelapis anti bocor", dll.
+3. BENTUK FISIK / CIRI / WARNA / MATERIAL:
+   - Contoh: "yang warna hitam doff", "bentuk spiral", "leher fleksibel lentur", "bulat pipih", "besi siku ambalan rak", "kuningan", "stainless", "pipa pvc abu-abu", "mata obeng kembang / minus", dll.
+4. UKURAN / SPESIFIKASI / VARIAN SPESIFIK:
+   - Contoh: "4 inch", "10 mili", "2 x 1.5", "1/2 inch", "3/4 inch", "3 meter", "5 meter", "tebal 1mm", "ukuran sedang", "isi 50 pcs", meja vs tembok, dll.
+5. TYPO / PLESETAN / SALAH KETIK / SALAH SEBUT / SINGKATAN:
+   - Toleransi tinggi terhadap salah ketik atau ejaan kasar pengguna.
+6. PERTANYAAN BEBAS / KALIMAT PANJANG:
+   - Contoh: "ada barang yang bisa dipakai untuk potong hollow baja ringan?", "cari kran yang pasang di dinding dapur", "stop kontak yang kabelnya panjang ada?".
 
 PANDUAN OUTPUT:
-Pilih maksimal 5 produk (atau varian) yang PALING RELEVAN dari katalog yang disediakan.
+Pilih maksimal 6 produk (beserta varian jika spesifik) yang PALING COCOK dari katalog yang disediakan.
 Kembalikan HANYA teks JSON valid dengan struktur:
 {
-  "interpretation": "Penjelasan singkat maksud pembeli (maksimal 1 kalimat)",
+  "interpretation": "Penjelasan singkat maksud pengguna (maksimal 1 kalimat)",
   "matches": [
     {
       "product_id": "ID_PRODUK",
       "variant_id": "ID_VARIAN_JIKA_ADA_ATAU_NULL",
       "confidence": 0.95,
-      "reason": "Alasan singkat kecocokan (misal: Sesuai fungsi kran cuci piring leher fleksibel)"
+      "reason": "Alasan singkat mengapa produk/varian ini cocok (contoh: Sesuai fungsi kran cuci piring leher lentur fleksibel)"
     }
   ]
 }
-Catatan: Jika benar-benar tidak ada barang yang berhubungan, kembalikan matches: []. Jangan membuat ID produk baru di luar katalog yang diberikan.`;
+Catatan Penting: Jangan mengarang ID produk atau varian baru di luar katalog yang diberikan. Jika benar-benar tidak ada produk yang berkaitan di katalog, kembalikan matches: [].`;
 
-    const userPrompt = `Permintaan / Kata Pembeli: "${query}"
+    const userPrompt = `Kueri Pencarian Pengguna: "${query}"
 
 Katalog Toko Tersedia:
 ${JSON.stringify(catalogDigest)}`;

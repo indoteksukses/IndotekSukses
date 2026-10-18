@@ -2,11 +2,12 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Layers3, Search, X } from "lucide-react";
-import type { Product, ProductVariant } from "@/lib/types";
+import { Check, ChevronDown, Layers3, Loader2, Search, Sparkles, X } from "lucide-react";
+import { executeAISearch } from "@/lib/ai-search-client";
+import type { AIMatchItem, Product, ProductVariant } from "@/lib/types";
 
 type PickerPosition = { mobile: boolean; top: number; left: number; width: number; maxHeight: number; placement: "up" | "down" };
-type ItemOption = { product: Product; variant: ProductVariant | null; key: string };
+type ItemOption = { product: Product; variant: ProductVariant | null; key: string; aiReason?: string };
 
 export function ProductSearchSelect({
   products = [],
@@ -58,13 +59,48 @@ export function ProductSearchSelect({
     placement: "down",
   });
 
+  // AI Search states
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiMatches, setAiMatches] = useState<AIMatchItem[]>([]);
+  const [aiInterpretation, setAiInterpretation] = useState("");
+  const [aiError, setAiError] = useState("");
+
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Multi-term search: split keywords by whitespace so that "Amplas 100", "Angker DCA", etc. always match
-  const filtered = useMemo(() => {
+  // Multi-term search or AI prioritized results
+  const filtered = useMemo<ItemOption[]>(() => {
+    if (aiActive && aiMatches.length > 0) {
+      const optionMap = new Map<string, ItemOption>();
+      for (const opt of options) {
+        optionMap.set(opt.key, opt);
+      }
+
+      const prioritized: ItemOption[] = [];
+      const seenKeys = new Set<string>();
+
+      for (const m of aiMatches) {
+        const specificKey = m.variant_id ? `${m.product_id}:${m.variant_id}` : null;
+        if (specificKey && optionMap.has(specificKey) && !seenKeys.has(specificKey)) {
+          seenKeys.add(specificKey);
+          prioritized.push({ ...optionMap.get(specificKey)!, aiReason: m.reason });
+        } else {
+          const matchingOptions = options.filter((opt) => opt.product.id === m.product_id);
+          for (const opt of matchingOptions) {
+            if (!seenKeys.has(opt.key)) {
+              seenKeys.add(opt.key);
+              prioritized.push({ ...opt, aiReason: m.reason });
+            }
+          }
+        }
+      }
+
+      return prioritized;
+    }
+
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return options.slice(0, 150);
 
@@ -74,7 +110,40 @@ export function ProductSearchSelect({
       return terms.every((term) => haystack.includes(term));
     });
     return rows.slice(0, 150);
-  }, [options, query]);
+  }, [options, query, aiActive, aiMatches]);
+
+  const handleAISearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+
+    setAiSearching(true);
+    setAiError("");
+    try {
+      const res = await executeAISearch(q, { storeId });
+      if (!res.success) {
+        setAiError(res.error || "Pencarian AI gagal");
+        return;
+      }
+      setAiInterpretation(res.interpretation || "");
+      setAiMatches(res.matches || []);
+      setAiActive(true);
+      if (!res.matches || res.matches.length === 0) {
+        setAiError(`AI tidak menemukan produk untuk "${q}".`);
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Pencarian AI gagal");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const clearAISearch = () => {
+    setAiActive(false);
+    setAiMatches([]);
+    setAiInterpretation("");
+    setAiError("");
+    setQuery("");
+  };
 
   const calculatePosition = () => {
     const trigger = triggerRef.current;
@@ -185,14 +254,38 @@ export function ProductSearchSelect({
           <input
             ref={searchInputRef}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              if (aiActive) {
+                setAiActive(false);
+                setAiMatches([]);
+                setAiInterpretation("");
+                setAiError("");
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && query.trim()) {
+                event.preventDefault();
+                handleAISearch();
+              }
+            }}
             placeholder={placeholder}
           />
+          <button
+            type="button"
+            className={`combobox-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
+            title="Pencarian Cerdas AI (Pahami sebutan tukang, istilah slang, fungsi barang)"
+            onClick={handleAISearch}
+            disabled={aiSearching}
+          >
+            {aiSearching ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+            <span>AI</span>
+          </button>
           {query ? (
             <button
               type="button"
               className="combobox-clear-input"
-              onClick={() => setQuery("")}
+              onClick={clearAISearch}
               aria-label="Bersihkan pencarian"
             >
               <X size={15} />
@@ -201,12 +294,38 @@ export function ProductSearchSelect({
           <button
             type="button"
             className="product-picker-close"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              clearAISearch();
+            }}
             aria-label="Tutup"
           >
             <X size={18} />
           </button>
         </div>
+
+        {aiError ? (
+          <div className="combobox-ai-error">
+            <span>{aiError}</span>
+          </div>
+        ) : null}
+
+        {aiActive ? (
+          <div className="combobox-ai-banner">
+            <div className="combobox-ai-banner-left">
+              <Sparkles size={12} />
+              <span>{aiInterpretation || `Rekomendasi AI untuk "${query}"`}</span>
+            </div>
+            <button
+              type="button"
+              className="combobox-ai-clear-btn"
+              onClick={clearAISearch}
+              title="Bersihkan AI"
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ) : null}
 
         <div className="combobox-results variant-aware-results">
           {filtered.map((option) => {
@@ -219,11 +338,12 @@ export function ProductSearchSelect({
               <button
                 type="button"
                 key={option.key}
-                className={active ? "selected" : ""}
+                className={`${active ? "selected" : ""} ${option.aiReason ? "is-ai-matched" : ""}`}
                 onClick={() => {
                   onChange(option.product.id, option.variant?.id ?? null);
                   setOpen(false);
                   setQuery("");
+                  clearAISearch();
                 }}
               >
                 <div className="picker-item-copy">
@@ -233,6 +353,12 @@ export function ProductSearchSelect({
                       <span className="picker-variant-badge">
                         <Layers3 size={12} />
                         <span>{option.variant.name}</span>
+                      </span>
+                    ) : null}
+                    {option.aiReason ? (
+                      <span className="combobox-ai-badge" title={option.aiReason}>
+                        <Sparkles size={10} />
+                        <span>{option.aiReason}</span>
                       </span>
                     ) : null}
                   </div>

@@ -352,21 +352,12 @@ export function PosTerminal({ products, store, shiftId = null, settings = null }
           <button
             type="button"
             className={`pos-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
-            title="Pencarian Cerdas AI (Pahami bahasa pembeli, istilah slang, atau fungsi barang)"
+            title="Pencarian Cerdas AI (Pahami sebutan, istilah slang, atau fungsi barang)"
             onClick={() => handleAISearch()}
             disabled={aiSearching}
           >
             {aiSearching ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
             <span>{aiSearching ? "AI..." : "AI"}</span>
-          </button>
-          <button
-            type="button"
-            className="pos-ai-gear-btn"
-            title="Pengaturan AI (Base URL & Model)"
-            onClick={() => setAiSettingsOpen(true)}
-            aria-label="Pengaturan AI"
-          >
-            <Settings2 size={15} />
           </button>
           <button
             type="button"
@@ -377,9 +368,9 @@ export function PosTerminal({ products, store, shiftId = null, settings = null }
             <ScanBarcode size={18} />
             <span>Scan</span>
           </button>
-          <ThermalPrinterButton variant="pos" />
         </div>
       </div>
+
 
       {aiActive ? (
         <div className="pos-ai-result-banner">

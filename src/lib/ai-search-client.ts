@@ -116,6 +116,7 @@ export async function executeAISearch(
   query: string,
   options?: {
     storeId?: string;
+    includeInactive?: boolean;
     settings?: AISettings;
   }
 ): Promise<AISearchResponse> {
@@ -125,12 +126,13 @@ export async function executeAISearch(
   }
 
   try {
-    const res = await fetch("/api/pos/ai-search", {
+    const res = await fetch("/api/ai-search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: cleanQuery,
         store_id: options?.storeId,
+        include_inactive: options?.includeInactive,
         base_url: options?.settings?.base_url,
         model: options?.settings?.model,
         api_key: options?.settings?.api_key,
