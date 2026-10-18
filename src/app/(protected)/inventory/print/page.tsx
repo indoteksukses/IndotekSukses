@@ -24,7 +24,7 @@ export default async function InventoryPrintPage({
   const storeScopeId = params.store || "all";
   const categoryFilter = params.cat || "";
   const brandFilter = params.brand || "";
-  const orientation = params.orientation === "portrait" ? "portrait" : "landscape";
+  const orientation = params.orientation === "landscape" ? "landscape" : "portrait";
 
   const [stores, products, profile, settings] = await Promise.all([
     getNetworkInventoryStores(),

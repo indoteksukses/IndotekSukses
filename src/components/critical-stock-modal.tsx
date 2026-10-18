@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, ExternalLink, FileSpreadsheet, FileText, Printer, Search, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, ExternalLink, FileSpreadsheet, FileText, Filter, Printer, Search, X } from "lucide-react";
 import type { Product, Store, SystemSettings, UserProfile } from "@/lib/types";
 import { formatDateTime } from "@/lib/format";
 import { CriticalStockDocument } from "@/components/critical-stock-document";
@@ -182,10 +182,12 @@ export function CriticalStockModal({
   const [brandFilter, setBrandFilter] = useState<string>(initialBrand);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"severity" | "name" | "deficit">("severity");
-  const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
+  // Default to portrait (tegak) as requested
+  const [orientation, setOrientation] = useState<"landscape" | "portrait">("portrait");
   const [showSignatures, setShowSignatures] = useState(true);
   const [showBarcode, setShowBarcode] = useState(true);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showExtraFilters, setShowExtraFilters] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -432,7 +434,7 @@ export function CriticalStockModal({
                 <AlertTriangle size={14} /> Dokumen Stok Kritis
               </div>
               <h2>Ekspor PDF Stok Menipis & Habis</h2>
-              <p>Atur filter, tinjau pratinjau dokumen cetak resmi, lalu simpan sebagai PDF atau cetak.</p>
+              <p>Format resmi A4 siap cetak & simpan PDF.</p>
             </div>
             <button type="button" className="icon-button" onClick={onClose} title="Tutup modal">
               <X size={20} />
@@ -463,37 +465,13 @@ export function CriticalStockModal({
                 </select>
               </label>
 
-              <label>
-                <span>Kategori</span>
-                <select className="select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                  <option value="">Semua Kategori</option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>Merek</span>
-                <select className="select" value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
-                  <option value="">Semua Merek</option>
-                  {brands.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <label className="critical-stock-search-field">
                 <span>Cari Item</span>
                 <div className="critical-stock-search-input">
                   <Search size={15} />
                   <input
                     type="text"
-                    placeholder="Cari nama, SKU, atau varian..."
+                    placeholder="Nama, SKU, varian..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -505,19 +483,66 @@ export function CriticalStockModal({
                 </div>
               </label>
 
-              <label>
-                <span>Urutkan</span>
-                <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
-                  <option value="severity">Tingkat Kritis (Habis dahulu)</option>
-                  <option value="deficit">Defisit Restok Terbanyak</option>
-                  <option value="name">Nama Produk (A–Z)</option>
-                </select>
-              </label>
+              <div className="critical-stock-extra-toggle-wrap">
+                <button
+                  type="button"
+                  className="button secondary critical-stock-filter-toggle-btn"
+                  onClick={() => setShowExtraFilters(!showExtraFilters)}
+                >
+                  <Filter size={14} />
+                  <span>{showExtraFilters ? "Tutup Filter Tambahan" : "Filter Lebih Lengkap"}</span>
+                  {showExtraFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
+
+              {showExtraFilters ? (
+                <>
+                  <label>
+                    <span>Kategori</span>
+                    <select className="select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                      <option value="">Semua Kategori</option>
+                      {categories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Merek</span>
+                    <select className="select" value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
+                      <option value="">Semua Merek</option>
+                      {brands.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Urutkan</span>
+                    <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                      <option value="severity">Tingkat Kritis (Habis dahulu)</option>
+                      <option value="deficit">Defisit Restok Terbanyak</option>
+                      <option value="name">Nama Produk (A–Z)</option>
+                    </select>
+                  </label>
+                </>
+              ) : null}
             </div>
 
             <div className="critical-stock-options-bar">
               <div className="critical-stock-toggle-group">
-                <span className="critical-stock-opt-label">Tata Letak PDF:</span>
+                <span className="critical-stock-opt-label">Tata Letak:</span>
+                <button
+                  type="button"
+                  className={`button-toggle ${orientation === "portrait" ? "active" : ""}`}
+                  onClick={() => setOrientation("portrait")}
+                >
+                  Portrait (Tegak - Default)
+                </button>
                 <button
                   type="button"
                   className={`button-toggle ${orientation === "landscape" ? "active" : ""}`}
@@ -525,23 +550,16 @@ export function CriticalStockModal({
                 >
                   Landscape (Lebar)
                 </button>
-                <button
-                  type="button"
-                  className={`button-toggle ${orientation === "portrait" ? "active" : ""}`}
-                  onClick={() => setOrientation("portrait")}
-                >
-                  Portrait (Tegak)
-                </button>
               </div>
 
               <div className="critical-stock-checkbox-group">
                 <label className="critical-stock-check">
                   <input type="checkbox" checked={showSignatures} onChange={(e) => setShowSignatures(e.target.checked)} />
-                  <span>Kolom Tanda Tangan & Verifikasi</span>
+                  <span>Kolom Tanda Tangan</span>
                 </label>
                 <label className="critical-stock-check">
                   <input type="checkbox" checked={showBarcode} onChange={(e) => setShowBarcode(e.target.checked)} />
-                  <span>Tampilkan Barcode</span>
+                  <span>Barcode</span>
                 </label>
               </div>
             </div>
@@ -550,19 +568,19 @@ export function CriticalStockModal({
           {/* Live KPI Metric Strip */}
           <div className="critical-stock-kpi-bar no-print">
             <div className="critical-stock-kpi-card tone-total">
-              <span className="kpi-label">Total Item Kritis</span>
-              <strong className="kpi-value">{metrics.totalCount} <small>SKU / Varian</small></strong>
+              <span className="kpi-label">Total Kritis</span>
+              <strong className="kpi-value">{metrics.totalCount} <small>SKU</small></strong>
             </div>
             <div className="critical-stock-kpi-card tone-danger">
-              <span className="kpi-label">Stok Habis (Kosong)</span>
-              <strong className="kpi-value">{metrics.outCount} <small>Item</small></strong>
+              <span className="kpi-label">Stok Habis</span>
+              <strong className="kpi-value">{metrics.outCount} <small>SKU</small></strong>
             </div>
             <div className="critical-stock-kpi-card tone-warning">
               <span className="kpi-label">Stok Menipis</span>
-              <strong className="kpi-value">{metrics.lowCount} <small>Item</small></strong>
+              <strong className="kpi-value">{metrics.lowCount} <small>SKU</small></strong>
             </div>
             <div className="critical-stock-kpi-card tone-info">
-              <span className="kpi-label">Total Defisit Restok</span>
+              <span className="kpi-label">Defisit Restok</span>
               <strong className="kpi-value">+{metrics.totalDeficit.toLocaleString("id-ID")} <small>Unit</small></strong>
             </div>
           </div>
@@ -570,17 +588,22 @@ export function CriticalStockModal({
           {/* Preview Scroll Container (Screen view) */}
           <div className="critical-stock-preview-viewport no-print">
             <div className="critical-stock-preview-header-hint no-print">
-              <FileText size={15} />
-              <span>Pratinjau Dokumen (A4 {orientation === "landscape" ? "Landscape" : "Portrait"}):</span>
+              <div className="preview-hint-left">
+                <FileText size={15} />
+                <span>Pratinjau Dokumen (A4 {orientation === "portrait" ? "Portrait / Tegak" : "Landscape / Lebar"}):</span>
+              </div>
+              <span className="mobile-scroll-tip">Geser ke kanan untuk melihat kolom tabel →</span>
             </div>
 
-            <CriticalStockDocument {...docProps} />
+            <div className="critical-stock-document-scroll-wrap">
+              <CriticalStockDocument {...docProps} />
+            </div>
           </div>
 
           {/* Modal Actions Footer */}
           <div className="modal-actions critical-stock-modal-footer no-print">
             <div className="critical-stock-footer-info">
-              <span>Menampilkan <strong>{filteredItems.length}</strong> item siap cetak/ekspor</span>
+              <span>Menampilkan <strong>{filteredItems.length}</strong> item siap cetak</span>
             </div>
             <div className="critical-stock-footer-buttons">
               <button type="button" className="button secondary" onClick={onClose} disabled={isPrinting}>

@@ -7344,6 +7344,40 @@ html.dark .critical-stock-check span,
   }
 }
 
+.critical-stock-document-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 12px;
+}
+
+.critical-stock-extra-toggle-wrap {
+  display: flex;
+  align-items: flex-end;
+}
+
+.critical-stock-filter-toggle-btn {
+  height: 38px;
+  font-size: 11px;
+  gap: 6px;
+  width: 100%;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-scroll-tip {
+  display: none;
+}
+
+.preview-hint-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 @media (max-width: 900px) {
   .critical-stock-controls-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -7353,22 +7387,232 @@ html.dark .critical-stock-check span,
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .critical-stock-modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .critical-stock-modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 95vh !important;
+    max-height: 95vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    border-bottom: none !important;
+  }
+
+  .critical-stock-modal-header {
+    padding: 11px 14px !important;
+  }
+
+  .critical-stock-modal-header h2 {
+    font-size: 14px !important;
+  }
+
+  .critical-stock-modal-header p {
+    font-size: 9.5px !important;
+  }
+
+  .critical-stock-controls-panel {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+
   .critical-stock-controls-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
   }
-  .critical-stock-kpi-bar {
-    grid-template-columns: 1fr;
+
+  .critical-stock-controls-grid label {
+    font-size: 9px !important;
+    gap: 3px !important;
   }
+
+  .critical-stock-controls-grid .select {
+    height: 33px !important;
+    font-size: 10.5px !important;
+    padding: 0 6px !important;
+  }
+
+  .critical-stock-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .critical-stock-search-input {
+    height: 33px !important;
+    font-size: 10.5px !important;
+  }
+
+  .critical-stock-extra-toggle-wrap {
+    grid-column: 1 / -1;
+  }
+
+  .critical-stock-filter-toggle-btn {
+    height: 32px !important;
+    font-size: 10.5px !important;
+  }
+
   .critical-stock-options-bar {
-    flex-direction: column;
-    align-items: flex-start;
+    padding-top: 6px !important;
+    gap: 8px !important;
   }
+
+  .critical-stock-toggle-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .critical-stock-toggle-group .button-toggle {
+    flex: 1;
+    text-align: center;
+    padding: 5px 6px !important;
+    font-size: 10px !important;
+  }
+
+  .critical-stock-checkbox-group {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px !important;
+  }
+
+  .critical-stock-check {
+    font-size: 9.5px !important;
+  }
+
+  .critical-stock-kpi-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 5px !important;
+    padding: 6px 12px !important;
+  }
+
+  .critical-stock-kpi-card {
+    padding: 5px 8px !important;
+    gap: 1px !important;
+  }
+
+  .critical-stock-kpi-card .kpi-label {
+    font-size: 8px !important;
+  }
+
+  .critical-stock-kpi-card .kpi-value {
+    font-size: 13px !important;
+  }
+
+  .critical-stock-kpi-card .kpi-value small {
+    font-size: 9px !important;
+  }
+
+  /* Mobile preview viewport: guaranteed height and horizontal scroll */
+  .critical-stock-preview-viewport {
+    flex: 1 1 0 !important;
+    min-height: 240px !important;
+    padding: 10px 8px !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    background: #1e293b !important;
+  }
+
+  .critical-stock-preview-header-hint {
+    font-size: 9.5px !important;
+    margin-bottom: 6px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 3px !important;
+    width: 100% !important;
+  }
+
+  .mobile-scroll-tip {
+    display: inline-block !important;
+    color: #93c5fd !important;
+    font-size: 9px !important;
+    font-weight: 750 !important;
+    background: rgba(14, 165, 233, 0.15);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .critical-stock-document-scroll-wrap {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    padding-bottom: 14px !important;
+  }
+
+  .critical-stock-document {
+    padding: 16px 12px !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35) !important;
+    margin: 0 !important;
+  }
+
+  .critical-stock-document.layout-portrait {
+    width: 660px !important;
+    min-width: 660px !important;
+    max-width: 660px !important;
+  }
+
+  .critical-stock-document.layout-landscape {
+    width: 880px !important;
+    min-width: 880px !important;
+    max-width: 880px !important;
+  }
+
+  .critical-stock-modal-footer {
+    padding: 8px 12px !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .critical-stock-footer-info {
+    display: none !important;
+  }
+
   .critical-stock-footer-buttons {
-    flex-direction: column;
-    width: 100%;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
   }
-  .critical-stock-footer-buttons button {
-    width: 100%;
+
+  .critical-stock-footer-buttons button,
+  .critical-stock-footer-buttons a {
+    height: 36px !important;
+    font-size: 10.5px !important;
+    padding: 0 6px !important;
+    justify-content: center !important;
+  }
+
+  .critical-stock-footer-buttons .critical-stock-print-btn {
+    grid-column: 1 / -1 !important;
+    height: 42px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* Standalone print page mobile */
+  .inventory-print-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+
+  .inventory-print-toolbar-left,
+  .inventory-print-toolbar-right {
+    width: 100% !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+  }
+
+  .inventory-print-content-wrapper {
+    padding: 10px 6px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
   }
 }

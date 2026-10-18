@@ -2,7 +2,7 @@
 
 import { Printer } from "lucide-react";
 
-export function PrintTriggerButton({ orientation = "landscape" }: { orientation?: "landscape" | "portrait" }) {
+export function PrintTriggerButton({ orientation = "portrait" }: { orientation?: "landscape" | "portrait" }) {
   const handlePrint = () => {
     const styleId = "standalone-print-page-style";
     let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
