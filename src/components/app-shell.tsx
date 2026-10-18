@@ -155,9 +155,6 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
               })}
             </div>
           ))}
-          <div className="sidebar-printer-wrap">
-            <ThermalPrinterButton variant="sidebar" />
-          </div>
         </nav>
         <div className="sidebar-footer">
           <UserAvatar name={profile.full_name} avatarKey={profile.avatar_key}/>

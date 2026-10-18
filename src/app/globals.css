@@ -7688,38 +7688,73 @@ html.dark .format-tab-btn.active,
 
 /* Thermal Toggle & Direct Print Buttons */
 .thermal-toggle-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 0 10px;
+  gap: 7px;
+  height: 40px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 0 13px;
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  color: var(--ink, #152238);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.thermal-toggle-btn:hover {
+  background: var(--surface-subtle, #f8fafc);
+  border-color: var(--blue, #0b4cc2);
+  color: var(--blue, #0b4cc2);
+}
+
+.thermal-toggle-btn.is-connected {
+  border-color: rgba(10, 155, 105, 0.35);
+  background: rgba(10, 155, 105, 0.08);
+  color: #047857;
+}
+
+.thermal-toggle-btn.is-connected:hover {
+  background: rgba(10, 155, 105, 0.14);
 }
 
 .thermal-device-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  color: #10b981;
+  gap: 6px;
+  color: #047857;
   font-weight: 700;
 }
 
 .direct-thermal-btn {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  height: 40px !important;
+  padding: 0 15px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  box-shadow: 0 3px 12px rgba(5, 150, 105, 0.28) !important;
+  transition: all 0.18s ease !important;
 }
 
 .direct-thermal-btn:hover {
-  background: linear-gradient(135deg, #059669, #047857) !important;
+  background: linear-gradient(135deg, #047857, #065f46) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(5, 150, 105, 0.35) !important;
 }
 
 /* Status Indicator Dot */
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7.5px;
+  height: 7.5px;
   border-radius: 50%;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .status-dot.connected {
@@ -8041,11 +8076,12 @@ html.dark .format-tab-btn.active,
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--blue, #0b4cc2), #1d4ed8);
   color: #ffffff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(11, 76, 194, 0.22);
 }
 
 .thermal-modal-body {
@@ -8064,23 +8100,30 @@ html.dark .format-tab-btn.active,
   background: var(--surface-subtle, #f8fafc);
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 12px;
+  transition: all 0.15s ease;
 }
 
 .thermal-status-card.is-connected {
-  background: #f0fdf4;
-  border-color: #86efac;
+  background: rgba(10, 155, 105, 0.08);
+  border-color: rgba(10, 155, 105, 0.35);
+}
+
+html.dark .thermal-status-card,
+[data-theme="dark"] .thermal-status-card {
+  background: #16223b;
+  border-color: #1e2d4a;
 }
 
 html.dark .thermal-status-card.is-connected,
 [data-theme="dark"] .thermal-status-card.is-connected {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: #059669;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .thermal-status-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
 }
 
 .thermal-status-indicator strong {
@@ -8093,7 +8136,23 @@ html.dark .thermal-status-card.is-connected,
   display: block;
   font-size: 10.5px;
   color: var(--muted, #64748b);
-  margin-top: 1px;
+  margin-top: 2px;
+}
+
+.thermal-disconnect-btn {
+  height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--red, #dc3f4d) !important;
+  border-color: rgba(220, 63, 77, 0.3) !important;
+  background: var(--red-soft, #ffebed) !important;
+  border-radius: 8px !important;
+}
+
+.thermal-disconnect-btn:hover {
+  background: #fee2e2 !important;
+  border-color: var(--red, #dc3f4d) !important;
 }
 
 .thermal-alert {
@@ -8125,9 +8184,9 @@ html.dark .thermal-status-card.is-connected,
 .thermal-width-btn {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   text-align: left;
-  padding: 12px 14px;
+  padding: 14px 15px;
   border-radius: 12px;
   border: 1.5px solid var(--line, #e2e8f0);
   background: var(--surface, #ffffff);
@@ -8136,24 +8195,26 @@ html.dark .thermal-status-card.is-connected,
 }
 
 .thermal-width-btn:hover {
-  border-color: #0284c7;
+  border-color: var(--blue, #0b4cc2);
+  background: var(--surface-subtle, #f8fafc);
 }
 
 .thermal-width-btn.active {
-  border-color: #0284c7;
-  background: rgba(2, 132, 199, 0.05);
-  box-shadow: 0 0 0 1px #0284c7;
+  border-color: var(--blue, #0b4cc2);
+  background: var(--blue-soft, #eaf2ff);
+  box-shadow: 0 0 0 1px var(--blue, #0b4cc2);
 }
 
 .thermal-width-btn strong {
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 800;
   color: var(--ink, #0f172a);
 }
 
 .thermal-width-btn span {
   font-size: 10px;
   color: var(--muted, #64748b);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .thermal-actions-grid {
@@ -8170,11 +8231,36 @@ html.dark .thermal-status-card.is-connected,
   height: auto !important;
   text-align: left;
   border-radius: 12px !important;
+  transition: all 0.15s ease;
+}
+
+.thermal-connect-btn.primary {
+  background: linear-gradient(135deg, var(--blue, #0b4cc2), #1d4ed8) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(11, 76, 194, 0.22) !important;
+  border: 0 !important;
+}
+
+.thermal-connect-btn.primary:hover {
+  background: linear-gradient(135deg, #083b92, #1e40af) !important;
+  transform: translateY(-1px);
+}
+
+.thermal-connect-btn.secondary {
+  background: var(--surface, #ffffff) !important;
+  border: 1px solid var(--line, #e2e8f0) !important;
+  color: var(--ink, #152238) !important;
+}
+
+.thermal-connect-btn.secondary:hover {
+  border-color: var(--blue, #0b4cc2) !important;
+  background: var(--surface-subtle, #f8fafc) !important;
 }
 
 .thermal-connect-btn strong {
   display: block;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .thermal-connect-btn small {
@@ -8182,7 +8268,7 @@ html.dark .thermal-status-card.is-connected,
   font-size: 9.5px;
   opacity: 0.85;
   margin-top: 2px;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .thermal-test-row {
@@ -8191,28 +8277,36 @@ html.dark .thermal-status-card.is-connected,
   gap: 12px;
   padding: 12px 14px;
   background: var(--surface-subtle, #f8fafc);
-  border: 1px dashed var(--line, #e2e8f0);
+  border: 1px solid var(--line, #e2e8f0);
   border-radius: 12px;
+}
+
+.thermal-test-btn {
+  height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
 }
 
 .thermal-test-hint {
   font-size: 10.5px;
   color: var(--muted, #64748b);
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .thermal-driver-note {
   display: flex;
-  gap: 10px;
+  gap: 11px;
   padding: 12px 14px;
-  background: rgba(2, 132, 199, 0.06);
-  border: 1px solid rgba(2, 132, 199, 0.2);
+  background: var(--blue-soft, #eaf2ff);
+  border: 1px solid rgba(11, 76, 194, 0.18);
   border-radius: 12px;
   color: var(--ink, #0f172a);
 }
 
 .thermal-driver-note .note-icon {
-  color: #0284c7;
+  color: var(--blue, #0b4cc2);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -8220,6 +8314,7 @@ html.dark .thermal-status-card.is-connected,
 .thermal-driver-note strong {
   display: block;
   font-size: 11.5px;
+  font-weight: 700;
   margin-bottom: 3px;
 }
 
@@ -8227,7 +8322,7 @@ html.dark .thermal-status-card.is-connected,
   margin: 0;
   font-size: 10.5px;
   color: var(--muted, #475569);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .thermal-help-box {
@@ -8253,9 +8348,23 @@ html.dark .thermal-status-card.is-connected,
 
 .pos-thermal-print-btn {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  background: linear-gradient(135deg, var(--blue, #0b4cc2), #1d4ed8) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  height: 42px !important;
+  height: 44px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 14px rgba(11, 76, 194, 0.25) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: all 0.18s ease !important;
+}
+
+.pos-thermal-print-btn:hover {
+  background: linear-gradient(135deg, #083b92, #1e40af) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(11, 76, 194, 0.32) !important;
 }
 
 /* ==========================================================================
@@ -8417,23 +8526,27 @@ html.dark .thermal-status-card.is-connected,
 
 /* Topbar Printer Button */
 .topbar-printer-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   height: 38px;
-  padding: 0 11px;
+  padding: 0 12px;
   background: var(--surface, #ffffff);
   border: 1px solid var(--line, #e2e8f0);
-  border-radius: 11px;
-  color: var(--ink, #0f172a);
+  border-radius: 10px;
+  color: var(--ink, #152238);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
   font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .topbar-printer-button:hover {
   background: var(--surface-subtle, #f8fafc);
-  border-color: #0284c7;
+  border-color: var(--blue, #0b4cc2);
+  color: var(--blue, #0b4cc2);
+  box-shadow: 0 3px 10px rgba(11, 76, 194, 0.08);
 }
 
 .topbar-printer-icon-wrap {
@@ -8441,7 +8554,8 @@ html.dark .thermal-status-card.is-connected,
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink, #0f172a);
+  color: var(--blue, #0b4cc2);
+  flex-shrink: 0;
 }
 
 .topbar-printer-icon-wrap .status-dot {
@@ -8455,33 +8569,47 @@ html.dark .thermal-status-card.is-connected,
 .topbar-printer-label {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .topbar-printer-label .printer-text {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 11.5px;
 }
 
 .topbar-printer-label .printer-badge {
   font-size: 9.5px;
-  font-weight: 700;
-  background: var(--surface-subtle, #f1f5f9);
-  color: var(--muted, #64748b);
-  padding: 1px 5px;
-  border-radius: 5px;
-  border: 1px solid var(--line, #e2e8f0);
+  font-weight: 800;
+  background: var(--blue-soft, #eaf2ff);
+  color: var(--blue, #0b4cc2);
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(11, 76, 194, 0.15);
 }
 
+/* Connected Topbar State */
 .topbar-printer-button.is-connected {
-  border-color: #86efac;
-  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(10, 155, 105, 0.35);
+  background: rgba(10, 155, 105, 0.08);
+  color: #047857;
+}
+
+.topbar-printer-button.is-connected:hover {
+  background: rgba(10, 155, 105, 0.14);
+  border-color: var(--green, #0a9b69);
+  color: #065f46;
+  box-shadow: 0 3px 10px rgba(10, 155, 105, 0.12);
+}
+
+.topbar-printer-button.is-connected .topbar-printer-icon-wrap {
+  color: var(--green, #0a9b69);
 }
 
 .topbar-printer-button.is-connected .printer-badge {
-  background: #dcfce7;
-  color: #15803d;
-  border-color: #bbf7d0;
+  background: var(--green-soft, #e8f8f2);
+  color: var(--green, #0a9b69);
+  border-color: rgba(10, 155, 105, 0.25);
 }
 
 /* Sidebar Printer Button */
@@ -8496,19 +8624,18 @@ html.dark .thermal-status-card.is-connected,
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  background: var(--surface-subtle, #f8fafc);
-  border: 1px dashed var(--line, #e2e8f0);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
-  color: var(--ink, #0f172a);
+  color: #f1f5f9;
 }
 
 .sidebar-printer-button:hover {
-  background: rgba(2, 132, 199, 0.08);
-  border-color: #0284c7;
-  border-style: solid;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .sidebar-printer-icon {
@@ -8516,20 +8643,20 @@ html.dark .thermal-status-card.is-connected,
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--line, #e2e8f0);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  color: #0284c7;
+  color: #60a5fa;
 }
 
 .sidebar-printer-icon .status-dot {
   position: absolute;
   top: -2px;
   right: -2px;
-  width: 8px;
-  height: 8px;
+  width: 7.5px;
+  height: 7.5px;
 }
 
 .sidebar-printer-info {
@@ -8543,68 +8670,211 @@ html.dark .thermal-status-card.is-connected,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #ffffff;
 }
 
 .sidebar-printer-info small {
   font-size: 9.5px;
-  color: var(--muted, #64748b);
+  color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .sidebar-printer-button.is-connected {
-  border-color: #86efac;
-  border-style: solid;
-  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
 }
 
-/* POS Search Bar Quick Printer Button */
-.pos-printer-quick-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 40px;
-  padding: 0 12px;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--line, #e2e8f0);
-  border-radius: 10px;
-  color: var(--ink, #0f172a);
-  font-size: 11.5px;
-  font-weight: 600;
+.sidebar-printer-button.is-connected .sidebar-printer-icon {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* POS Search Bar Scan & Printer Buttons */
+.pos-search {
+  position: relative;
+  overflow: hidden;
+}
+
+.pos-search .pos-scan-btn {
+  height: 100% !important;
+  width: auto !important;
+  min-width: 68px !important;
+  border: 0 !important;
+  border-left: 1px solid var(--line, #e2e8f0) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--blue, #0b4cc2) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 13px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
   cursor: pointer;
-  white-space: nowrap;
   transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pos-search .pos-scan-btn:hover {
+  background: rgba(11, 76, 194, 0.05) !important;
+}
+
+.pos-search .pos-printer-btn {
+  height: 100% !important;
+  width: auto !important;
+  border: 0 !important;
+  border-left: 1px solid var(--line, #e2e8f0) !important;
+  border-radius: 0 12px 12px 0 !important;
+  background: transparent !important;
+  color: var(--ink, #152238) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 0 14px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.pos-printer-quick-btn:hover {
-  background: var(--surface-subtle, #f8fafc);
-  border-color: #0284c7;
+.pos-search .pos-printer-btn:hover {
+  background: rgba(11, 76, 194, 0.05) !important;
+  color: var(--blue, #0b4cc2) !important;
 }
 
-.pos-printer-quick-btn.is-connected {
-  border-color: #86efac;
-  background: #f0fdf4;
-  color: #15803d;
+.pos-search .pos-printer-btn .pos-printer-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue, #0b4cc2);
 }
 
-html.dark .pos-printer-quick-btn.is-connected,
-[data-theme="dark"] .pos-printer-quick-btn.is-connected {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: #059669;
-  color: #86efac;
+.pos-search .pos-printer-btn .pos-printer-icon-wrap .status-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+}
+
+.pos-search .pos-printer-btn .pos-printer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pos-search .pos-printer-btn .pos-printer-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.pos-search .pos-printer-btn .pos-printer-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: var(--surface-subtle, #f1f5f9);
+  color: var(--muted, #64748b);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.pos-search .pos-printer-btn.is-connected {
+  background: rgba(10, 155, 105, 0.07) !important;
+  color: #047857 !important;
+}
+
+.pos-search .pos-printer-btn.is-connected:hover {
+  background: rgba(10, 155, 105, 0.13) !important;
+}
+
+.pos-search .pos-printer-btn.is-connected .pos-printer-icon-wrap {
+  color: #059669;
+}
+
+.pos-search .pos-printer-btn.is-connected .pos-printer-badge {
+  background: #d1fae5;
+  color: #047857;
+  border-color: #a7f3d0;
 }
 
 /* Compact Toolbar Printer Button */
 .compact-printer-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   height: 40px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   padding: 0 12px;
+  border-radius: 9px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  color: var(--ink, #152238);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.compact-printer-btn:hover {
+  background: var(--surface-subtle, #f8fafc);
+  border-color: var(--blue, #0b4cc2);
+  color: var(--blue, #0b4cc2);
+}
+
+.compact-printer-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue, #0b4cc2);
+}
+
+.compact-printer-icon-wrap .status-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+}
+
+.compact-printer-text {
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
+.compact-printer-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: var(--surface-subtle, #f1f5f9);
+  color: var(--muted, #64748b);
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.compact-printer-btn.is-connected {
+  border-color: rgba(10, 155, 105, 0.35);
+  background: rgba(10, 155, 105, 0.08);
+  color: #047857;
+}
+
+.compact-printer-btn.is-connected .compact-printer-icon-wrap {
+  color: var(--green, #0a9b69);
+}
+
+.compact-printer-btn.is-connected .compact-printer-badge {
+  background: var(--green-soft, #e8f8f2);
+  color: var(--green, #0a9b69);
+  border-color: rgba(10, 155, 105, 0.25);
 }
 
 /* Settings Page: Thermal Settings Panel */
@@ -8622,11 +8892,12 @@ html.dark .pos-printer-quick-btn.is-connected,
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--blue, #0b4cc2), #1d4ed8);
   color: #ffffff;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(11, 76, 194, 0.22);
 }
 
 .thermal-settings-content {
@@ -8659,10 +8930,11 @@ html.dark .pos-printer-quick-btn.is-connected,
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  background: rgba(2, 132, 199, 0.1);
-  color: #0284c7;
+  background: var(--blue-soft, #eaf2ff);
+  color: var(--blue, #0b4cc2);
   padding: 2px 6px;
   border-radius: 5px;
+  border: 1px solid rgba(11, 76, 194, 0.15);
 }
 
 /* Checkbox Card for Auto Print */
@@ -8679,7 +8951,7 @@ html.dark .pos-printer-quick-btn.is-connected,
 }
 
 .thermal-checkbox-card:hover {
-  border-color: #0284c7;
+  border-color: var(--blue, #0b4cc2);
 }
 
 .thermal-checkbox-card input[type="checkbox"] {
@@ -8687,7 +8959,7 @@ html.dark .pos-printer-quick-btn.is-connected,
   height: 18px;
   margin-top: 2px;
   cursor: pointer;
-  accent-color: #0284c7;
+  accent-color: var(--blue, #0b4cc2);
 }
 
 .thermal-checkbox-card strong {
@@ -8706,54 +8978,191 @@ html.dark .pos-printer-quick-btn.is-connected,
 
 /* Setting Highlight Card */
 .highlight-printer-card {
-  border-color: #0284c7 !important;
-  background: rgba(2, 132, 199, 0.05) !important;
+  border-color: var(--blue, #0b4cc2) !important;
+  background: rgba(11, 76, 194, 0.05) !important;
 }
 
 .highlight-printer-card .setting-icon {
-  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  background: linear-gradient(135deg, var(--blue, #0b4cc2), #1d4ed8) !important;
   color: #fff !important;
 }
 
-/* Dark Mode Overrides for Printer Buttons & Settings */
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR THERMAL PRINTER BUTTONS & SETTINGS
+   ========================================================================== */
 html.dark .topbar-printer-button,
 [data-theme="dark"] .topbar-printer-button {
-  background: #111a2e !important;
+  background: #16223b !important;
   border-color: #1e2d4a !important;
   color: #f1f5f9 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
 html.dark .topbar-printer-button:hover,
 [data-theme="dark"] .topbar-printer-button:hover {
-  background: #16223b !important;
-  border-color: #38bdf8 !important;
+  background: #1e2d4a !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.15) !important;
 }
 
-html.dark .sidebar-printer-button,
-[data-theme="dark"] .sidebar-printer-button {
-  background: #111a2e !important;
+html.dark .topbar-printer-button .topbar-printer-icon-wrap,
+[data-theme="dark"] .topbar-printer-button .topbar-printer-icon-wrap {
+  color: #60a5fa !important;
+}
+
+html.dark .topbar-printer-button .printer-badge,
+[data-theme="dark"] .topbar-printer-button .printer-badge {
+  background: #0f172a !important;
+  border-color: #1e2d4a !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .topbar-printer-button.is-connected,
+[data-theme="dark"] .topbar-printer-button.is-connected {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .topbar-printer-button.is-connected:hover,
+[data-theme="dark"] .topbar-printer-button.is-connected:hover {
+  background: rgba(16, 185, 129, 0.22) !important;
+  border-color: #34d399 !important;
+}
+
+html.dark .topbar-printer-button.is-connected .topbar-printer-icon-wrap,
+[data-theme="dark"] .topbar-printer-button.is-connected .topbar-printer-icon-wrap {
+  color: #34d399 !important;
+}
+
+html.dark .topbar-printer-button.is-connected .printer-badge,
+[data-theme="dark"] .topbar-printer-button.is-connected .printer-badge {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+html.dark .pos-search .pos-scan-btn,
+[data-theme="dark"] .pos-search .pos-scan-btn {
+  border-left-color: #1e2d4a !important;
+  color: #60a5fa !important;
+}
+
+html.dark .pos-search .pos-scan-btn:hover,
+[data-theme="dark"] .pos-search .pos-scan-btn:hover {
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+html.dark .pos-search .pos-printer-btn,
+[data-theme="dark"] .pos-search .pos-printer-btn {
+  border-left-color: #1e2d4a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .pos-search .pos-printer-btn:hover,
+[data-theme="dark"] .pos-search .pos-printer-btn:hover {
+  background: #16223b !important;
+  color: #60a5fa !important;
+}
+
+html.dark .pos-search .pos-printer-btn .pos-printer-icon-wrap,
+[data-theme="dark"] .pos-search .pos-printer-btn .pos-printer-icon-wrap {
+  color: #60a5fa;
+}
+
+html.dark .pos-search .pos-printer-btn .pos-printer-badge,
+[data-theme="dark"] .pos-search .pos-printer-btn .pos-printer-badge {
+  background: #0f172a;
+  border-color: #1e2d4a;
+  color: #94a3b8;
+}
+
+html.dark .pos-search .pos-printer-btn.is-connected,
+[data-theme="dark"] .pos-search .pos-printer-btn.is-connected {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #6ee7b7 !important;
+}
+
+html.dark .pos-search .pos-printer-btn.is-connected:hover,
+[data-theme="dark"] .pos-search .pos-printer-btn.is-connected:hover {
+  background: rgba(16, 185, 129, 0.22) !important;
+}
+
+html.dark .pos-search .pos-printer-btn.is-connected .pos-printer-icon-wrap,
+[data-theme="dark"] .pos-search .pos-printer-btn.is-connected .pos-printer-icon-wrap {
+  color: #34d399;
+}
+
+html.dark .pos-search .pos-printer-btn.is-connected .pos-printer-badge,
+[data-theme="dark"] .pos-search .pos-printer-btn.is-connected .pos-printer-badge {
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+html.dark .compact-printer-btn,
+[data-theme="dark"] .compact-printer-btn {
+  background: #16223b !important;
   border-color: #1e2d4a !important;
   color: #f1f5f9 !important;
 }
 
-html.dark .sidebar-printer-icon,
-[data-theme="dark"] .sidebar-printer-icon {
-  background: #16223b !important;
+html.dark .compact-printer-btn:hover,
+[data-theme="dark"] .compact-printer-btn:hover {
+  background: #1e2d4a !important;
+  border-color: #3b82f6 !important;
+}
+
+html.dark .compact-printer-btn .compact-printer-icon-wrap,
+[data-theme="dark"] .compact-printer-btn .compact-printer-icon-wrap {
+  color: #60a5fa !important;
+}
+
+html.dark .compact-printer-btn .compact-printer-badge,
+[data-theme="dark"] .compact-printer-btn .compact-printer-badge {
+  background: #0f172a !important;
   border-color: #1e2d4a !important;
-  color: #38bdf8 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .compact-printer-btn.is-connected,
+[data-theme="dark"] .compact-printer-btn.is-connected {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #6ee7b7 !important;
+}
+
+html.dark .compact-printer-btn.is-connected .compact-printer-icon-wrap,
+[data-theme="dark"] .compact-printer-btn.is-connected .compact-printer-icon-wrap {
+  color: #34d399 !important;
+}
+
+html.dark .compact-printer-btn.is-connected .compact-printer-badge,
+[data-theme="dark"] .compact-printer-btn.is-connected .compact-printer-badge {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
 }
 
 html.dark .thermal-width-btn,
 [data-theme="dark"] .thermal-width-btn {
-  background: #111a2e !important;
+  background: #16223b !important;
   border-color: #1e2d4a !important;
   color: #f1f5f9 !important;
 }
 
+html.dark .thermal-width-btn:hover,
+[data-theme="dark"] .thermal-width-btn:hover {
+  background: #1e2d4a !important;
+  border-color: #3b82f6 !important;
+}
+
 html.dark .thermal-width-btn.active,
 [data-theme="dark"] .thermal-width-btn.active {
-  background: rgba(56, 189, 248, 0.12) !important;
-  border-color: #38bdf8 !important;
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px #3b82f6 !important;
 }
 
 html.dark .thermal-width-btn strong,
@@ -8761,15 +9170,127 @@ html.dark .thermal-width-btn strong,
   color: #f1f5f9 !important;
 }
 
+html.dark .thermal-width-btn span,
+[data-theme="dark"] .thermal-width-btn span {
+  color: #94a3b8 !important;
+}
+
 html.dark .thermal-checkbox-card,
 [data-theme="dark"] .thermal-checkbox-card {
-  background: #111a2e !important;
+  background: #16223b !important;
   border-color: #1e2d4a !important;
+}
+
+html.dark .thermal-checkbox-card:hover,
+[data-theme="dark"] .thermal-checkbox-card:hover {
+  border-color: #3b82f6 !important;
 }
 
 html.dark .thermal-checkbox-card strong,
 [data-theme="dark"] .thermal-checkbox-card strong {
   color: #f1f5f9 !important;
+}
+
+html.dark .thermal-checkbox-card small,
+[data-theme="dark"] .thermal-checkbox-card small {
+  color: #94a3b8 !important;
+}
+
+html.dark .thermal-test-row,
+[data-theme="dark"] .thermal-test-row {
+  background: #16223b !important;
+  border-color: #1e2d4a !important;
+}
+
+html.dark .thermal-test-hint,
+[data-theme="dark"] .thermal-test-hint {
+  color: #94a3b8 !important;
+}
+
+html.dark .thermal-driver-note,
+[data-theme="dark"] .thermal-driver-note {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .thermal-driver-note strong,
+[data-theme="dark"] .thermal-driver-note strong {
+  color: #f1f5f9 !important;
+}
+
+html.dark .thermal-driver-note p,
+[data-theme="dark"] .thermal-driver-note p {
+  color: #cbd5e1 !important;
+}
+
+html.dark .thermal-driver-note .note-icon,
+[data-theme="dark"] .thermal-driver-note .note-icon {
+  color: #60a5fa !important;
+}
+
+html.dark .thermal-help-box,
+[data-theme="dark"] .thermal-help-box {
+  color: #94a3b8 !important;
+}
+
+html.dark .thermal-connect-btn.secondary,
+[data-theme="dark"] .thermal-connect-btn.secondary {
+  background: #16223b !important;
+  border-color: #1e2d4a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .thermal-connect-btn.secondary:hover,
+[data-theme="dark"] .thermal-connect-btn.secondary:hover {
+  background: #1e2d4a !important;
+  border-color: #3b82f6 !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE OVERRIDES FOR PRINTER BUTTONS
+   ========================================================================== */
+@media (max-width: 640px) {
+  .topbar-printer-label .printer-text {
+    display: none;
+  }
+
+  .pos-search .pos-printer-text {
+    display: none;
+  }
+
+  .pos-search .pos-scan-btn span {
+    display: none;
+  }
+
+  .pos-search .pos-scan-btn {
+    min-width: 44px !important;
+    padding: 0 10px !important;
+  }
+
+  .pos-search .pos-printer-btn {
+    padding: 0 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-printer-label {
+    display: none;
+  }
+
+  .topbar-printer-button {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .pos-search .pos-printer-badge {
+    display: none;
+  }
+
+  .compact-printer-text {
+    display: none;
+  }
 }
 
 
