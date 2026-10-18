@@ -5,13 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import {
   BarChart3, Boxes, Building2, ChevronDown, ClipboardCheck, FileBarChart,
-  History, LayoutDashboard, LoaderCircle, LogOut, Menu, PackagePlus, ReceiptText, Settings,
+  History, LayoutDashboard, LoaderCircle, LogOut, Menu, PackagePlus, Printer, ReceiptText, Settings,
   ShoppingCart, Store, Truck, Users, WalletCards, X, RotateCcw,
 } from "lucide-react";
 import type { Store as StoreType, SystemSettings, UserProfile } from "@/lib/types";
 import { ProfileMenu } from "@/components/profile-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ThermalPrinterButton } from "@/components/thermal-printer-button";
 
 const groups = [
   {
@@ -21,6 +22,7 @@ const groups = [
       { href: "/pos", label: "Kasir", icon: ShoppingCart, roles: ["owner","admin","manager","cashier"] },
       { href: "/sales", label: "Transaksi", icon: ReceiptText, roles: ["owner","admin","manager","cashier"] },
       { href: "/shifts", label: "Shift Kasir", icon: WalletCards, roles: ["owner","admin","manager","cashier"] },
+      { href: "/printer", label: "Printer Thermal", icon: Printer, roles: ["owner","admin","manager","cashier","warehouse"] },
     ],
   },
   {
@@ -153,6 +155,9 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
               })}
             </div>
           ))}
+          <div className="sidebar-printer-wrap">
+            <ThermalPrinterButton variant="sidebar" />
+          </div>
         </nav>
         <div className="sidebar-footer">
           <UserAvatar name={profile.full_name} avatarKey={profile.avatar_key}/>
@@ -177,6 +182,7 @@ export function AppShell({ children, stores, profile, settings }: { children: Re
           </div>
           <div className="topbar-right">
             <div className="system-status"><span/> Sistem aktif</div>
+            <ThermalPrinterButton variant="topbar" />
             <ThemeToggle />
             <Link className="icon-button" href={selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports"} prefetch={false} title="Ringkasan laporan" onMouseEnter={() => router.prefetch(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports")} onFocus={() => router.prefetch(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports")} onClick={(event) => { if (isModifiedNavigation(event)) return; beginNavigation(selectedStoreId ? `/reports?store=${selectedStoreId}` : "/reports"); }}>{navigatingHref?.startsWith("/reports") ? <LoaderCircle className="loading-spinner" size={19}/> : <BarChart3 size={19}/>}</Link>
             <ProfileMenu profile={profile} stores={stores}/>

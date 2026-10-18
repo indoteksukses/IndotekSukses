@@ -7616,3 +7616,1160 @@ html.dark .critical-stock-check span,
     display: block !important;
   }
 }
+
+/* ==========================================================================
+   THERMAL PRINTER & RECEIPT PRINTING STYLES (58mm & 80mm)
+   ========================================================================== */
+
+/* Control Bar on Receipt Page */
+.receipt-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.receipt-bar-left,
+.receipt-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Format Switcher Tabs */
+.receipt-format-tabs {
+  display: flex;
+  background: var(--surface-subtle, #f1f5f9);
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.format-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.format-tab-btn:hover {
+  color: var(--ink, #0f172a);
+}
+
+.format-tab-btn.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+html.dark .format-tab-btn.active,
+[data-theme="dark"] .format-tab-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+}
+
+/* Thermal Toggle & Direct Print Buttons */
+.thermal-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 0 10px;
+}
+
+.thermal-device-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.direct-thermal-btn {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.direct-thermal-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+}
+
+/* Status Indicator Dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.connected {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+.status-dot.connecting {
+  background: #f59e0b;
+  animation: pulse-dot 1s infinite alternate;
+}
+
+.status-dot.disconnected {
+  background: #94a3b8;
+}
+
+@keyframes pulse-dot {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Floating Feedback Badge */
+.receipt-feedback-badge {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: slide-up 0.2s ease-out;
+}
+
+.receipt-feedback-badge.success {
+  background: #065f46;
+  color: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+.receipt-feedback-badge.error {
+  background: #7f1d1d;
+  color: #fee2e2;
+  border: 1px solid #ef4444;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Thermal Receipt Paper Simulator Container */
+.receipt-thermal-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 40px;
+  margin: 0 auto;
+}
+
+.receipt-thermal-paper {
+  background: #ffffff;
+  color: #050505;
+  font-family: "Courier New", Courier, "Lucida Console", "Liberation Mono", monospace;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+}
+
+.receipt-thermal-container.width-58 .receipt-thermal-paper {
+  width: 320px;
+  max-width: 100%;
+  padding: 22px 14px 28px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.receipt-thermal-container.width-80 .receipt-thermal-paper {
+  width: 440px;
+  max-width: 100%;
+  padding: 26px 20px 32px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Paper tear jagged edges for screen preview */
+.thermal-paper-edge {
+  height: 6px;
+  background-size: 12px 6px;
+  background-repeat: repeat-x;
+  width: 100%;
+}
+
+.thermal-paper-edge.top {
+  margin-bottom: 12px;
+  background-image: radial-gradient(circle at 6px -3px, transparent 6px, #ffffff 6px);
+}
+
+.thermal-paper-edge.bottom {
+  margin-top: 18px;
+  background-image: radial-gradient(circle at 6px 9px, transparent 6px, #ffffff 6px);
+}
+
+/* Thermal Header */
+.thermal-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.thermal-store-name {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #000;
+}
+
+.receipt-thermal-container.width-80 .thermal-store-name {
+  font-size: 19px;
+}
+
+.thermal-store-meta {
+  margin: 2px 0;
+  font-size: 10px;
+  color: #222;
+}
+
+/* Thermal Dividers */
+.thermal-divider-double {
+  border-bottom: 3px double #111;
+  margin: 8px 0;
+}
+
+.thermal-divider-dashed {
+  border-bottom: 1px dashed #333;
+  margin: 7px 0;
+}
+
+/* Thermal Meta (Invoice, Kasir, etc.) */
+.thermal-meta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+}
+
+.thermal-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.thermal-meta-row span:first-child {
+  color: #444;
+}
+
+.thermal-meta-row strong {
+  font-weight: 700;
+  color: #000;
+}
+
+/* Thermal Items Listing */
+.thermal-items-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.thermal-item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thermal-item-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-weight: 700;
+  color: #000;
+}
+
+.thermal-item-variant {
+  font-style: italic;
+  font-weight: normal;
+  color: #333;
+}
+
+.thermal-item-calculation {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #222;
+}
+
+.thermal-item-subtotal {
+  font-weight: 700;
+  color: #000;
+}
+
+/* Thermal Totals & Payments */
+.thermal-totals-section,
+.thermal-payment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.thermal-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.thermal-grand-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 4px 0;
+}
+
+.receipt-thermal-container.width-80 .thermal-grand-total-row {
+  font-size: 16px;
+}
+
+.thermal-grand-total-row strong {
+  font-size: 15px;
+}
+
+.receipt-thermal-container.width-80 .thermal-grand-total-row strong {
+  font-size: 18px;
+}
+
+.thermal-notes {
+  margin: 4px 0 0;
+  font-size: 9.5px;
+  font-style: italic;
+  color: #333;
+}
+
+/* Thermal Footer */
+.thermal-footer {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.thermal-footer-thankyou {
+  font-weight: 700;
+  font-size: 11px;
+  margin: 0 0 3px;
+}
+
+.thermal-footer-terms {
+  font-size: 9.5px;
+  color: #444;
+  margin: 0 0 8px;
+}
+
+.thermal-barcode-sim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 8px 0;
+}
+
+.thermal-barcode-lines {
+  font-family: monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  font-weight: 900;
+  color: #000;
+}
+
+.thermal-barcode-text {
+  font-size: 9.5px;
+  color: #333;
+  letter-spacing: 1px;
+}
+
+.thermal-app-credit {
+  display: block;
+  font-size: 8px;
+  color: #777;
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   THERMAL PRINTER MODAL
+   ========================================================================== */
+.thermal-printer-backdrop {
+  z-index: 1050;
+}
+
+.thermal-printer-modal {
+  width: 520px !important;
+  max-width: 95vw !important;
+  border-radius: 18px !important;
+}
+
+.thermal-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thermal-title-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.thermal-modal-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.thermal-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 12px;
+}
+
+.thermal-status-card.is-connected {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+html.dark .thermal-status-card.is-connected,
+[data-theme="dark"] .thermal-status-card.is-connected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #059669;
+}
+
+.thermal-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.thermal-status-indicator strong {
+  display: block;
+  font-size: 13px;
+  color: var(--ink, #0f172a);
+}
+
+.thermal-status-indicator span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted, #64748b);
+  margin-top: 1px;
+}
+
+.thermal-alert {
+  padding: 10px 14px;
+  font-size: 11.5px;
+  border-radius: 10px;
+}
+
+.thermal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.thermal-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted, #64748b);
+}
+
+.thermal-width-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.thermal-width-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line, #e2e8f0);
+  background: var(--surface, #ffffff);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.thermal-width-btn:hover {
+  border-color: #0284c7;
+}
+
+.thermal-width-btn.active {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.05);
+  box-shadow: 0 0 0 1px #0284c7;
+}
+
+.thermal-width-btn strong {
+  font-size: 14px;
+  color: var(--ink, #0f172a);
+}
+
+.thermal-width-btn span {
+  font-size: 10px;
+  color: var(--muted, #64748b);
+  line-height: 1.35;
+}
+
+.thermal-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.thermal-connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px !important;
+  height: auto !important;
+  text-align: left;
+  border-radius: 12px !important;
+}
+
+.thermal-connect-btn strong {
+  display: block;
+  font-size: 12px;
+}
+
+.thermal-connect-btn small {
+  display: block;
+  font-size: 9.5px;
+  opacity: 0.85;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.thermal-test-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px dashed var(--line, #e2e8f0);
+  border-radius: 12px;
+}
+
+.thermal-test-hint {
+  font-size: 10.5px;
+  color: var(--muted, #64748b);
+  line-height: 1.35;
+}
+
+.thermal-driver-note {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(2, 132, 199, 0.06);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 12px;
+  color: var(--ink, #0f172a);
+}
+
+.thermal-driver-note .note-icon {
+  color: #0284c7;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.thermal-driver-note strong {
+  display: block;
+  font-size: 11.5px;
+  margin-bottom: 3px;
+}
+
+.thermal-driver-note p {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--muted, #475569);
+  line-height: 1.4;
+}
+
+.thermal-help-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--muted, #64748b);
+  padding: 4px 0;
+}
+
+.thermal-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line, #e2e8f0);
+}
+
+/* POS Terminal checkout success action grid */
+.pos-success-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+
+.pos-thermal-print-btn {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  font-weight: 700 !important;
+  height: 42px !important;
+}
+
+/* ==========================================================================
+   PRINT MEDIA RULES FOR THERMAL PRINTER (58mm & 80mm)
+   ========================================================================== */
+@media print {
+  /* Common hide elements on print */
+  .receipt-control-bar,
+  .receipt-bar-left,
+  .receipt-bar-right,
+  .thermal-paper-edge,
+  .no-print,
+  .sidebar,
+  .topbar,
+  .receipt-feedback-badge {
+    display: none !important;
+  }
+
+  /* 58mm Thermal Print Media */
+  @page {
+    margin: 0;
+  }
+
+  body.thermal-print-58 {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.thermal-print-58 .receipt-page {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.thermal-print-58 .receipt-thermal-container {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  body.thermal-print-58 .receipt-thermal-paper {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    padding: 2mm 1.5mm 12mm 1.5mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.thermal-print-58 .thermal-store-name {
+    font-size: 11pt !important;
+  }
+
+  body.thermal-print-58 .thermal-grand-total-row {
+    font-size: 10.5pt !important;
+  }
+
+  /* 80mm Thermal Print Media */
+  body.thermal-print-80 {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.thermal-print-80 .receipt-page {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.thermal-print-80 .receipt-thermal-container {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  body.thermal-print-80 .receipt-thermal-paper {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 4mm 3mm 14mm 3mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 9.5pt !important;
+    line-height: 1.3 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.thermal-print-80 .thermal-store-name {
+    font-size: 13pt !important;
+  }
+
+  body.thermal-print-80 .thermal-grand-total-row {
+    font-size: 12pt !important;
+  }
+}
+
+/* Mobile responsive for receipt control bar */
+@media (max-width: 768px) {
+  .receipt-control-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .receipt-bar-left,
+  .receipt-bar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .receipt-format-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .format-tab-btn {
+    justify-content: center;
+    padding: 6px 4px;
+    font-size: 10px;
+  }
+
+  .thermal-actions-grid,
+  .thermal-width-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .receipt-thermal-container.width-58 .receipt-thermal-paper,
+  .receipt-thermal-container.width-80 .receipt-thermal-paper {
+    width: 100%;
+    max-width: 100%;
+    padding: 18px 12px 24px;
+  }
+}
+
+/* ==========================================================================
+   TOPBAR & SIDEBAR & POS PRINTER BUTTONS & SETTINGS PANEL
+   ========================================================================== */
+
+/* Topbar Printer Button */
+.topbar-printer-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 11px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 11px;
+  color: var(--ink, #0f172a);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+}
+
+.topbar-printer-button:hover {
+  background: var(--surface-subtle, #f8fafc);
+  border-color: #0284c7;
+}
+
+.topbar-printer-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink, #0f172a);
+}
+
+.topbar-printer-icon-wrap .status-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+}
+
+.topbar-printer-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.topbar-printer-label .printer-text {
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+.topbar-printer-label .printer-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: var(--surface-subtle, #f1f5f9);
+  color: var(--muted, #64748b);
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line, #e2e8f0);
+}
+
+.topbar-printer-button.is-connected {
+  border-color: #86efac;
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.topbar-printer-button.is-connected .printer-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+/* Sidebar Printer Button */
+.sidebar-printer-wrap {
+  margin-top: 10px;
+  padding: 0 4px;
+}
+
+.sidebar-printer-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px dashed var(--line, #e2e8f0);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  color: var(--ink, #0f172a);
+}
+
+.sidebar-printer-button:hover {
+  background: rgba(2, 132, 199, 0.08);
+  border-color: #0284c7;
+  border-style: solid;
+}
+
+.sidebar-printer-icon {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #0284c7;
+}
+
+.sidebar-printer-icon .status-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+}
+
+.sidebar-printer-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-printer-info strong {
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-printer-info small {
+  font-size: 9.5px;
+  color: var(--muted, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-printer-button.is-connected {
+  border-color: #86efac;
+  border-style: solid;
+  background: rgba(16, 185, 129, 0.06);
+}
+
+/* POS Search Bar Quick Printer Button */
+.pos-printer-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  color: var(--ink, #0f172a);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.pos-printer-quick-btn:hover {
+  background: var(--surface-subtle, #f8fafc);
+  border-color: #0284c7;
+}
+
+.pos-printer-quick-btn.is-connected {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+html.dark .pos-printer-quick-btn.is-connected,
+[data-theme="dark"] .pos-printer-quick-btn.is-connected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #059669;
+  color: #86efac;
+}
+
+/* Compact Toolbar Printer Button */
+.compact-printer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+/* Settings Page: Thermal Settings Panel */
+.thermal-settings-panel {
+  margin-top: 24px;
+}
+
+.thermal-settings-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thermal-settings-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.thermal-settings-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.thermal-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.thermal-setting-group-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--ink, #0f172a);
+}
+
+.thermal-width-btn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.thermal-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* Checkbox Card for Auto Print */
+.thermal-checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e2e8f0);
+  background: var(--surface-subtle, #f8fafc);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.thermal-checkbox-card:hover {
+  border-color: #0284c7;
+}
+
+.thermal-checkbox-card input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.thermal-checkbox-card strong {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink, #0f172a);
+}
+
+.thermal-checkbox-card small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted, #64748b);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Setting Highlight Card */
+.highlight-printer-card {
+  border-color: #0284c7 !important;
+  background: rgba(2, 132, 199, 0.05) !important;
+}
+
+.highlight-printer-card .setting-icon {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #fff !important;
+}
+
+/* Dark Mode Overrides for Printer Buttons & Settings */
+html.dark .topbar-printer-button,
+[data-theme="dark"] .topbar-printer-button {
+  background: #111a2e !important;
+  border-color: #1e2d4a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .topbar-printer-button:hover,
+[data-theme="dark"] .topbar-printer-button:hover {
+  background: #16223b !important;
+  border-color: #38bdf8 !important;
+}
+
+html.dark .sidebar-printer-button,
+[data-theme="dark"] .sidebar-printer-button {
+  background: #111a2e !important;
+  border-color: #1e2d4a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .sidebar-printer-icon,
+[data-theme="dark"] .sidebar-printer-icon {
+  background: #16223b !important;
+  border-color: #1e2d4a !important;
+  color: #38bdf8 !important;
+}
+
+html.dark .thermal-width-btn,
+[data-theme="dark"] .thermal-width-btn {
+  background: #111a2e !important;
+  border-color: #1e2d4a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .thermal-width-btn.active,
+[data-theme="dark"] .thermal-width-btn.active {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: #38bdf8 !important;
+}
+
+html.dark .thermal-width-btn strong,
+[data-theme="dark"] .thermal-width-btn strong {
+  color: #f1f5f9 !important;
+}
+
+html.dark .thermal-checkbox-card,
+[data-theme="dark"] .thermal-checkbox-card {
+  background: #111a2e !important;
+  border-color: #1e2d4a !important;
+}
+
+html.dark .thermal-checkbox-card strong,
+[data-theme="dark"] .thermal-checkbox-card strong {
+  color: #f1f5f9 !important;
+}
+
+
