@@ -3,13 +3,15 @@
 import { memo, useCallback, useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banknote, CheckCircle2, CreditCard, Flame, Layers3, Minus, Plus, Printer, QrCode, ReceiptText, ScanBarcode, Search, ShoppingCart, Tag, Trash2, X } from "lucide-react";
-import type { CartItem, Product, ProductVariant, Store } from "@/lib/types";
+import { Banknote, CheckCircle2, CreditCard, Flame, Layers3, Loader2, Minus, Plus, Printer, QrCode, ReceiptText, ScanBarcode, Search, Settings2, ShoppingCart, Sparkles, Tag, Trash2, X } from "lucide-react";
+import type { AIMatchItem, AISettings, CartItem, Product, ProductVariant, Store, SystemSettings } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { BarcodeScanner } from "@/components/barcode-scanner";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ThermalPrinterButton } from "@/components/thermal-printer-button";
+import { AISettingsModal } from "@/components/ai-settings-modal";
+import { executeAISearch, getStoredAISettings } from "@/lib/ai-search-client";
 
 const payments = [
   { id: "cash", label: "Tunai", icon: Banknote },
@@ -36,21 +38,23 @@ function productPriceLabel(product: Product) {
   return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`;
 }
 
-// Memoized Product Card: Tidak me-render ulang saat keranjang / diskon / pembayaran berubah
+// Memoized Product Card with AI match indicator
 const PosProductCard = memo(function PosProductCard({
   product,
   onChoose,
+  aiMatch,
 }: {
   product: Product;
-  onChoose: (product: Product) => void;
+  onChoose: (product: Product, matchedVariantId?: string | null) => void;
+  aiMatch?: AIMatchItem;
 }) {
   const variants = activeVariants(product);
   const stock = availableStock(product);
   return (
     <button
       type="button"
-      className="pos-product"
-      onClick={() => onChoose(product)}
+      className={`pos-product ${aiMatch ? "is-ai-matched" : ""}`}
+      onClick={() => onChoose(product, aiMatch?.variant_id)}
       disabled={stock <= 0}
     >
       <ProductVisual
@@ -59,6 +63,12 @@ const PosProductCard = memo(function PosProductCard({
         definition={product.visual?.code}
         size="card"
       />
+      {aiMatch ? (
+        <span className="pos-card-ai-badge" title={aiMatch.reason}>
+          <Sparkles size={11} />
+          <span>{aiMatch.reason}</span>
+        </span>
+      ) : null}
       <strong title={product.name}>{product.name}</strong>
       <div className="pos-product-submeta">
         <span className={`pos-brand-pill ${!product.brand ? "muted" : ""}`}>
@@ -66,7 +76,12 @@ const PosProductCard = memo(function PosProductCard({
         </span>
         <span className="pos-sku-text" title={product.sku}>{product.sku}</span>
       </div>
-      {variants.length ? (
+      {aiMatch?.variant_name ? (
+        <div className="pos-card-ai-variant-chip" title={`Saran varian: ${aiMatch.variant_name}`}>
+          <span>Varian:</span>
+          <strong>{aiMatch.variant_name}</strong>
+        </div>
+      ) : variants.length ? (
         <em className="pos-variant-badge">
           <Layers3 size={12} />
           {variants.length} varian
@@ -80,7 +95,7 @@ const PosProductCard = memo(function PosProductCard({
   );
 });
 
-export function PosTerminal({ products, store, shiftId = null }: { products: Product[]; store: Store; shiftId?: string | null }) {
+export function PosTerminal({ products, store, shiftId = null, settings = null }: { products: Product[]; store: Store; shiftId?: string | null; settings?: SystemSettings | null }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -103,6 +118,14 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
   const [saleId, setSaleId] = useState("");
   const [visibleLimit, setVisibleLimit] = useState(40);
 
+  // AI Search states
+  const [aiSettings, setAiSettings] = useState<AISettings>(() => getStoredAISettings(settings));
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiActive, setAiActive] = useState(false);
+  const [aiMatches, setAiMatches] = useState<AIMatchItem[]>([]);
+  const [aiInterpretation, setAiInterpretation] = useState("");
+
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
 
@@ -111,6 +134,7 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     product,
     searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${(product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ")}`.toLocaleLowerCase("id-ID"),
   })), [products]);
+
   const barcodeIndex = useMemo(() => {
     const index = new Map<string, BarcodeTarget>();
     for (const product of products) {
@@ -129,10 +153,30 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     }
     return index;
   }, [products]);
-  const allFiltered = useMemo(() => indexedProducts.filter(({ product, searchText }) =>
-    (!normalizedQuery || searchText.includes(normalizedQuery))
-    && (category === "Semua" || product.category === category)
-  ).map(({ product }) => product), [indexedProducts, normalizedQuery, category]);
+
+  const aiMatchMap = useMemo(() => new Map(aiMatches.map((m) => [m.product_id, m])), [aiMatches]);
+
+  const allFiltered = useMemo(() => {
+    if (aiActive && aiMatches.length > 0) {
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      const list: Product[] = [];
+      for (const m of aiMatches) {
+        const prod = productMap.get(m.product_id);
+        if (prod && !list.includes(prod)) {
+          if (category === "Semua" || prod.category === category) {
+            list.push(prod);
+          }
+        }
+      }
+      return list;
+    }
+
+    return indexedProducts.filter(({ product, searchText }) =>
+      (!normalizedQuery || searchText.includes(normalizedQuery))
+      && (category === "Semua" || product.category === category)
+    ).map(({ product }) => product);
+  }, [aiActive, aiMatches, products, indexedProducts, normalizedQuery, category]);
+
   const filtered = allFiltered.slice(0, visibleLimit);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
   const itemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
@@ -159,8 +203,15 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     }];
   }), []);
 
-  const chooseProduct = useCallback((product: Product) => {
+  const chooseProduct = useCallback((product: Product, matchedVariantId?: string | null) => {
     const variants = activeVariants(product);
+    if (matchedVariantId && variants.length) {
+      const targetVar = variants.find((v) => v.id === matchedVariantId);
+      if (targetVar && (targetVar.selected_stock ?? 0) > 0) {
+        addSelected(product, targetVar);
+        return;
+      }
+    }
     if (variants.length) { setVariantProduct(product); return; }
     addSelected(product, null);
   }, [addSelected]);
@@ -175,6 +226,57 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     if (availableStock(target.product) <= 0) { setError(`${target.product.name} sedang tidak memiliki stok.`); return; }
     chooseProduct(target.product); setQuery(""); setVisibleLimit(80); setError(""); searchRef.current?.focus();
   }, [barcodeIndex, addSelected, chooseProduct]);
+
+  const handleAISearch = useCallback(async (manualQuery?: string) => {
+    const q = (manualQuery ?? query).trim();
+    if (!q) {
+      setError("Ketik kata atau deskripsi dari pembeli terlebih dahulu (misal: 'kran cuci piring leher lentur').");
+      searchRef.current?.focus();
+      return;
+    }
+
+    setError("");
+    setAiSearching(true);
+    try {
+      const res = await executeAISearch(q, {
+        storeId: store.id,
+        settings: aiSettings,
+      });
+
+      if (!res.success) {
+        setError(res.error || "Pencarian AI gagal.");
+        if (res.error?.includes("Pengaturan AI belum") || res.error?.includes("Base URL")) {
+          setAiSettingsOpen(true);
+        }
+        return;
+      }
+
+      setAiInterpretation(res.interpretation || "");
+      setAiMatches(res.matches || []);
+      setAiActive(true);
+      setCategory("Semua");
+      setVisibleLimit(40);
+
+      if (!res.matches || res.matches.length === 0) {
+        setError(`AI tidak menemukan barang yang pas untuk "${q}". Coba jelaskan fungsinya dengan kalimat lain.`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memproses pencarian AI");
+    } finally {
+      setAiSearching(false);
+    }
+  }, [query, store.id, aiSettings]);
+
+  const clearAISearch = useCallback(() => {
+    setAiActive(false);
+    setAiMatches([]);
+    setAiInterpretation("");
+    setError("");
+    setQuery("");
+    setVisibleLimit(40);
+    searchRef.current?.focus();
+  }, []);
+
 
   const change = (key: string, delta: number) => setCart((current) => {
     const target = current.find((item) => item.key === key);
@@ -217,10 +319,96 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
 
   return <div className="pos-layout pos-layout-v231">
     <section className="pos-products">
-      <div className={`pos-search ${query !== deferredQuery ? "is-busy" : ""}`}><Search size={20}/><input ref={searchRef} autoFocus placeholder="Scan barcode atau cari produk / varian..." value={query} onChange={(event) => { setQuery(event.target.value); setVisibleLimit(40); }} onKeyDown={(event) => { if (event.key !== "Enter") return; event.preventDefault(); if (query.trim()) useBarcode(query); }}/><button type="button" className="pos-scan-btn" title="Buka kamera barcode" onClick={() => setScannerOpen(true)}><ScanBarcode size={20}/><span>Scan</span></button><ThermalPrinterButton variant="pos"/></div>
+      <div className={`pos-search ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
+        <Search size={20}/>
+        <input
+          ref={searchRef}
+          autoFocus
+          placeholder={aiActive ? "Filter aktif: ketik baru atau bersihkan pencarian..." : "Scan barcode, cari nama/kode, atau ketik perkataan pembeli..."}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setVisibleLimit(40);
+            if (aiActive) {
+              setAiActive(false);
+              setAiMatches([]);
+              setAiInterpretation("");
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            if (query.trim()) {
+              const code = normalizeCode(query);
+              if (barcodeIndex.has(code)) {
+                useBarcode(query);
+              } else {
+                handleAISearch(query);
+              }
+            }
+          }}
+        />
+        <div className="pos-search-actions">
+          <button
+            type="button"
+            className={`pos-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
+            title="Pencarian Cerdas AI (Pahami bahasa pembeli, istilah slang, atau fungsi barang)"
+            onClick={() => handleAISearch()}
+            disabled={aiSearching}
+          >
+            {aiSearching ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+            <span>{aiSearching ? "AI..." : "AI"}</span>
+          </button>
+          <button
+            type="button"
+            className="pos-ai-gear-btn"
+            title="Pengaturan AI (Base URL & Model)"
+            onClick={() => setAiSettingsOpen(true)}
+            aria-label="Pengaturan AI"
+          >
+            <Settings2 size={15} />
+          </button>
+          <button
+            type="button"
+            className="pos-scan-btn"
+            title="Buka kamera barcode"
+            onClick={() => setScannerOpen(true)}
+          >
+            <ScanBarcode size={18} />
+            <span>Scan</span>
+          </button>
+          <ThermalPrinterButton variant="pos" />
+        </div>
+      </div>
+
+      {aiActive ? (
+        <div className="pos-ai-result-banner">
+          <div className="ai-banner-left">
+            <span className="ai-sparkle-pill">
+              <Sparkles size={14} />
+              <span>Analisis AI</span>
+            </span>
+            <div className="ai-interpretation-info">
+              <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
+              <small>Ditemukan {allFiltered.length} produk di katalog yang sesuai dengan maksud pembeli.</small>
+            </div>
+          </div>
+          <div className="ai-banner-right">
+            <button
+              type="button"
+              className="button secondary ai-clear-banner-btn"
+              onClick={clearAISearch}
+            >
+              <X size={14} />
+              <span>Bersihkan AI</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => { setCategory(name); setVisibleLimit(40); }}>{name}</button>)}</div>
-      <div className="product-grid">{filtered.map((product) => <PosProductCard key={product.id} product={product} onChoose={chooseProduct} />)}</div>
-      {!allFiltered.length ? <div className="empty-inline">Produk tidak ditemukan.</div> : null}
+      <div className="product-grid">{filtered.map((product) => <PosProductCard key={product.id} product={product} onChoose={chooseProduct} aiMatch={aiMatchMap.get(product.id)} />)}</div>
+      {!allFiltered.length ? <div className="empty-inline">{aiActive ? `Tidak ada produk yang cocok dengan pencarian AI "${query}".` : "Produk tidak ditemukan."}</div> : null}
       {allFiltered.length ? <div className="catalog-status"><span>Menampilkan <strong>{filtered.length.toLocaleString("id-ID")}</strong> dari {allFiltered.length.toLocaleString("id-ID")} produk</span>{filtered.length < allFiltered.length ? <button type="button" className="button secondary" onClick={() => setVisibleLimit((current) => current + 40)}>Tampilkan lebih banyak</button> : null}</div> : null}
     </section>
 
@@ -234,5 +422,13 @@ export function PosTerminal({ products, store, shiftId = null }: { products: Pro
     {paymentOpen ? <div className="modal-backdrop payment-backdrop"><div className="modal-card payment-sheet"><div className="modal-header"><div><h2>Pembayaran</h2><p>{store.name} · {itemCount} item</p></div><button className="icon-button" onClick={() => setPaymentOpen(false)}><X size={20}/></button></div><div className="payment-total"><span>Total pembayaran</span><strong>{formatCurrency(grandTotal)}</strong></div><div className="payment-methods">{payments.map(({ id, label, icon: Icon }) => <button type="button" className={paymentMethod === id ? "active" : ""} key={id} onClick={() => { setPaymentMethod(id); setPaymentReference(""); if (id !== "cash") setCashReceived(grandTotal); }}><Icon size={22}/><span>{label}</span></button>)}</div>{paymentMethod === "cash" ? <div className="cash-payment"><label className="payment-field"><span>Uang diterima</span><input type="number" inputMode="numeric" min={grandTotal} value={cashReceived || ""} onChange={(event) => setCashReceived(Number(event.target.value || 0))}/><div className="cash-presets">{[grandTotal, Math.ceil(grandTotal/5000)*5000, Math.ceil(grandTotal/10000)*10000, Math.ceil(grandTotal/50000)*50000].filter((value,index,array)=>array.indexOf(value)===index).slice(0,4).map((value)=><button type="button" key={value} onClick={()=>setCashReceived(value)}>{value===grandTotal?"Uang pas":formatCurrency(value)}</button>)}</div></label><div className="change-card"><span>Kembalian</span><strong>{formatCurrency(changeAmount)}</strong></div></div> : <label className="payment-field"><span>Nomor referensi</span><input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder="Opsional: nomor transaksi pembayaran"/></label>}{error ? <div className="alert error">{error}</div> : null}<button className="button primary payment-submit" disabled={processing} onClick={checkout}>{processing ? <LoadingSpinner/> : null}<span>{processing ? "Memproses transaksi..." : `Selesaikan ${formatCurrency(grandTotal)}`}</span></button></div></div> : null}
 
     {paid ? <div className="modal-backdrop"><div className="modal-card payment-modal success-modal"><div className="success-check"><CheckCircle2 size={34}/></div><h2>Pembayaran berhasil</h2><p>Invoice <strong>{invoice}</strong> tersimpan. Varian dan harga transaksi tercatat pada invoice.</p><strong className="success-total">{formatCurrency(grandTotal)}</strong><div className="success-actions pos-success-actions"><Link className="button primary pos-thermal-print-btn" href={`${receiptUrl}?format=thermal58&print=1`} target="_blank" rel="noreferrer"><Flame size={16}/> Cetak Thermal (58mm)</Link><Link className="button secondary" href={`${receiptUrl}?format=thermal80&print=1`} target="_blank" rel="noreferrer"><Printer size={16}/> Thermal 80mm</Link><Link className="button secondary" href={receiptUrl}><ReceiptText size={16}/> Buka Invoice</Link><button className="button secondary" onClick={reset}>Transaksi baru</button></div></div></div> : null}
+
+    <AISettingsModal
+      open={aiSettingsOpen}
+      onClose={() => setAiSettingsOpen(false)}
+      settings={settings}
+      onSaved={(newCfg) => setAiSettings(newCfg)}
+    />
   </div>;
 }
+

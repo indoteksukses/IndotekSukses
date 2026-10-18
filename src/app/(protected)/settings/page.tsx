@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Building2, Database, Printer, ReceiptText, ShieldCheck, Users } from "lucide-react";
+import { Building2, Database, Printer, ReceiptText, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { SettingsForm } from "@/components/forms/settings-form";
 import { ThermalPrinterSettings } from "@/components/thermal-printer-settings";
+import { AISettingsPanel } from "@/components/ai-settings-panel";
 import { PageHeader } from "@/components/ui";
 import { getSystemSettings } from "@/lib/data";
 
@@ -21,16 +22,29 @@ export default async function SettingsPage() {
     <>
       <PageHeader
         title="Pengaturan Sistem"
-        description="Atur identitas perusahaan, printer struk thermal, cabang, akses pengguna, dan keamanan."
+        description="Atur identitas perusahaan, pencarian AI LLM, printer struk thermal, cabang, dan akses pengguna."
       />
       <div className="settings-layout">
         <div className="settings-main-column">
           <SettingsForm settings={settings} />
+          <div id="ai-search-section" style={{ marginTop: "24px" }}>
+            <AISettingsPanel settings={settings} />
+          </div>
           <div id="thermal-printer-section" style={{ marginTop: "24px" }}>
             <ThermalPrinterSettings settings={settings} />
           </div>
         </div>
         <div className="settings-side">
+          <a className="setting-card highlight-ai-card" href="#ai-search-section">
+            <div className="setting-icon">
+              <Sparkles />
+            </div>
+            <div>
+              <strong>Pencarian AI (LLM)</strong>
+              <span>Base URL & model untuk pencarian bahasa pelanggan.</span>
+            </div>
+            <b>↓</b>
+          </a>
           <a className="setting-card highlight-printer-card" href="#thermal-printer-section">
             <div className="setting-icon">
               <Printer />
@@ -41,6 +55,7 @@ export default async function SettingsPage() {
             </div>
             <b>↓</b>
           </a>
+
           {settingsLinks.map(({ href, icon: Icon, title, description }) => (
             <Link className="setting-card" href={href} key={href}>
               <div className="setting-icon">

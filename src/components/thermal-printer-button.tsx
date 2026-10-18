@@ -34,7 +34,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
         >
           <div className="topbar-printer-icon-wrap">
             <Printer size={17} />
-            <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
           </div>
           <span className="topbar-printer-label">
             <span className="printer-text">Printer</span>
@@ -57,7 +56,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
         >
           <div className="sidebar-printer-icon">
             <Printer size={18} />
-            <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
           </div>
           <div className="sidebar-printer-info">
             <strong>Printer Thermal</strong>
@@ -82,7 +80,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
         >
           <div className="pos-printer-icon-wrap">
             <Printer size={18} />
-            <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
           </div>
           <span className="pos-printer-text">Printer</span>
         </button>
@@ -103,7 +100,6 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
       >
         <div className="compact-printer-icon-wrap">
           <Printer size={16} />
-          <span className={`status-dot ${isConnected ? "connected" : "disconnected"}`} />
         </div>
         <span className="compact-printer-text">Printer</span>
       </button>
@@ -112,3 +108,4 @@ export function ThermalPrinterButton({ variant = "topbar", className = "" }: The
     </>
   );
 }
+

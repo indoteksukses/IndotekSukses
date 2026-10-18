@@ -168,13 +168,30 @@ export const getSystemSettings = cache(async function getSystemSettings(): Promi
   if (hit) return hit;
   try {
     const supabase = createAdminClient();
-    const { data } = await supabase.from("system_settings").select("company_name,company_tagline,phone,address,receipt_footer,logo_url").eq("id", 1).maybeSingle();
+    const { data, error } = await supabase
+      .from("system_settings")
+      .select("company_name,company_tagline,phone,address,receipt_footer,logo_url,ai_base_url,ai_api_key,ai_model,ai_search_enabled")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      // Graceful fallback if AI columns are not yet migrated in Supabase table
+      const fallback = await supabase
+        .from("system_settings")
+        .select("company_name,company_tagline,phone,address,receipt_footer,logo_url")
+        .eq("id", 1)
+        .maybeSingle();
+      const res = fallback.data ? { ...demoSettings, ...fallback.data } : demoSettings;
+      return memSet("system_settings", res, 120);
+    }
+
     const res = data ? { ...demoSettings, ...data } : demoSettings;
     return memSet("system_settings", res, 120);
   } catch {
     return demoSettings;
   }
 });
+
 
 export async function getAppContext() {
   const [profile, stores, settings] = await Promise.all([getCurrentProfile(), getStores(), getSystemSettings()]);

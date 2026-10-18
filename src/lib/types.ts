@@ -144,6 +144,31 @@ export type SaleSummary = {
   customer_name?: string | null;
 };
 
+export type AISettings = {
+  base_url: string;
+  api_key?: string;
+  model: string;
+  enabled: boolean;
+};
+
+export type AIMatchItem = {
+  product_id: string;
+  variant_id?: string | null;
+  variant_name?: string | null;
+  confidence: number;
+  reason: string;
+};
+
+export type AISearchResponse = {
+  success: boolean;
+  query: string;
+  interpretation?: string;
+  matches: AIMatchItem[];
+  model_used?: string;
+  latency_ms?: number;
+  error?: string;
+};
+
 export type SystemSettings = {
   company_name: string;
   company_tagline: string;
@@ -151,7 +176,12 @@ export type SystemSettings = {
   address?: string;
   receipt_footer?: string;
   logo_url?: string;
+  ai_base_url?: string | null;
+  ai_api_key?: string | null;
+  ai_model?: string | null;
+  ai_search_enabled?: boolean;
 };
+
 
 export type FinancialReport = {
   gross_sales: number;
