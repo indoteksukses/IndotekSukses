@@ -16,7 +16,10 @@ const fallback: Required<Pick<ProductVisualDefinition, "shape" | "primary" | "se
 };
 
 function safeColor(value: string | undefined, fallbackValue: string) {
-  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : fallbackValue;
+  if (!value) return fallbackValue;
+  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) return value;
+  if (/^(?:rgb|rgba|hsl|hsla)\(/i.test(value)) return value;
+  return fallbackValue;
 }
 
 function Shapes({ shape, primary, secondary, accent }: Required<Pick<ProductVisualDefinition, "shape" | "primary" | "secondary" | "accent">>) {
@@ -60,7 +63,7 @@ function CustomShapes({ elements, palette }: { elements: ProductVisualElement[];
     if (element.type === "path") return <path {...common} d={element.d}/>;
     if (element.type === "rect") return <rect {...common} x={element.x} y={element.y} width={element.width} height={element.height} rx={element.rx}/>;
     if (element.type === "circle") return <circle {...common} cx={element.cx} cy={element.cy} r={element.r}/>;
-    if (element.type === "ellipse") return <ellipse {...common} cx={element.cx} cy={element.cy} rx={element.width} ry={element.height}/>;
+    if (element.type === "ellipse") return <ellipse {...common} cx={element.cx} cy={element.cy} rx={element.rx ?? element.width} ry={element.ry ?? element.height}/>;
     if (element.type === "polygon") return <polygon {...common} points={element.points}/>;
     return <line {...common} x1={element.x1} y1={element.y1} x2={element.x2} y2={element.y2}/>;
   })}</>;
@@ -78,7 +81,44 @@ export const ProductVisual = memo(function ProductVisual({ name, imageUrl, defin
   const style = { "--visual-bg": normalized.background } as CSSProperties;
   const custom = normalized.shape === "custom" && Array.isArray(definition?.elements) && definition.elements.length > 0;
   const showImage = Boolean(imageUrl) && failedImageUrl !== imageUrl;
-  return <div className={`product-visual product-visual-${size} ${animated ? "is-animated" : ""}`} style={style} aria-label={`Ilustrasi ${name}`}>
-    {showImage ? <img key={imageUrl} src={imageUrl!} alt={name} loading={size === "preview" ? "eager" : "lazy"} decoding="async" draggable={false} onError={() => setFailedImageUrl(imageUrl ?? null)}/> : <svg viewBox="0 0 80 90" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/><g className="product-visual-object">{custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}</g></svg>}
-  </div>;
+  return (
+    <div className={`product-visual product-visual-${size} ${animated ? "is-animated" : ""}`} style={style} aria-label={`Ilustrasi ${name}`}>
+      {showImage ? (
+        <img
+          key={imageUrl}
+          src={imageUrl!}
+          alt={name}
+          loading={size === "preview" ? "eager" : "lazy"}
+          decoding="async"
+          draggable={false}
+          onError={() => setFailedImageUrl(imageUrl ?? null)}
+        />
+      ) : (
+        <svg
+          viewBox="0 0 80 90"
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-hidden="true"
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+            minWidth: "100%",
+            minHeight: "100%",
+            flex: "1 1 100%",
+            alignSelf: "stretch",
+            overflow: "visible",
+            pointerEvents: "none",
+          }}
+        >
+          <ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/>
+          <g className="product-visual-object">
+            {custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}
+          </g>
+        </svg>
+      )}
+    </div>
+  );
 });

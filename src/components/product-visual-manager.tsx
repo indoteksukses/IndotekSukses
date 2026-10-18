@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Braces, CheckCircle2, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
+import { ModalPortal } from "@/components/modal-portal";
 import type { ProductVisual as ProductVisualType, ProductVisualDefinition } from "@/lib/types";
 
 const template: ProductVisualDefinition = { shape: "bolt", primary: "#334155", secondary: "#94a3b8", accent: "#f59e0b", background: "#eff6ff" };
@@ -91,7 +92,7 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
 
   return <>
     <button className="button secondary product-master-action-button" onClick={() => setOpen(true)}><Braces size={16}/><span className="action-label-full">Visual Produk</span><span className="action-label-short">Visual</span></button>
-    {open ? <div className="modal-backdrop"><div className="modal-card visual-manager-modal">
+    {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card visual-manager-modal">
       <div className="modal-header"><div><h2>Galeri visual produk</h2><p>Edit visual buatan admin atau hapus visual apa pun dari galeri. Produk yang memakai visual terhapus otomatis kembali ke visual umum.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="visual-manager-layout">
         <section className="visual-library"><div className="visual-section-title"><strong>Pilihan tersimpan</strong><span>{visuals.filter((visual) => visual.is_active).length} aktif · {visuals.length} total</span></div>
@@ -114,6 +115,6 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
           <div className="visual-editor-actions">{editing ? <button type="button" className="button secondary" onClick={resetEditor}>Batal edit</button> : null}<button type="button" className="button primary visual-save-button" disabled={saving || !name.trim() || !preview || Boolean(editing?.is_builtin)} onClick={save}>{saving ? <LoadingSpinner/> : <Plus size={16}/>}<span>{saving ? "Menyimpan..." : editing ? "Simpan perubahan" : "Simpan sebagai pilihan"}</span></button></div>
         </section>
       </div>
-    </div></div> : null}
+    </div></div></ModalPortal> : null}
   </>;
 }

@@ -26,7 +26,7 @@ export type ProductVisualShape = "bolt" | "nut" | "screw" | "wrench" | "drill" |
 export type ProductVisualElement = {
   type: "path" | "rect" | "circle" | "ellipse" | "polygon" | "line";
   x?: number; y?: number; x1?: number; y1?: number; x2?: number; y2?: number;
-  width?: number; height?: number; rx?: number; cx?: number; cy?: number; r?: number;
+  width?: number; height?: number; rx?: number; ry?: number; cx?: number; cy?: number; r?: number;
   points?: string; d?: string; fill?: string; stroke?: string; strokeWidth?: number;
   opacity?: number; rotate?: number;
 };
