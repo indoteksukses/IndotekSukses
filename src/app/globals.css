@@ -9589,6 +9589,49 @@ html.dark .thermal-connect-btn.secondary:hover,
   color: var(--ink, #0f172a);
 }
 
+.ai-presets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.ai-category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.ai-cat-tab {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #64748b);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-cat-tab:hover {
+  color: var(--ink, #0f172a);
+}
+
+.ai-cat-tab.active {
+  background: var(--surface, #ffffff);
+  color: #4f46e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 .ai-preset-chips {
   display: flex;
   flex-wrap: wrap;
@@ -9599,7 +9642,7 @@ html.dark .thermal-connect-btn.secondary:hover,
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 3px;
   padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid var(--line, #e2e8f0);
@@ -9607,6 +9650,39 @@ html.dark .thermal-connect-btn.secondary:hover,
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
+  min-width: 140px;
+}
+
+.preset-chip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+}
+
+.preset-badge {
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.preset-badge.pihak_ketiga {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
+.preset-badge.pihak_kedua {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.preset-badge.pihak_pertama {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
 }
 
 .ai-preset-chip:hover {
@@ -9616,7 +9692,7 @@ html.dark .thermal-connect-btn.secondary:hover,
 
 .ai-preset-chip.active {
   border-color: #4f46e5;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(99, 102, 241, 0.08);
   box-shadow: 0 0 0 1px #4f46e5;
 }
 
@@ -9629,6 +9705,23 @@ html.dark .thermal-connect-btn.secondary:hover,
 .ai-preset-chip small {
   font-size: 9.5px;
   color: var(--muted, #64748b);
+}
+
+.ai-preset-detail-note {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.06);
+  border-left: 3px solid #6366f1;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink, #0f172a);
+}
+
+.ai-preset-detail-note strong {
+  color: #4338ca;
 }
 
 /* AI Form Grid */
@@ -9824,6 +9917,23 @@ html.dark .thermal-connect-btn.secondary:hover,
   line-height: 1.45;
 }
 
+.ai-guide-list {
+  margin: 6px 0 0 0;
+  padding-left: 18px;
+  font-size: 10.5px;
+  color: var(--muted, #475569);
+  line-height: 1.5;
+}
+
+.ai-guide-list li {
+  margin-bottom: 4px;
+}
+
+.ai-guide-list strong {
+  display: inline;
+  color: var(--ink, #0f172a);
+}
+
 /* AI Modal Backdrop & Dialog */
 .ai-modal-backdrop {
   z-index: 1060;
@@ -9911,6 +10021,33 @@ html.dark .ai-guide-box,
 html.dark .ai-guide-box p,
 [data-theme="dark"] .ai-guide-box p {
   color: #94a3b8;
+}
+
+html.dark .ai-category-tabs,
+[data-theme="dark"] .ai-category-tabs {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .ai-cat-tab,
+[data-theme="dark"] .ai-cat-tab {
+  color: #94a3b8;
+}
+
+html.dark .ai-cat-tab.active,
+[data-theme="dark"] .ai-cat-tab.active {
+  background: #1e293b;
+  color: #a5b4fc;
+}
+
+html.dark .ai-preset-detail-note,
+[data-theme="dark"] .ai-preset-detail-note {
+  background: rgba(99, 102, 241, 0.12);
+  color: #e2e8f0;
+}
+
+html.dark .ai-preset-detail-note strong,
+[data-theme="dark"] .ai-preset-detail-note strong {
+  color: #c7d2fe;
 }
 
 /* ==========================================================================

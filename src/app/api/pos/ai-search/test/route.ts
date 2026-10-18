@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { buildLLMHeaders, extractLLMResponseText, resolveLLMEndpoint } from "@/lib/ai-llm-server";
 
 export async function POST(request: Request) {
   const startTime = Date.now();
   try {
     const body = await request.json().catch(() => ({}));
-    let baseUrl = String(body.base_url ?? "").trim();
+    const baseUrl = String(body.base_url ?? "").trim();
     const model = String(body.model ?? "").trim();
     const apiKey = String(body.api_key ?? "").trim();
 
@@ -15,19 +16,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nama Model LLM wajib diisi" }, { status: 400 });
     }
 
-    // Clean and normalize base URL
-    baseUrl = baseUrl.replace(/\/+$/, "");
-    let endpoint = `${baseUrl}/chat/completions`;
-    if (baseUrl.endsWith("/chat/completions")) {
-      endpoint = baseUrl;
-    }
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
+    // Universal endpoint resolution for 1st, 2nd, and 3rd party providers
+    const endpoint = resolveLLMEndpoint(baseUrl);
+    const headers = buildLLMHeaders(apiKey);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000); // 12 seconds max
@@ -64,7 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const reply = result?.choices?.[0]?.message?.content || "OK";
+    const reply = extractLLMResponseText(result) || "OK";
     return NextResponse.json({
       success: true,
       latency_ms,

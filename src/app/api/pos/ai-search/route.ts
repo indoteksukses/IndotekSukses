@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProductsWithStocks, getSystemSettings } from "@/lib/data";
+import { buildLLMHeaders, extractLLMResponseText, parseAISearchJSON, resolveLLMEndpoint } from "@/lib/ai-llm-server";
 import type { AIMatchItem, AISearchResponse, Product, ProductVariant } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -51,12 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Clean Base URL
-    baseUrl = baseUrl.replace(/\/+$/, "");
-    let endpoint = `${baseUrl}/chat/completions`;
-    if (baseUrl.endsWith("/chat/completions")) {
-      endpoint = baseUrl;
-    }
+    // Universal resolution for 1st, 2nd (local/Ollama/LM Studio), or 3rd party (OpenRouter/Groq/DeepSeek/Gemini/etc.)
+    const endpoint = resolveLLMEndpoint(baseUrl);
 
     // Load store catalog
     const products: Product[] = await getProductsWithStocks(storeId, includeInactive);
@@ -127,12 +124,7 @@ Catatan Penting: Jangan mengarang ID produk atau varian baru di luar katalog yan
 Katalog Toko Tersedia:
 ${JSON.stringify(catalogDigest)}`;
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
+    const headers = buildLLMHeaders(apiKey);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
@@ -172,30 +164,11 @@ ${JSON.stringify(catalogDigest)}`;
       );
     }
 
-    const rawData = await llmResponse.json();
-    const rawContent = rawData?.choices?.[0]?.message?.content || "";
+    const rawData = await llmResponse.json().catch(() => null);
+    const rawContent = extractLLMResponseText(rawData);
 
-    // Parse JSON safely from markdown or plain text
-    let parsedJson: { interpretation?: string; matches?: AIMatchItem[] } | null = null;
-    try {
-      // Strip potential markdown code fences: ```json ... ```
-      const cleaned = rawContent
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/, "")
-        .replace(/\s*```$/, "")
-        .trim();
-      parsedJson = JSON.parse(cleaned);
-    } catch {
-      // Regex extraction fallback
-      const match = rawContent.match(/\{[\s\S]*\}/);
-      if (match) {
-        try {
-          parsedJson = JSON.parse(match[0]);
-        } catch {
-          // ignore
-        }
-      }
-    }
+    // Parse JSON safely using universal fallback extraction
+    const parsedJson = parseAISearchJSON(rawContent);
 
     if (!parsedJson || !Array.isArray(parsedJson.matches)) {
       return NextResponse.json({

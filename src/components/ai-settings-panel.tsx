@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bot, Check, CheckCircle2, Eye, EyeOff, HelpCircle, Loader2, RefreshCw, Sparkles, Zap } from "lucide-react";
-import { AI_PRESETS, DEFAULT_AI_SETTINGS, getStoredAISettings, saveStoredAISettings, testAIConnection } from "@/lib/ai-search-client";
+import { useEffect, useMemo, useState } from "react";
+import { Bot, Check, CheckCircle2, Cpu, Eye, EyeOff, Globe, HardDrive, HelpCircle, Layers, Loader2, RefreshCw, Server, Sparkles, Zap } from "lucide-react";
+import { AI_PRESETS, DEFAULT_AI_SETTINGS, getStoredAISettings, saveStoredAISettings, testAIConnection, type AIPreset } from "@/lib/ai-search-client";
 import type { AISettings, SystemSettings } from "@/lib/types";
 
 interface AISettingsPanelProps {
@@ -13,6 +13,7 @@ interface AISettingsPanelProps {
 
 export function AISettingsPanel({ settings, onSaved, compact = false }: AISettingsPanelProps) {
   const [config, setConfig] = useState<AISettings>(() => getStoredAISettings(settings));
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "pihak_ketiga" | "pihak_kedua" | "pihak_pertama">("all");
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,7 +35,21 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
     }
   }, [settings]);
 
-  const handleApplyPreset = (preset: (typeof AI_PRESETS)[number]) => {
+  // Find active preset if matched
+  const activePreset = useMemo(() => {
+    return AI_PRESETS.find(
+      (p) =>
+        config.base_url.replace(/\/+$/, "") === p.base_url.replace(/\/+$/, "") &&
+        config.model.trim().toLowerCase() === p.model.trim().toLowerCase()
+    );
+  }, [config.base_url, config.model]);
+
+  const filteredPresets = useMemo(() => {
+    if (categoryFilter === "all") return AI_PRESETS;
+    return AI_PRESETS.filter((p) => p.category === categoryFilter);
+  }, [categoryFilter]);
+
+  const handleApplyPreset = (preset: AIPreset) => {
     setConfig((curr) => ({
       ...curr,
       base_url: preset.base_url,
@@ -144,15 +159,54 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
           </div>
         </label>
 
-        {/* Quick Presets */}
+        {/* Quick Presets & Provider Filter */}
         <div className="ai-presets-section">
-          <div className="ai-field-label">
-            <Zap size={14} />
-            <span>Pilih Cepat Penyedia AI (Preset):</span>
+          <div className="ai-presets-header">
+            <div className="ai-field-label">
+              <Zap size={14} />
+              <span>Pilihan Provider & Preset LLM (Pihak 1, 2 & 3):</span>
+            </div>
+
+            <div className="ai-category-tabs">
+              <button
+                type="button"
+                className={`ai-cat-tab ${categoryFilter === "all" ? "active" : ""}`}
+                onClick={() => setCategoryFilter("all")}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                className={`ai-cat-tab ${categoryFilter === "pihak_ketiga" ? "active" : ""}`}
+                onClick={() => setCategoryFilter("pihak_ketiga")}
+              >
+                <Globe size={12} />
+                <span>Pihak Ke-3 (Cloud)</span>
+              </button>
+              <button
+                type="button"
+                className={`ai-cat-tab ${categoryFilter === "pihak_kedua" ? "active" : ""}`}
+                onClick={() => setCategoryFilter("pihak_kedua")}
+              >
+                <HardDrive size={12} />
+                <span>Pihak Ke-2 (Lokal / Toko)</span>
+              </button>
+              <button
+                type="button"
+                className={`ai-cat-tab ${categoryFilter === "pihak_pertama" ? "active" : ""}`}
+                onClick={() => setCategoryFilter("pihak_pertama")}
+              >
+                <Layers size={12} />
+                <span>Pihak Ke-1</span>
+              </button>
+            </div>
           </div>
+
           <div className="ai-preset-chips">
-            {AI_PRESETS.map((p) => {
-              const isActive = config.base_url === p.base_url && config.model === p.model;
+            {filteredPresets.map((p) => {
+              const isActive =
+                config.base_url.replace(/\/+$/, "") === p.base_url.replace(/\/+$/, "") &&
+                config.model.trim().toLowerCase() === p.model.trim().toLowerCase();
               return (
                 <button
                   type="button"
@@ -161,12 +215,26 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
                   onClick={() => handleApplyPreset(p)}
                   title={p.desc}
                 >
-                  <b>{p.name}</b>
+                  <div className="preset-chip-top">
+                    <b>{p.name}</b>
+                    <span className={`preset-badge ${p.category}`}>
+                      {p.category === "pihak_ketiga" ? "Pihak 3" : p.category === "pihak_kedua" ? "Pihak 2 (Lokal)" : "Pihak 1"}
+                    </span>
+                  </div>
                   <small>{p.model}</small>
                 </button>
               );
             })}
           </div>
+
+          {activePreset ? (
+            <div className="ai-preset-detail-note">
+              <Sparkles size={13} />
+              <span>
+                <strong>{activePreset.name} ({activePreset.categoryLabel}):</strong> {activePreset.desc}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         {/* Form Fields Grid */}
@@ -174,14 +242,14 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
           <label className="ai-field span-2">
             <span className="field-title">Base URL API LLM (OpenAI Compatible)</span>
             <input
-              type="url"
+              type="text"
               required
               value={config.base_url}
               onChange={(e) => setConfig((c) => ({ ...c, base_url: e.target.value }))}
               placeholder="https://api.openai.com/v1 atau http://localhost:11434/v1"
             />
             <small className="field-hint">
-              Mendukung semua endpoint kompatibel OpenAI: OpenAI, Groq, OpenRouter, Ollama Lokal, LM Studio, vLLM, dll.
+              Mendukung penuh <strong>Pihak Ke-1</strong> (OpenAI), <strong>Pihak Ke-2</strong> (Ollama, LM Studio, vLLM, server lokal toko), serta <strong>Pihak Ke-3</strong> (OpenRouter, DeepSeek, Groq, Google Gemini, Mistral, Together AI, Portkey, OneAPI).
             </small>
           </label>
 
@@ -192,9 +260,11 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
               required
               value={config.model}
               onChange={(e) => setConfig((c) => ({ ...c, model: e.target.value }))}
-              placeholder="Contoh: gpt-4o-mini, llama3.1, qwen2.5"
+              placeholder="Contoh: gpt-4o-mini, llama-3.3-70b, deepseek-chat, gemini-2.0-flash"
             />
-            <small className="field-hint">Disarankan model cepat & hemat seperti gpt-4o-mini atau llama-3.1-8b.</small>
+            <small className="field-hint">
+              {activePreset ? `Preset aktif: ${activePreset.name}` : "Masukkan kode nama model yang disediakan oleh provider Anda."}
+            </small>
           </label>
 
           <label className="ai-field">
@@ -204,7 +274,7 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
                 type={showKey ? "text" : "password"}
                 value={config.api_key || ""}
                 onChange={(e) => setConfig((c) => ({ ...c, api_key: e.target.value }))}
-                placeholder="sk-... (kosongkan jika pakai Ollama lokal)"
+                placeholder={activePreset?.keyPlaceholder || "sk-... (kosongkan jika pakai Ollama/LM Studio lokal)"}
               />
               <button
                 type="button"
@@ -215,7 +285,11 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
                 {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <small className="field-hint">Tersimpan aman. Kosongkan jika menggunakan Ollama di komputer lokal.</small>
+            <small className="field-hint">
+              {activePreset && !activePreset.needsKey
+                ? "Provider ini tidak membutuhkan API key (gratis & berjalan di server internal)."
+                : "Tersimpan aman. Hanya diperlukan jika menggunakan provider pihak ke-1 atau ke-3 berbayar/cloud."}
+            </small>
           </label>
         </div>
 
@@ -255,16 +329,25 @@ export function AISettingsPanel({ settings, onSaved, compact = false }: AISettin
           </div>
         </div>
 
-        {/* Educational Note */}
+        {/* Multi-Tier Educational Guide */}
         <div className="ai-guide-box">
-          <HelpCircle size={17} className="guide-icon" />
-          <div>
-            <strong>Bagaimana AI Membantu Kasir Anda?</strong>
+          <HelpCircle size={18} className="guide-icon" />
+          <div className="ai-guide-text">
+            <strong>Dukungan Multi-Provider LLM (Pihak 1, 2 & 3)</strong>
             <p>
-              Pelanggan sering datang menyebutkan fungsi (&ldquo;buat nambal pipa bocor&rdquo;) atau istilah slang
-              (&ldquo;kran angsa lentur&rdquo; / &ldquo;batu potong tipis&rdquo;). AI membaca katalog toko dan menerjemahkannya
-              ke produk & varian resmi sehingga kasir baru sekalipun dapat melayani secepat kasir berpengalaman.
+              Sistem ini fleksibel dan tidak mengunci toko pada satu vendor. Anda bebas memilih opsi yang paling hemat dan cepat:
             </p>
+            <ul className="ai-guide-list">
+              <li>
+                <strong>Pihak Ke-3 (Cloud Alternatif & Aggregator)</strong>: Gunakan <em>OpenRouter</em> (akses 300+ model dengan 1 akun), <em>DeepSeek</em> (sangat pintar & termurah), <em>Groq</em> (kecepatan kilat &lt;300ms), atau <em>Google Gemini</em> (tersedia kuota gratis besar via AI Studio).
+              </li>
+              <li>
+                <strong>Pihak Ke-2 (Server Internal / Komputer Toko)</strong>: Jalankan <em>Ollama</em> atau <em>LM Studio</em> langsung di PC kasir/server toko. 100% gratis, bisa beroperasi tanpa koneksi internet (offline), dan data transaksi tidak keluar dari toko.
+              </li>
+              <li>
+                <strong>Pihak Ke-1</strong>: Gunakan <em>OpenAI (GPT-4o mini)</em> resmi dengan memasukkan API Key OpenAI Anda.
+              </li>
+            </ul>
           </div>
         </div>
       </form>
