@@ -79,6 +79,6 @@ export const ProductVisual = memo(function ProductVisual({ name, imageUrl, defin
   const custom = normalized.shape === "custom" && Array.isArray(definition?.elements) && definition.elements.length > 0;
   const showImage = Boolean(imageUrl) && failedImageUrl !== imageUrl;
   return <div className={`product-visual product-visual-${size} ${animated ? "is-animated" : ""}`} style={style} aria-label={`Ilustrasi ${name}`}>
-    {showImage ? <img key={imageUrl} src={imageUrl!} alt={name} loading={size === "preview" ? "eager" : "lazy"} decoding="async" draggable={false} onError={() => setFailedImageUrl(imageUrl ?? null)}/> : <svg viewBox="0 0 80 90" role="img" aria-hidden="true"><ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/><g className="product-visual-object">{custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}</g></svg>}
+    {showImage ? <img key={imageUrl} src={imageUrl!} alt={name} loading={size === "preview" ? "eager" : "lazy"} decoding="async" draggable={false} onError={() => setFailedImageUrl(imageUrl ?? null)}/> : <svg viewBox="0 0 80 90" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><ellipse cx="40" cy="82" rx="25" ry="5" fill="rgba(15,23,42,.13)"/><g className="product-visual-object">{custom ? <CustomShapes elements={definition!.elements!} palette={normalized}/> : <Shapes {...normalized}/>}</g></svg>}
   </div>;
 });

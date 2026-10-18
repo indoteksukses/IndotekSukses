@@ -100,8 +100,8 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
             <ProductVisual name={visual.name} definition={visual.code} size="preview"/>
             <div className="visual-library-meta"><strong>{visual.name}</strong><span>{visual.is_builtin ? "Bawaan sistem" : "Visual buatan admin"}{visual.is_active ? "" : " · disembunyikan"}</span></div>
             <div className="visual-card-actions">
-              {!visual.is_builtin ? <button type="button" title="Edit visual" onClick={() => startEdit(visual)}><Pencil size={14}/><span>Edit</span></button> : <span className="visual-builtin-label">Bawaan</span>}
-              <button type="button" className="danger" title="Hapus visual" onClick={() => remove(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={14}/> : <Trash2 size={14}/>}<span>Hapus</span></button>
+              {!visual.is_builtin ? <button type="button" title="Edit visual" onClick={() => startEdit(visual)}><Pencil size={13}/><span>Edit</span></button> : <span className="visual-builtin-label" title="Visual bawaan sistem (tidak dapat diedit)">Bawaan</span>}
+              <button type="button" className="danger" title="Hapus visual" onClick={() => remove(visual)} disabled={deletingId === visual.id}>{deletingId === visual.id ? <LoadingSpinner size={13}/> : <Trash2 size={13}/>}<span>Hapus</span></button>
             </div>
           </article>)}{!filteredVisuals.length ? <div className="visual-library-empty">Visual tidak ditemukan. Coba kata kunci lain.</div> : null}</div>
         </section>
