@@ -7168,9 +7168,12 @@ html.dark .critical-stock-check span,
    Clean @media print Rules for Critical Stock PDF Export
    ========================================================= */
 
+#critical-stock-print-portal {
+  display: none;
+}
+
 @media print {
-  html[data-print-critical-stock="1"],
-  html[data-print-critical-stock="1"] body {
+  body.printing-critical-stock {
     background: #ffffff !important;
     color: #0f172a !important;
     margin: 0 !important;
@@ -7179,77 +7182,163 @@ html.dark .critical-stock-check span,
     print-color-adjust: exact !important;
   }
 
-  html[data-print-critical-stock="1"] .app-shell,
-  html[data-print-critical-stock="1"] .sidebar,
-  html[data-print-critical-stock="1"] .topbar,
-  html[data-print-critical-stock="1"] .page-header,
-  html[data-print-critical-stock="1"] .mini-stats,
-  html[data-print-critical-stock="1"] .inventory-toolbar,
-  html[data-print-critical-stock="1"] .inventory-result-summary,
-  html[data-print-critical-stock="1"] .inventory-mobile-list,
-  html[data-print-critical-stock="1"] .inventory-table,
-  html[data-print-critical-stock="1"] .inventory-pagination,
-  html[data-print-critical-stock="1"] .toast,
-  html[data-print-critical-stock="1"] .critical-stock-modal-header,
-  html[data-print-critical-stock="1"] .critical-stock-controls-panel,
-  html[data-print-critical-stock="1"] .critical-stock-kpi-bar,
-  html[data-print-critical-stock="1"] .critical-stock-preview-header-hint,
-  html[data-print-critical-stock="1"] .critical-stock-modal-footer,
-  html[data-print-critical-stock="1"] .no-print {
+  body.printing-critical-stock > *:not(#critical-stock-print-portal) {
     display: none !important;
   }
 
-  html[data-print-critical-stock="1"] .critical-stock-modal-backdrop {
+  body.printing-critical-stock > #critical-stock-print-portal {
+    display: block !important;
     position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    display: block !important;
-    backdrop-filter: none !important;
-  }
-
-  html[data-print-critical-stock="1"] .critical-stock-modal {
     width: 100% !important;
-    max-width: 100% !important;
-    max-height: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
     margin: 0 !important;
-    background: #ffffff !important;
-    border-radius: 0 !important;
-    display: block !important;
-  }
-
-  html[data-print-critical-stock="1"] .critical-stock-preview-viewport {
-    overflow: visible !important;
-    max-height: none !important;
     padding: 0 !important;
     background: #ffffff !important;
-    display: block !important;
+    color: #0f172a !important;
+    overflow: visible !important;
   }
 
-  html[data-print-critical-stock="1"] .critical-stock-document {
+  body.printing-critical-stock .critical-stock-document {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
     background: #ffffff !important;
     color: #0f172a !important;
   }
 
-  html[data-print-critical-stock="1"] .critical-doc-table tr {
+  body.printing-critical-stock .critical-doc-table tr {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
-  html[data-print-critical-stock="1"] .critical-doc-table thead {
+  body.printing-critical-stock .critical-doc-table thead {
     display: table-header-group !important;
   }
 
-  html[data-print-critical-stock="1"] .critical-doc-signatures {
+  body.printing-critical-stock .critical-doc-signatures {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* =========================================================
+   Standalone /inventory/print Page Styling
+   ========================================================= */
+
+.inventory-standalone-print-page {
+  min-height: 100vh;
+  background: #475569;
+  padding-bottom: 40px;
+}
+
+.inventory-print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface-card, #ffffff);
+  border-bottom: 1px solid var(--border-soft, #cbd5e1);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.inventory-print-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.inventory-print-title {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--ink, #0f172a);
+}
+
+.inventory-print-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inventory-print-filter-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.button-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border-soft, #cbd5e1);
+  background: var(--surface-soft, #f8fafc);
+  color: var(--ink, #334155);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.button-pill:hover,
+.button-pill.active {
+  background: #0b4cc2;
+  color: #ffffff;
+  border-color: #0b4cc2;
+}
+
+.inventory-print-content-wrapper {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+@media print {
+  .inventory-standalone-print-page {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .inventory-standalone-print-page .no-print,
+  .inventory-print-toolbar {
+    display: none !important;
+  }
+
+  .inventory-print-content-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .inventory-standalone-print-page .critical-stock-document {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .inventory-standalone-print-page .critical-doc-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .inventory-standalone-print-page .critical-doc-table thead {
+    display: table-header-group !important;
+  }
+
+  .inventory-standalone-print-page .critical-doc-signatures {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
