@@ -5906,6 +5906,127 @@ html.dark .product-toolbar-barcode-btn:hover,
   color: #bfdbfe !important;
 }
 
+/* Toolbar Select Dropdowns (Semua kategori, Semua merek, Semua status, Per halaman) */
+html.dark .product-toolbar-filters .select,
+html.dark .inventory-toolbar-filters .select,
+html.dark .product-toolbar .product-page-size .select,
+html.dark .inventory-toolbar .product-page-size .select,
+html.dark .product-toolbar select,
+html.dark .inventory-toolbar select,
+html.dark .toolbar-card select,
+html.dark .select,
+html.dark select.select,
+[data-theme="dark"] .product-toolbar-filters .select,
+[data-theme="dark"] .inventory-toolbar-filters .select,
+[data-theme="dark"] .product-toolbar .product-page-size .select,
+[data-theme="dark"] .inventory-toolbar .product-page-size .select,
+[data-theme="dark"] .product-toolbar select,
+[data-theme="dark"] .inventory-toolbar select,
+[data-theme="dark"] .toolbar-card select,
+[data-theme="dark"] .select,
+[data-theme="dark"] select.select {
+  background: #0e1628 !important;
+  background-color: #0e1628 !important;
+  border: 1px solid #1e2d4a !important;
+  color: #f1f5f9 !important;
+  color-scheme: dark !important;
+}
+
+html.dark .product-toolbar-filters .select:hover,
+html.dark .inventory-toolbar-filters .select:hover,
+html.dark .product-toolbar .product-page-size .select:hover,
+html.dark .inventory-toolbar .product-page-size .select:hover,
+html.dark .product-toolbar select:hover,
+html.dark .inventory-toolbar select:hover,
+html.dark .toolbar-card select:hover,
+html.dark .select:hover,
+html.dark select.select:hover,
+[data-theme="dark"] .product-toolbar-filters .select:hover,
+[data-theme="dark"] .inventory-toolbar-filters .select:hover,
+[data-theme="dark"] .product-toolbar .product-page-size .select:hover,
+[data-theme="dark"] .inventory-toolbar .product-page-size .select:hover,
+[data-theme="dark"] .product-toolbar select:hover,
+[data-theme="dark"] .inventory-toolbar select:hover,
+[data-theme="dark"] .toolbar-card select:hover,
+[data-theme="dark"] .select:hover,
+[data-theme="dark"] select.select:hover {
+  background: #131d33 !important;
+  background-color: #131d33 !important;
+  border-color: #2b3d60 !important;
+  color: #ffffff !important;
+}
+
+html.dark .product-toolbar-filters .select:focus,
+html.dark .inventory-toolbar-filters .select:focus,
+html.dark .product-toolbar .product-page-size .select:focus,
+html.dark .inventory-toolbar .product-page-size .select:focus,
+html.dark .product-toolbar select:focus,
+html.dark .inventory-toolbar select:focus,
+html.dark .toolbar-card select:focus,
+html.dark .select:focus,
+html.dark select.select:focus,
+[data-theme="dark"] .product-toolbar-filters .select:focus,
+[data-theme="dark"] .inventory-toolbar-filters .select:focus,
+[data-theme="dark"] .product-toolbar .product-page-size .select:focus,
+[data-theme="dark"] .inventory-toolbar .product-page-size .select:focus,
+[data-theme="dark"] .product-toolbar select:focus,
+[data-theme="dark"] .inventory-toolbar select:focus,
+[data-theme="dark"] .toolbar-card select:focus,
+[data-theme="dark"] .select:focus,
+[data-theme="dark"] select.select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+html.dark .product-toolbar-filters .select option,
+html.dark .inventory-toolbar-filters .select option,
+html.dark .product-toolbar .product-page-size .select option,
+html.dark .inventory-toolbar .product-page-size .select option,
+html.dark .product-toolbar select option,
+html.dark .inventory-toolbar select option,
+html.dark .toolbar-card select option,
+html.dark .select option,
+html.dark select.select option,
+[data-theme="dark"] .product-toolbar-filters .select option,
+[data-theme="dark"] .inventory-toolbar-filters .select option,
+[data-theme="dark"] .product-toolbar .product-page-size .select option,
+[data-theme="dark"] .inventory-toolbar .product-page-size .select option,
+[data-theme="dark"] .product-toolbar select option,
+[data-theme="dark"] .inventory-toolbar select option,
+[data-theme="dark"] .toolbar-card select option,
+[data-theme="dark"] .select option,
+[data-theme="dark"] select.select option {
+  background: #111a2e !important;
+  background-color: #111a2e !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark .product-toolbar-actions .button,
+html.dark .inventory-toolbar-actions .button,
+[data-theme="dark"] .product-toolbar-actions .button,
+[data-theme="dark"] .inventory-toolbar-actions .button {
+  background: #16223b !important;
+  border-color: #243552 !important;
+  color: #cbd5e1 !important;
+}
+html.dark .product-toolbar-actions .button:hover,
+html.dark .inventory-toolbar-actions .button:hover,
+[data-theme="dark"] .product-toolbar-actions .button:hover,
+[data-theme="dark"] .inventory-toolbar-actions .button:hover {
+  background: #1e2e4e !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+html.dark .product-toolbar-actions .button:disabled,
+html.dark .inventory-toolbar-actions .button:disabled,
+[data-theme="dark"] .product-toolbar-actions .button:disabled,
+[data-theme="dark"] .inventory-toolbar-actions .button:disabled {
+  opacity: 0.45 !important;
+  background: #111a2e !important;
+  color: #64748b !important;
+  border-color: #1e2d4a !important;
+}
+
 /* ─── DARK MODE: MASTER PRODUK, TAMBAH PRODUK & VISUAL PRODUK POLISH ─── */
 
 /* 1. Master Produk Summary & Count */
