@@ -1,13 +1,14 @@
 "use client";
 
 import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, Layers3, PencilLine, Search, X } from "lucide-react";
+import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, FileText, Layers3, PencilLine, Search, X } from "lucide-react";
+import { CriticalStockModal } from "@/components/critical-stock-modal";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductVisual } from "@/components/product-visual";
 import { StockEditModal } from "@/components/stock-edit-button";
 import { TransferRequestModal } from "@/components/transfer-request-button";
 import { StatusBadge } from "@/components/ui";
-import type { Product, ProductVariant, Store } from "@/lib/types";
+import type { Product, ProductVariant, Store, SystemSettings, UserProfile } from "@/lib/types";
 
 function calculateStockCondition(product: Product, stores: Store[]): "out" | "low" | "safe" {
   const variants = product.variants;
@@ -57,11 +58,15 @@ export function InventoryTable({
   stores,
   editableStoreIds = [],
   requestDestinationStoreIds = [],
+  settings,
+  profile,
 }: {
   products: Product[];
   stores: Store[];
   editableStoreIds?: string[];
   requestDestinationStoreIds?: string[];
+  settings?: SystemSettings | null;
+  profile?: UserProfile | null;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -72,6 +77,7 @@ export function InventoryTable({
   const [toast, setToast] = useState("");
   const [editingStock, setEditingStock] = useState<{ product: Product; variant?: ProductVariant | null; store: Store } | null>(null);
   const [requestProduct, setRequestProduct] = useState<Product | null>(null);
+  const [showCriticalPdfModal, setShowCriticalPdfModal] = useState(false);
 
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("id-ID");
@@ -178,7 +184,15 @@ export function InventoryTable({
       <div className="inventory-toolbar-bottom">
         <label className="product-page-size"><span>Per halaman</span><select className="select compact" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
         <div className="inventory-toolbar-actions">
-          <CsvButton filename="stok-indotek-sukses" getRows={getRows} disabled={!filtered.length} label="Ekspor stok"/>
+          <button
+            type="button"
+            className="button primary inventory-pdf-button"
+            onClick={() => setShowCriticalPdfModal(true)}
+            title="Buka pratinjau dan ekspor laporan PDF stok produk menipis & habis"
+          >
+            <FileText size={16}/> Ekspor PDF Stok Kritis
+          </button>
+          <CsvButton filename="stok-indotek-sukses" getRows={getRows} disabled={!filtered.length} label="Ekspor stok (CSV)"/>
         </div>
       </div>
     </div>
@@ -295,6 +309,19 @@ export function InventoryTable({
         destinationStoreIds={requestDestinationStoreIds}
         isOpen={Boolean(requestProduct)}
         onClose={() => setRequestProduct(null)}
+      />
+    ) : null}
+
+    {showCriticalPdfModal ? (
+      <CriticalStockModal
+        isOpen={showCriticalPdfModal}
+        onClose={() => setShowCriticalPdfModal(false)}
+        products={products}
+        stores={stores}
+        settings={settings}
+        profile={profile}
+        initialCategory={category}
+        initialBrand={brandFilter}
       />
     ) : null}
   </>;

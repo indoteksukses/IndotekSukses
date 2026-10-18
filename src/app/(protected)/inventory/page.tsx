@@ -2,13 +2,18 @@ import Link from "next/link";
 import { ArrowRightLeft } from "lucide-react";
 import { InventoryTable } from "@/components/inventory-table";
 import { PageHeader } from "@/components/ui";
-import { getCurrentProfile, getNetworkInventoryStores, getProductsWithNetworkStocks } from "@/lib/data";
+import { getCurrentProfile, getNetworkInventoryStores, getProductsWithNetworkStocks, getSystemSettings } from "@/lib/data";
 import { formatCurrency } from "@/lib/format";
 
 export const metadata = { title: "Stok Semua Toko" };
 
 export default async function InventoryPage() {
-  const [stores, products, profile] = await Promise.all([getNetworkInventoryStores(), getProductsWithNetworkStocks(), getCurrentProfile()]);
+  const [stores, products, profile, settings] = await Promise.all([
+    getNetworkInventoryStores(),
+    getProductsWithNetworkStocks(),
+    getCurrentProfile(),
+    getSystemSettings(),
+  ]);
   const canViewCosts = profile.role === "owner" || profile.role === "admin";
   const ownStoreIds = profile.role === "owner" || profile.role === "admin" ? stores.map((store) => store.id) : [...new Set([...(profile.store_ids ?? []), ...(profile.primary_store_id ? [profile.primary_store_id] : [])])];
   const editableStoreIds = ["owner", "admin"].includes(profile.role) ? stores.map((store) => store.id) : ["manager", "warehouse"].includes(profile.role) ? ownStoreIds : [];
@@ -20,6 +25,6 @@ export default async function InventoryPage() {
   return <>
     <PageHeader title="Stok Semua Toko" description="Stok seluruh jaringan dapat dilihat untuk membantu merekomendasikan cabang dan mengajukan permintaan transfer. Perubahan stok tetap dibatasi sesuai hak akses cabang." actions={profile.role !== "cashier" ? <><Link className="button secondary" href="/transfers"><ArrowRightLeft size={17}/> Transfer stok</Link><Link className="button primary" href="/stock-movements">+ Catat stok</Link></> : undefined}/>
     <div className="mini-stats"><div><span>Total unit jaringan</span><strong>{totalUnits.toLocaleString("id-ID")}</strong></div><div><span>Nilai persediaan</span><strong>{canViewCosts ? formatCurrency(stockValue) : "Terlindungi"}</strong></div><div><span>Hampir habis</span><strong>{lowCount} produk</strong></div><div><span>Stok kosong</span><strong>{outCount} produk</strong></div></div>
-    <InventoryTable products={products} stores={stores} editableStoreIds={editableStoreIds} requestDestinationStoreIds={requestDestinationStoreIds}/>
+    <InventoryTable products={products} stores={stores} editableStoreIds={editableStoreIds} requestDestinationStoreIds={requestDestinationStoreIds} settings={settings} profile={profile}/>
   </>;
 }
