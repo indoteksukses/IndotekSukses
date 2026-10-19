@@ -1,11 +1,163 @@
 import type { AIMatchItem, Product, ProductVariant } from "@/lib/types";
 
 /**
- * Hardware & Toko Bangunan / Teknik / Listrik Domain Thesaurus
- * Kamus sinonim, bahasa tukang, istilah umum, dan sebutan pasar di Indonesia.
+ * Stopwords bahasa Indonesia yang tidak bernilai informasi dalam pencarian toko
+ */
+export const STOPWORDS = new Set([
+  "untuk", "buat", "yang", "bisa", "mau", "ada", "di", "ke", "dari", "pada", "dan", "atau",
+  "adalah", "dengan", "saya", "cari", "tolong", "mohon", "ini", "itu", "dong", "kah", "ya", "pun",
+  "apa", "mana", "siapa", "bagaimana", "agar", "supaya", "dalam", "luar", "atas", "bawah", "nya"
+]);
+
+/**
+ * Kata umum / payung berkategori luas yang harus diberi bobot rendah (agar tidak memicu false positive)
+ */
+export const GENERIC_WORDS = new Set([
+  "mesin", "alat", "barang", "tipe", "model", "unit", "perkakas", "merk", "merek", "macam", "produk"
+]);
+
+/**
+ * Ekstraktor akar kata bahasa Indonesia sederhana dan cepat (menghilangkan awalan me-/mem-/meng-/pe-/di- dan akhiran -kan/-i/-an)
+ */
+export function getIndonesianRoots(word: string): string[] {
+  const roots = new Set<string>([word]);
+  const w = word.toLowerCase();
+
+  // Akhiran: -kan, -an, -i
+  if (w.endsWith("kan") && w.length > 5) roots.add(w.slice(0, -3));
+  if (w.endsWith("an") && w.length > 4) roots.add(w.slice(0, -2));
+  if (w.endsWith("i") && w.length > 4) roots.add(w.slice(0, -1));
+
+  // Awalan
+  for (const base of Array.from(roots)) {
+    if (base.startsWith("menge") && base.length > 6) {
+      roots.add(base.slice(5)); // mengebor -> bor, mengecat -> cat
+    } else if (base.startsWith("meng") && base.length > 5) {
+      roots.add(base.slice(4)); // mengamplas -> amplas, mengelas -> elas -> las
+      roots.add("k" + base.slice(4)); // mengikis -> kikis
+      roots.add("g" + base.slice(4)); // menggali -> gali
+    } else if (base.startsWith("meny") && base.length > 5) {
+      roots.add("s" + base.slice(4)); // menyambung -> sambung, menyiram -> siram
+    } else if (base.startsWith("mem") && base.length > 4) {
+      roots.add(base.slice(3)); // membongkar -> bongkar
+      roots.add("p" + base.slice(3)); // memotong -> potong, memaku -> paku
+    } else if (base.startsWith("men") && base.length > 4) {
+      roots.add(base.slice(3)); // mendongkrak -> dongkrak
+      roots.add("t" + base.slice(3)); // menempel -> tempel
+    } else if (base.startsWith("me") && base.length > 4) {
+      roots.add(base.slice(2)); // melubangi -> lubang, meratakan -> rata
+    } else if (base.startsWith("di") && base.length > 4) {
+      roots.add(base.slice(2)); // dipotong -> potong, dibor -> bor
+    } else if (base.startsWith("pe") && base.length > 4) {
+      roots.add(base.slice(2)); // pelapis -> lapis
+      if (base.startsWith("pem") && base.length > 4) roots.add("p" + base.slice(3)); // pemotong -> potong
+      if (base.startsWith("pen") && base.length > 4) roots.add("t" + base.slice(3)); // penempel -> tempel
+      if (base.startsWith("peng") && base.length > 5) roots.add(base.slice(4));
+    }
+  }
+
+  return Array.from(roots).filter((r) => r.length >= 2);
+}
+
+export type FunctionalIntent = {
+  id: string;
+  name: string;
+  triggerKeywords: string[];
+  targetWords: string[];
+  preferredCategories: string[];
+  negativeWords?: string[];
+};
+
+/**
+ * Pemetaan Maksud & Fungsi Alat Teknik / Toko Bangunan
+ * Memetakan deskripsi pekerjaan (misal: "melubangi", "memotong") ke alat & kategori yang tepat
+ */
+export const FUNCTIONAL_INTENTS: FunctionalIntent[] = [
+  {
+    id: "drilling",
+    name: "Melubangi / Bor",
+    triggerKeywords: ["lubang", "melubangi", "pelubang", "bolong", "bolongin", "tembus", "ngebor", "bor", "drill", "lubangin"],
+    targetWords: ["mesin bor", "bor", "cordless", "impact drill", "rotary hammer", "mata bor", "hole saw", "step drill", "bor tangan", "bor duduk"],
+    preferredCategories: ["mesin bor", "aksesoris mesin", "perkakas & alat", "suku cadang mesin"],
+    negativeWords: ["blower", "giling", "parut", "poles", "pompa"],
+  },
+  {
+    id: "cutting",
+    name: "Memotong / Pemotong",
+    triggerKeywords: ["potong", "memotong", "pemotong", "belah", "iris", "gergaji", "saw", "cut", "potong besi", "potong kayu", "potong keramik"],
+    targetWords: ["gerinda", "mesin gerinda", "circular saw", "jig saw", "cut off", "batu potong", "mata gerinda", "gergaji", "tang potong", "cutter", "diamond wheel", "mata potong"],
+    preferredCategories: ["mesin potong & gergaji", "mesin gerinda & poles", "perkakas & alat", "alat listrik & pemanas"],
+    negativeWords: ["blower", "bor", "giling", "pompa"],
+  },
+  {
+    id: "planing_sanding",
+    name: "Menghaluskan / Meratakan / Serut / Poles",
+    triggerKeywords: ["halus", "menghaluskan", "rata", "meratakan", "serut", "pasah", "ketam", "amplas", "mengamplas", "poles", "memoles", "planner"],
+    targetWords: ["mesin planner", "planner", "pasah", "ketam", "mesin poles", "amplas", "sander", "flap disc", "kertas amplas"],
+    preferredCategories: ["mesin kayu", "mesin gerinda & poles"],
+  },
+  {
+    id: "routing_engraving",
+    name: "Mengukir / Profil Kayu / Grafir",
+    triggerKeywords: ["ukir", "mengukir", "profil", "grafir", "menggrafir", "router", "trimmer", "beading"],
+    targetWords: ["mesin router", "mesin trimmer", "mesin grafir", "alat grafir", "mata router", "mata trimmer", "engraver"],
+    preferredCategories: ["mesin kayu", "mesin serbaguna"],
+  },
+  {
+    id: "blowing",
+    name: "Meniup Debu / Pengering / Blower",
+    triggerKeywords: ["tiup", "meniup", "hembus", "debu", "keringkan", "blower"],
+    targetWords: ["mesin blower", "blower", "bl 500", "air duster", "air gun"],
+    preferredCategories: ["mesin serbaguna", "kompresor & pneumatik"],
+  },
+  {
+    id: "washing",
+    name: "Mencuci / Semprot Tekanan Tinggi",
+    triggerKeywords: ["cuci mobil", "cuci motor", "cuci ac", "semprot air", "jet cleaner", "pressure washer"],
+    targetWords: ["mesin jet cleaner", "jet cleaner", "laguna", "washing gun", "high pressure"],
+    preferredCategories: ["pompa & pembersih"],
+  },
+  {
+    id: "welding",
+    name: "Mengelas / Sambung Besi",
+    triggerKeywords: ["las", "mengelas", "trafo las", "inverter las", "kawat las", "welding"],
+    targetWords: ["mesin las", "trafo las", "inverter", "mma", "falkon", "kawat las", "topeng las"],
+    preferredCategories: ["mesin las"],
+  },
+  {
+    id: "compressing",
+    name: "Kompresor / Angin Tekanan / Staples",
+    triggerKeywords: ["kompresor", "pompa angin", "isi angin", "semprot angin", "staples angin", "paku tembak"],
+    targetWords: ["mesin kompresor", "kompresor", "fresco", "multipro", "mesin staples angin", "air duster"],
+    preferredCategories: ["kompresor & pneumatik"],
+  },
+  {
+    id: "water_pumping",
+    name: "Pompa Air / Sedot Air",
+    triggerKeywords: ["pompa air", "sedot air", "dorong air", "sanyo", "shimizu", "jet pump", "toren"],
+    targetWords: ["mesin pompa air", "pompa air", "shimizu", "ps 128", "ps 135", "gp 129", "otomatis pompa", "radar pompa"],
+    preferredCategories: ["pompa & pembersih", "pompa & sanitari"],
+  },
+  {
+    id: "fastening",
+    name: "Mengencangkan / Buka Baut / Baut Macet",
+    triggerKeywords: ["buka baut", "kencangkan", "baut macet", "baut slek", "kunci inggris", "obeng", "tang buaya"],
+    targetWords: ["kunci inggris", "kunci pas", "kunci ring", "kunci sok", "obeng", "tang buaya", "wd-40"],
+    preferredCategories: ["perkakas & alat", "perkakas tangan"],
+  },
+  {
+    id: "leak_repair",
+    name: "Menambal / Atap Bocor / Waterproofing",
+    triggerKeywords: ["nambal", "tambal", "menambal", "bocor", "rembes", "atap seng", "kebocoran"],
+    targetWords: ["no drop", "aquaproof", "pelapis anti bocor", "lakban aluminium", "serat fiber", "sealant"],
+    preferredCategories: ["cat & pelapis", "perekat & lakban"],
+  },
+];
+
+/**
+ * Kamus Sinonim & Istilah Pasar
  */
 export const HARDWARE_THESAURUS: Record<string, string[]> = {
-  // 1. Kebocoran & Atap
   nambal: ["tambal", "pelapis", "anti bocor", "aquaproof", "no drop", "nodrop", "sealant", "aspal", "flashing", "lakban", "waterproof", "kassa", "serat", "seng"],
   tambal: ["nambal", "pelapis", "anti bocor", "aquaproof", "no drop", "sealant", "aspal", "lakban", "waterproof"],
   bocor: ["anti bocor", "aquaproof", "no drop", "nodrop", "sealant", "silikon", "waterproof", "lem seng", "flintkote", "serat fiber", "lakban aluminium", "sealtape"],
@@ -14,14 +166,12 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   seng: ["atap", "galvalum", "spandek", "plat", "baut roofing", "paku seng", "karpet talang"],
   talang: ["karpet talang", "talang pvc", "corong talang", "lem talang", "gantungan talang"],
 
-  // 2. Pompa & Penampungan Air
   sanyo: ["pompa", "pompa air", "shimizu", "panasonic", "otomatis pompa", "jet pump", "semi jet"],
   pompa: ["sanyo", "shimizu", "panasonic", "pompa air", "otomatis", "tusen klep", "pelampung", "radar", "toren", "booster"],
   toren: ["tangki", "tandon", "pelampung", "radar", "otomatis toren", "valve", "watermur"],
   tandon: ["toren", "tangki air", "pelampung", "radar", "watermur"],
   otomatis: ["pressure switch", "radar", "pelampung toren", "saklar otomatis", "mcb"],
 
-  // 3. Plumbing, Pipa & Fitting (Keni, Drat, Sambungan)
   paralon: ["pipa", "pvc", "wavin", "rucika", "fitting", "knee", "tee", "socket", "lem pvc"],
   pralon: ["pipa", "pvc", "wavin", "rucika", "fitting", "knee", "tee", "socket", "lem pvc"],
   pipa: ["paralon", "pralon", "pvc", "wavin", "rucika", "knee", "tee", "socket", "drat", "nepel", "vlok ring", "watermur"],
@@ -39,15 +189,16 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   kran: ["keran", "faucet", "kran air", "kran angsa", "onda", "san-ei", "cuci piring", "wastafel", "shower", "ball valve", "stop kran", "fleksibel"],
   keran: ["kran", "faucet", "kran air", "kran angsa", "cuci piring", "onda", "stop kran", "fleksibel"],
 
-  // 4. Alat Potong & Gerinda
   gerinda: ["grinder", "gurinda", "mesin gerinda", "batu gerinda", "batu potong", "mata gerinda", "batu wd", "flap disc"],
   gurinda: ["gerinda", "grinder", "mesin gerinda", "batu gerinda", "batu potong", "mata gerinda", "batu wd"],
   "batu wd": ["wd", "batu potong", "mata gerinda potong", "batu gerinda"],
-  potong: ["gerinda", "gergaji", "tang potong", "cutter", "gunting", "mata potong", "diamond wheel"],
+  potong: ["gerinda", "mesin gerinda", "circular saw", "jig saw", "cut off", "batu potong", "gergaji", "tang potong", "cutter", "gunting", "diamond wheel"],
   gergaji: ["gergaji besi", "gergaji kayu", "hacksaw", "mata gergaji", "gergaji dahan"],
   cutter: ["pisau cutter", "refill cutter", "mata cutter", "alat potong"],
 
-  // 5. Perkakas Tangan (Kunci, Obeng, Tang)
+  lubang: ["bor", "mesin bor", "mata bor", "cordless", "impact drill", "rotary hammer", "hole saw", "step drill"],
+  bor: ["mesin bor", "mata bor", "cordless", "impact", "rotary hammer", "bor tangan", "bor duduk"],
+
   "tang cucut": ["long nose pliers", "tang lancip", "tang cucut", "tekiro"],
   "tang buaya": ["locking pliers", "tang jepit", "tang buaya", "vise grip", "tekiro"],
   "tang potong": ["diagonal cutting pliers", "tang potong kabel", "potong kawat", "tekiro"],
@@ -64,7 +215,6 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   karat: ["anti karat", "wd-40", "penetran", "sikat kawat", "cat anti karat", "primer zink"],
   palu: ["martil", "hammer", "palu konde", "palu kambing", "palu karet"],
 
-  // 6. Baut, Sekrup, Paku & Fasteners
   baut: ["sekrup", "screw", "bolt", "mur", "nut", "dynabolt", "baut roofing", "baut kuning"],
   sekrup: ["screw", "baut", "tapping", "drywall", "gypsum", "fisher", "fischer"],
   roofing: ["baut roofing", "sekrup baja ringan", "self drilling screw", "baut seng", "karet roofing"],
@@ -75,7 +225,6 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   fischer: ["fisher", "angkur plastik", "sekrup dinding", "s6", "s8", "s10"],
   paku: ["paku kayu", "paku beton", "paku seng", "paku payung", "paku rivet", "paku triplek"],
 
-  // 7. Kelistrikan (Colokan, Stop Kontak, Saklar, Kabel)
   colokan: ["steker", "stop kontak", "t-arde", "over steker", "broco", "uticon", "kabel roll", "saklar"],
   steker: ["colokan", "steker arde", "over steker", "steker gepeng", "broco", "uticon"],
   "stop kontak": ["colokan", "saklar", "broco", "panasonic", "uticon", "inbow", "outbow", "kabel roll"],
@@ -87,7 +236,6 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   solasi: ["isolasi", "isolasi listrik", "unibell", "nitto", "lakban hitam listrik"],
   isolasi: ["solasi", "isolasi listrik", "unibell", "nitto", "lakban"],
 
-  // 8. Lem & Perekat
   alteco: ["lem cyano", "lem korea", "lem setan", "lem instant", "lem g", "dextone instant"],
   "lem setan": ["alteco", "lem korea", "lem g", "lem instant", "dextone"],
   "lem korea": ["alteco", "lem setan", "lem g", "lem instant", "dextone"],
@@ -99,7 +247,6 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   sealant: ["silikon", "lem kaca", "dextone", "pelapis bocor", "silicone sealant"],
   "lem pipa": ["isarplas", "ruglue", "lem pvc", "lem paralon"],
 
-  // 9. Cat & Finishing
   cat: ["cat tembok", "cat kayu", "cat besi", "avian", "dulux", "catylac", "danapaint", "thinner", "kuas"],
   thinner: ["tiner", "nd", "thinner a", "pengencer cat", "avian"],
   tiner: ["thinner", "nd", "thinner a", "pengencer cat"],
@@ -107,7 +254,6 @@ export const HARDWARE_THESAURUS: Record<string, string[]> = {
   dempul: ["plamir", "sanpolac", "isamu", "dempul kayu", "dempul besi"],
   semen: ["semen gresik", "semen tiga roda", "semen putih", "grouting", "semen nat", "mu"],
 
-  // 10. Kunci Pintu & Pengaman
   gembok: ["padlock", "gembok leher panjang", "gembok kuningan", "tekiro", "solid", "gembok pagar"],
   handle: ["handle pintu", "tarikan pintu", "kunci bulat", "kunci kamar mandi", "mortise lock", "solid", "dekson"],
   engsel: ["hinge", "engsel pintu", "engsel jendela", "engsel stainless", "engsel sendok", "solid"],
@@ -123,24 +269,45 @@ export type CandidateItem = {
   matchReasons: string[];
 };
 
+export function isStopword(w: string): boolean {
+  return STOPWORDS.has(w.toLowerCase());
+}
+
+export function isGenericWord(w: string): boolean {
+  return GENERIC_WORDS.has(w.toLowerCase());
+}
+
 /**
- * Normalizes query string and extracts tokens, phrases, and technical specs.
+ * Normalizes query string, strips stopwords, extracts roots, and identifies functional intent.
  */
 export function extractQueryDetails(rawQuery: string) {
   const clean = rawQuery.trim().toLowerCase();
-  // Keep alphanumeric and common hardware symbols like /, ", -
-  const words = clean
+  const rawWords = clean
     .replace(/[^a-z0-9\/\.\-\"\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 0);
 
+  // Filter stopwords
+  const meaningfulWords: string[] = [];
+  const expandedRoots = new Set<string>();
+
+  for (const w of rawWords) {
+    if (!isStopword(w)) {
+      meaningfulWords.push(w);
+      const roots = getIndonesianRoots(w);
+      for (const r of roots) {
+        expandedRoots.add(r);
+      }
+    }
+  }
+
   // Extract specs: fractions (1/2, 3/4), sizes with inch/mm, numbers
   const specs: string[] = [];
   const specPatterns = [
-    /\b\d+\/\d+\s*(?:inch|in|"|dim)?\b/gi, // e.g. 1/2", 3/4 inch
-    /\b\d+(?:\.\d+)?\s*(?:inch|in|"|dim)\b/gi, // e.g. 3 inch, 4"
-    /\b\d+(?:\.\d+)?\s*(?:mm|mili|cm|meter|m)\b/gi, // e.g. 10mm, 5 meter
-    /\b\d+(?:\.\d+)?\s*(?:watt|w|volt|v|kg|gram|g|pcs)\b/gi, // e.g. 9 watt, 1 kg
+    /\b\d+\/\d+\s*(?:inch|in|"|dim)?\b/gi,
+    /\b\d+(?:\.\d+)?\s*(?:inch|in|"|dim)\b/gi,
+    /\b\d+(?:\.\d+)?\s*(?:mm|mili|cm|meter|m)\b/gi,
+    /\b\d+(?:\.\d+)?\s*(?:watt|w|volt|v|kg|gram|g|pcs)\b/gi,
   ];
 
   for (const pat of specPatterns) {
@@ -160,20 +327,42 @@ export function extractQueryDetails(rawQuery: string) {
     }
   }
 
-  // Find synonym expansions
+  // Detect Functional Intents (e.g. drilling, cutting, blowing)
+  const matchedIntents: FunctionalIntent[] = [];
+  for (const intent of FUNCTIONAL_INTENTS) {
+    const isTriggered = intent.triggerKeywords.some((kw) => {
+      if (clean.includes(kw)) return true;
+      const kwRoots = getIndonesianRoots(kw);
+      return Array.from(expandedRoots).some((r) => kwRoots.includes(r));
+    });
+    if (isTriggered) {
+      matchedIntents.push(intent);
+    }
+  }
+
+  // Find synonym expansions from thesaurus
   const expandedSynonyms = new Set<string>();
   for (const [key, list] of Object.entries(HARDWARE_THESAURUS)) {
-    if (clean.includes(key)) {
+    if (clean.includes(key) || expandedRoots.has(key)) {
       for (const item of list) {
         expandedSynonyms.add(item.toLowerCase());
       }
     }
   }
 
+  // Add target words from matched intents
+  for (const intent of matchedIntents) {
+    for (const tw of intent.targetWords) {
+      expandedSynonyms.add(tw.toLowerCase());
+    }
+  }
+
   return {
     rawClean: clean,
-    words,
+    words: meaningfulWords.length > 0 ? meaningfulWords : rawWords,
+    roots: Array.from(expandedRoots),
     specs,
+    matchedIntents,
     expandedSynonyms: Array.from(expandedSynonyms),
   };
 }
@@ -196,9 +385,9 @@ function isFuzzyMatch(a: string, b: string): boolean {
         matrix[i][j] = matrix[i - 1][j - 1];
       } else {
         matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
         );
       }
     }
@@ -208,8 +397,7 @@ function isFuzzyMatch(a: string, b: string): boolean {
 }
 
 /**
- * Scores and filters the catalog in-memory to find top 30-40 relevant candidates.
- * Runs in under 3 milliseconds even for 10,000 products!
+ * Scores and filters the catalog in-memory with intelligent functional intent weighting.
  */
 export function rankProductsForAI(
   products: Product[],
@@ -218,7 +406,7 @@ export function rankProductsForAI(
 ): CandidateItem[] {
   if (!products || products.length === 0) return [];
   const queryInfo = extractQueryDetails(rawQuery);
-  const { rawClean, words, specs, expandedSynonyms } = queryInfo;
+  const { rawClean, words, roots, specs, matchedIntents, expandedSynonyms } = queryInfo;
 
   const scoredList: CandidateItem[] = [];
 
@@ -252,41 +440,88 @@ export function rankProductsForAI(
       reasons.push("Nama produk cocok penuh");
     }
 
-    // 3. Word token matches
-    let wordHitCount = 0;
+    // 3. Functional Intent matching (Critical: boosts exact tool function)
+    if (matchedIntents.length > 0) {
+      for (const intent of matchedIntents) {
+        // Preferred category match (e.g. "Mesin Bor" for melubangi)
+        if (intent.preferredCategories.some((cat) => pCat.includes(cat) || cat.includes(pCat))) {
+          score += 75;
+          reasons.push(`Kategori sesuai fungsi ${intent.name}`);
+        }
+
+        // Target word match (e.g. "bor", "circular saw", "gerinda")
+        for (const tw of intent.targetWords) {
+          if (pName.includes(tw)) {
+            score += 90;
+            reasons.push(`Fungsi ${intent.name} (${tw})`);
+            break;
+          }
+        }
+
+        // Negative words penalty (e.g. "blower" when looking for drilling)
+        if (intent.negativeWords && intent.negativeWords.some((nw) => pName.includes(nw))) {
+          score -= 150;
+        }
+      }
+    }
+
+    // 4. Word token matches with Stopwords & Generic Words weighting
+    let contentWordHits = 0;
     for (const w of words) {
+      if (isGenericWord(w)) {
+        // Generic word like "mesin", "alat" only gives minor boost (+4)
+        if (pName.includes(w)) score += 4;
+        continue;
+      }
+
+      // Non-generic content words
+      let matched = false;
       if (pName.includes(w)) {
-        score += 30;
-        wordHitCount++;
+        score += 40;
+        contentWordHits++;
+        matched = true;
       } else if (pBrand.includes(w)) {
         score += 35;
-        reasons.push(`Brand ${p.brand}`);
+        matched = true;
       } else if (pCat.includes(w)) {
-        score += 25;
+        score += 30;
+        matched = true;
       } else {
+        // Try roots
+        for (const r of roots) {
+          if (pName.includes(r)) {
+            score += 35;
+            contentWordHits++;
+            matched = true;
+            break;
+          }
+        }
+      }
+
+      if (!matched) {
         // Try fuzzy match for typo tolerance
         const nameTokens = pName.split(/\s+/);
         for (const nt of nameTokens) {
           if (isFuzzyMatch(w, nt)) {
-            score += 18;
-            wordHitCount++;
+            score += 20;
+            contentWordHits++;
             break;
           }
         }
       }
     }
 
-    // 4. Synonym / Thesaurus matches
+    // 5. Synonym / Thesaurus matches
     for (const syn of expandedSynonyms) {
       if (pName.includes(syn)) {
-        score += 22;
+        score += 30;
         reasons.push(`Sinonim "${syn}"`);
       } else if (pCat.includes(syn)) {
-        score += 15;
+        score += 20;
       }
     }
 
-    // 5. Variant scoring & Spec matching
+    // 6. Variant scoring & Spec matching
     const variants = (p.variants ?? []).filter((v) => v.is_active !== false);
     for (const v of variants) {
       const vName = (v.name || "").toLowerCase();
@@ -301,14 +536,14 @@ export function rankProductsForAI(
       }
 
       for (const w of words) {
-        if (vName.includes(w)) vScore += 20;
+        if (!isGenericWord(w) && vName.includes(w)) vScore += 25;
       }
 
       // Check specific size/color specs
       for (const sp of specs) {
         if (vName.includes(sp)) {
           vScore += 45;
-          score += 30; // boost parent product too
+          score += 30;
         }
         if (pName.includes(sp)) {
           score += 25;
@@ -324,10 +559,10 @@ export function rankProductsForAI(
 
     if (bestVariantScore > 0) {
       score += bestVariantScore;
-      if (bestVariantName) reasons.push(`Varian "${bestVariantName}" cocok`);
+      if (bestVariantName) reasons.push(`Varian "${bestVariantName}"`);
     }
 
-    // In-stock preference (prefer items that are available)
+    // In-stock preference
     const stock = p.selected_stock ?? p.total_stock ?? 0;
     if (stock > 0 && score > 0) {
       score += 5;
@@ -335,7 +570,7 @@ export function rankProductsForAI(
 
     if (score > 0) {
       scoredList.push({
-        candidateIndex: 0, // will assign sequentially
+        candidateIndex: 0,
         product: p,
         score,
         bestVariantId: bestVariantScore > 0 ? bestVariantId : undefined,
@@ -359,7 +594,6 @@ export function rankProductsForAI(
 
 /**
  * Builds a dense, ultra-lightweight representation of candidates for the LLM prompt.
- * Only ~15-20 tokens per item instead of 250+ tokens in raw JSON!
  */
 export function buildCompactCatalogPrompt(candidates: CandidateItem[]): string {
   if (!candidates || candidates.length === 0) {
@@ -397,7 +631,6 @@ export function buildCompactCatalogPrompt(candidates: CandidateItem[]): string {
 
 /**
  * Resolves AI output matches back to full product IDs and variant IDs.
- * Handles candidate index [1], product UUIDs, variant indices (v1), etc.
  */
 export function resolveCandidateMatches(
   parsedMatches: any[],
@@ -429,7 +662,7 @@ export function resolveCandidateMatches(
     let targetVariantId: string | null = null;
     let targetVariantName: string | null = null;
 
-    // 1. Resolve product by candidate index (e.g. index: 1 or candidate_index: 1)
+    // 1. Resolve product by candidate index
     const rawIdx = m.candidate_index ?? m.index;
     if (typeof rawIdx === "number" || (typeof rawIdx === "string" && /^\d+$/.test(rawIdx))) {
       const numIdx = Number(rawIdx);
@@ -453,7 +686,6 @@ export function resolveCandidateMatches(
     // 3. Resolve variant if specified
     const activeVars = (targetProduct.variants ?? []).filter((v) => v.is_active !== false);
 
-    // Variant by index (e.g. "v1", "v2" or 1, 2)
     const rawVarIdx = m.variant_index ?? m.variant;
     if (rawVarIdx !== undefined && rawVarIdx !== null && activeVars.length > 0) {
       let vNum = -1;
@@ -472,7 +704,6 @@ export function resolveCandidateMatches(
       }
     }
 
-    // Variant by variant_id
     if (m.variant_id && activeVars.length > 0) {
       const foundVar = activeVars.find((v) => v.id === String(m.variant_id));
       if (foundVar) {
@@ -482,7 +713,7 @@ export function resolveCandidateMatches(
     }
 
     const confidence = typeof m.confidence === "number" ? Math.min(Math.max(m.confidence, 0), 1) : 0.9;
-    const reason = String(m.reason || "Rekomendasi barang sesuai pencarian").trim();
+    const reason = String(m.reason || "").trim();
 
     results.push({
       product_id: targetProduct.id,
@@ -500,7 +731,6 @@ export function resolveCandidateMatches(
 
 /**
  * Instant fallback matches when LLM times out or is offline.
- * Returns the best candidate products directly from local semantic scoring!
  */
 export function buildFallbackMatches(candidates: CandidateItem[], query: string): AIMatchItem[] {
   if (!candidates || candidates.length === 0) return [];
@@ -514,7 +744,6 @@ export function buildFallbackMatches(candidates: CandidateItem[], query: string)
       ? activeVars[0]
       : null;
 
-    const reasons = c.matchReasons.length > 0 ? c.matchReasons.join(", ") : `Cocok dengan pencarian "${query}"`;
     const confidence = Math.max(0.7, 0.95 - i * 0.05);
 
     return {

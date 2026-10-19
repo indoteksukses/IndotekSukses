@@ -95,13 +95,21 @@ export async function POST(request: Request) {
     const systemPrompt = `Anda adalah AI Search Engine Semantik untuk toko material bangunan, listrik & perkakas teknik "Indotek Sukses".
 Tugas Anda: Pilih 1 sampai 6 produk (beserta varian jika spesifik) dari Daftar Kandidat yang PALING COCOK untuk kueri pembeli.
 
-Kueri bisa berupa:
-- Sebutan sehari-hari / bahasa tukang / slang (misal: "sanyo" -> pompa air, "drat/nepel" -> fitting, "lem setan/korea" -> alteco/cyano, "tang buaya", "perlak/seal tape", "batu wd", "baut roofing").
-- Masalah / fungsi / kebutuhan (misal: "buat nambal atap seng bocor", "alat potong kawat", "colokan cabang 3", "kran leher lentur", "buka baut slek").
-- Ukuran / spesifikasi (misal: "3/4 inch", "10mm", "4 meter", "hitam").
+PRINSIP KECOCOKAN FUNGSI UTAMA BARANG (WAJIB DIIKUTI):
+1. Utamakan kecocokan FUNGSI dan TUJUAN PENGGUNAAN barang, jangan terkecoh oleh sekadar kesamaan kata umum ("mesin", "alat", "set"):
+   - "melubangi / bikin lubang / bor" -> Pilih Mesin Bor (Bor Tangan, Bor Cordless, Bor Duduk) atau Mata Bor / Hole Saw. JANGAN PERNAH memilih mesin blower, mesin giling, mesin poles, atau pompa.
+   - "memotong / pemotong / potong" -> Pilih Mesin Gerinda, Mesin Circular Saw, Mesin Jig Saw, Gergaji, Batu Potong, atau Tang Potong. JANGAN memilih mesin blower atau bor.
+   - "menghaluskan / serut / meratakan kayu" -> Pilih Mesin Planner (Ketam/Pasah), Mesin Poles, atau Amplas.
+   - "meniup debu / hembus angin" -> Pilih Mesin Blower atau Air Duster.
+   - "mengukir / profil kayu" -> Pilih Mesin Router, Mesin Trimmer, atau Mesin Grafir.
+   - "mengelas / sambung besi" -> Pilih Mesin Las / Trafo Inverter / Kawat Las.
+   - "buka / kencangkan baut" -> Pilih Kunci Inggris, Kunci Pas, Obeng, Kunci Sok, atau Tang Buaya.
+   - "nambal atap bocor" -> Pilih No Drop, Aquaproof, Lakban Aluminium Waterproof, atau Serat Fiber.
+
+2. Pahami sebutan tukang & bahasa pasar (misal: "sanyo" = pompa air, "drat/nepel" = sambungan pipa, "batu wd" = batu gerinda potong, "lem setan" = alteco/korea).
 
 PANDUAN OUTPUT:
-Kembalikan HANYA teks JSON valid tanpa format markdown lain:
+Kembalikan HANYA teks JSON valid:
 {
   "interpretation": "Penjelasan singkat maksud pembeli (1 kalimat)",
   "matches": [
@@ -109,11 +117,11 @@ Kembalikan HANYA teks JSON valid tanpa format markdown lain:
       "candidate_index": 1,
       "variant_index": "v1",
       "confidence": 0.95,
-      "reason": "Alasan singkat mengapa produk ini cocok"
+      "reason": "Alasan singkat kecocokan fungsi"
     }
   ]
 }
-Catatan: "candidate_index" adalah nomor [index] di daftar. Jika produk tidak bervarian atau semua varian cocok, "variant_index" boleh dihilangkan atau null. Jika tidak ada yang cocok, kembalikan matches: [].`;
+Catatan: "candidate_index" adalah nomor [index] di daftar kandidat. Jika tidak ada yang cocok secara fungsi, kembalikan matches: [].`;
 
     const userPrompt = `Kueri Pencarian Pengguna: "${query}"
 
