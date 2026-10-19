@@ -63,12 +63,6 @@ const PosProductCard = memo(function PosProductCard({
         definition={product.visual?.code}
         size="card"
       />
-      {aiMatch ? (
-        <span className="pos-card-ai-badge" title={aiMatch.reason}>
-          <Sparkles size={11} />
-          <span>{aiMatch.reason}</span>
-        </span>
-      ) : null}
       <strong title={product.name}>{product.name}</strong>
       <div className="pos-product-submeta">
         <span className={`pos-brand-pill ${!product.brand ? "muted" : ""}`}>
@@ -319,12 +313,12 @@ export function PosTerminal({ products, store, shiftId = null, settings = null }
 
   return <div className="pos-layout pos-layout-v231">
     <section className="pos-products">
-      <div className={`pos-search ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
+      <div className="pos-search">
         <Search size={20}/>
         <input
           ref={searchRef}
           autoFocus
-          placeholder={aiActive ? "Filter aktif: ketik baru atau bersihkan pencarian..." : "Scan barcode, cari nama/kode, atau ketik perkataan pembeli..."}
+          placeholder={aiActive ? "Filter AI aktif: ketik baru atau klik AI untuk bersihkan..." : "Scan barcode, cari nama/kode, atau ketik perkataan pembeli..."}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -349,11 +343,27 @@ export function PosTerminal({ products, store, shiftId = null, settings = null }
           }}
         />
         <div className="pos-search-actions">
+          {aiActive ? (
+            <button
+              type="button"
+              className="pos-search-clear-btn"
+              title="Bersihkan filter AI"
+              onClick={clearAISearch}
+            >
+              <X size={15} />
+            </button>
+          ) : null}
           <button
             type="button"
             className={`pos-ai-btn ${aiActive ? "is-active" : ""} ${aiSearching ? "is-searching" : ""}`}
-            title="Pencarian Cerdas AI (Pahami sebutan, istilah slang, atau fungsi barang)"
-            onClick={() => handleAISearch()}
+            title={aiActive ? "Filter AI aktif (klik untuk bersihkan)" : "Pencarian Cerdas AI"}
+            onClick={() => {
+              if (aiActive) {
+                clearAISearch();
+              } else {
+                handleAISearch();
+              }
+            }}
             disabled={aiSearching}
           >
             {aiSearching ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
@@ -370,32 +380,6 @@ export function PosTerminal({ products, store, shiftId = null, settings = null }
           </button>
         </div>
       </div>
-
-
-      {aiActive ? (
-        <div className="pos-ai-result-banner">
-          <div className="ai-banner-left">
-            <span className="ai-sparkle-pill">
-              <Sparkles size={14} />
-              <span>Analisis AI</span>
-            </span>
-            <div className="ai-interpretation-info">
-              <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
-              <small>Ditemukan {allFiltered.length} produk di katalog yang sesuai dengan maksud pembeli.</small>
-            </div>
-          </div>
-          <div className="ai-banner-right">
-            <button
-              type="button"
-              className="button secondary ai-clear-banner-btn"
-              onClick={clearAISearch}
-            >
-              <X size={14} />
-              <span>Bersihkan AI</span>
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <div className="category-chips">{categories.map((name) => <button className={category === name ? "active" : ""} key={name} onClick={() => { setCategory(name); setVisibleLimit(40); }}>{name}</button>)}</div>
       <div className="product-grid">{filtered.map((product) => <PosProductCard key={product.id} product={product} onChoose={chooseProduct} aiMatch={aiMatchMap.get(product.id)} />)}</div>

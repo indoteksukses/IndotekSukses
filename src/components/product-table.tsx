@@ -170,7 +170,7 @@ export function ProductTable({
     <>
       <div className="toolbar-card product-toolbar">
         <div className="product-toolbar-top">
-          <div className={`search-box ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
+          <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
             <Search size={18}/>
             <input
               value={query}
@@ -254,29 +254,6 @@ export function ProductTable({
       {aiError ? (
         <div className="alert error table-ai-error" style={{ margin: "10px 0" }}>
           {aiError}
-        </div>
-      ) : null}
-
-      {aiActive ? (
-        <div className="table-ai-banner">
-          <div className="table-ai-banner-left">
-            <span className="table-ai-sparkle-pill">
-              <Sparkles size={13} />
-              <span>Analisis AI</span>
-            </span>
-            <div className="table-ai-banner-text">
-              <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
-              <small>Ditemukan {filtered.length} produk di katalog yang sesuai dengan pencarian Anda.</small>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="table-ai-clear-btn"
-            onClick={clearAISearch}
-          >
-            <X size={14} />
-            <span>Bersihkan AI</span>
-          </button>
         </div>
       ) : null}
 

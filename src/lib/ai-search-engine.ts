@@ -522,7 +522,7 @@ export function buildFallbackMatches(candidates: CandidateItem[], query: string)
       variant_id: chosenVar ? chosenVar.id : null,
       variant_name: chosenVar ? chosenVar.name : null,
       confidence,
-      reason: `Pencarian instan: ${reasons}`,
+      reason: "",
     };
   });
 }

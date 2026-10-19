@@ -158,7 +158,7 @@ ${compactCatalog}`;
       return NextResponse.json({
         success: true,
         query,
-        interpretation: `Rekomendasi produk untuk "${query}" (Pencarian Cepat)`,
+        interpretation: `Rekomendasi produk untuk "${query}"`,
         matches: fallbackMatches,
         model_used: `${model} (fallback)`,
         latency_ms: Date.now() - startTime,
@@ -211,7 +211,7 @@ ${compactCatalog}`;
       return NextResponse.json({
         success: true,
         query,
-        interpretation: `Rekomendasi produk untuk "${query}" (Pencarian Cepat)`,
+        interpretation: `Rekomendasi produk untuk "${query}"`,
         matches: fallbackMatches,
         latency_ms: Date.now() - startTime,
       });

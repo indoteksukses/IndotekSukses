@@ -1853,7 +1853,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .pos-search:focus-within{border-color:#94a3b8!important;box-shadow:none!important;outline:none!important}
 .pos-search input{border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;-webkit-tap-highlight-color:transparent!important}
 .pos-search input:focus,.pos-search input:focus-visible,.pos-search input:hover{border:0!important;border-color:transparent!important;outline:0!important;outline:none!important;box-shadow:none!important;background:transparent!important}
-.pos-search.is-busy::after{content:"";width:15px;height:15px;margin-right:4px;border:2px solid #d2deeb;border-top-color:var(--blue);border-radius:50%;animation:indotek-spin .7s linear infinite}
 .category-chips{scrollbar-width:none}
 .category-chips::-webkit-scrollbar{display:none}
 .category-chips button{border-color:#d9e3ef!important;background:#fff!important;box-shadow:0 2px 7px rgba(15,35,66,.035)}
@@ -9342,6 +9341,27 @@ html.dark .thermal-connect-btn.secondary:hover,
 
 .pos-search .pos-ai-btn.is-searching {
   opacity: 0.85;
+}
+
+/* POS AI Clear Filter Button */
+.pos-search .pos-search-clear-btn {
+  height: 100% !important;
+  width: 28px !important;
+  border: 0 !important;
+  border-left: 1px solid var(--line, #e2e8f0) !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pos-search .pos-search-clear-btn:hover {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
 }
 
 /* AI Quick Gear Config Button */

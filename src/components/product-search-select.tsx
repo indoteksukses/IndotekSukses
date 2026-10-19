@@ -310,23 +310,6 @@ export function ProductSearchSelect({
           </div>
         ) : null}
 
-        {aiActive ? (
-          <div className="combobox-ai-banner">
-            <div className="combobox-ai-banner-left">
-              <Sparkles size={12} />
-              <span>{aiInterpretation || `Rekomendasi AI untuk "${query}"`}</span>
-            </div>
-            <button
-              type="button"
-              className="combobox-ai-clear-btn"
-              onClick={clearAISearch}
-              title="Bersihkan AI"
-            >
-              <X size={13} />
-            </button>
-          </div>
-        ) : null}
-
         <div className="combobox-results variant-aware-results">
           {filtered.map((option) => {
             const active =

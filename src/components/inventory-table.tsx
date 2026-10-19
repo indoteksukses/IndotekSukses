@@ -235,7 +235,7 @@ export function InventoryTable({
   return <>
     <div className="toolbar-card inventory-toolbar">
       <div className="inventory-toolbar-top">
-        <div className={`search-box ${query !== deferredQuery || aiSearching ? "is-busy" : ""}`}>
+        <div className={`search-box ${query !== deferredQuery ? "is-busy" : ""}`}>
           <Search size={18}/>
           <input
             value={query}
@@ -296,29 +296,6 @@ export function InventoryTable({
       </div>
     ) : null}
 
-    {aiActive ? (
-      <div className="table-ai-banner">
-        <div className="table-ai-banner-left">
-          <span className="table-ai-sparkle-pill">
-            <Sparkles size={13} />
-            <span>Analisis AI</span>
-          </span>
-          <div className="table-ai-banner-text">
-            <strong>{aiInterpretation || `Hasil rekomendasi AI untuk "${query}"`}</strong>
-            <small>Ditemukan {filtered.length} produk di inventori yang sesuai dengan pencarian Anda.</small>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="table-ai-clear-btn"
-          onClick={clearAISearch}
-        >
-          <X size={14} />
-          <span>Bersihkan AI</span>
-        </button>
-      </div>
-    ) : null}
-
     <div className="product-result-summary inventory-result-summary"><strong>{filtered.length.toLocaleString("id-ID")}</strong><span>dari {products.length.toLocaleString("id-ID")} produk · menampilkan {filtered.length ? pageStart + 1 : 0}–{Math.min(pageStart + pageSize, filtered.length)}</span></div>
 
     <div className="inventory-mobile-list">
@@ -328,7 +305,7 @@ export function InventoryTable({
         const conditionValue = stateByProductId.get(product.id) ?? "out";
         const aiMatch = aiMatchMap.get(product.id);
         return <article className={`inventory-mobile-card ${aiMatch ? "is-ai-matched" : ""}`} key={product.id}>
-          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch ? <span className="table-row-ai-badge" title={aiMatch.reason}><Sparkles size={11} /><span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span></span> : null}<div className="inventory-mobile-tags"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></header>
+          <header><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch?.variant_name ? <span className="table-row-ai-badge" title={`Varian: ${aiMatch.variant_name}`}><Sparkles size={11} /><span>Varian: {aiMatch.variant_name}</span></span> : null}<div className="inventory-mobile-tags"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></header>
           <div className="inventory-mobile-metrics"><div><span>Minimum</span><strong>{product.minimum_stock} <small>{product.unit}</small></strong></div><div><span>Total</span><strong>{total} <small>{product.unit}</small></strong></div><div className="inventory-condition"><span>Kondisi</span><StatusBadge tone={tone(conditionValue)}>{label(conditionValue)}</StatusBadge></div></div>
           {variants.length ? <div className="variant-inventory-mobile-list">{variants.map((variant) => {
             const variantTotal = stores.reduce((sum, store) => sum + (variant.stocks?.[store.id]?.quantity_on_hand ?? 0), 0);
@@ -365,7 +342,7 @@ export function InventoryTable({
         const productCondition = stateByProductId.get(product.id) ?? "out";
         const aiMatch = aiMatchMap.get(product.id);
         return <Fragment key={product.id}>
-          <tr className={`${variants.length ? "inventory-product-summary-row" : ""} ${aiMatch ? "table-row-ai-match" : ""}`}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch ? <span className="table-row-ai-badge" title={aiMatch.reason}><Sparkles size={11} /><span>{aiMatch.variant_name ? `Varian: ${aiMatch.variant_name}` : aiMatch.reason}</span></span> : null}<div className="inventory-product-meta"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
+          <tr className={`${variants.length ? "inventory-product-summary-row" : ""} ${aiMatch ? "table-row-ai-match" : ""}`}><td className="sticky-col" data-label="Produk"><div className="product-cell"><ProductVisual name={product.name} imageUrl={product.image_url} definition={product.visual?.code} size="thumb"/><div><strong>{product.name}</strong>{aiMatch?.variant_name ? <span className="table-row-ai-badge" title={`Varian: ${aiMatch.variant_name}`}><Sparkles size={11} /><span>Varian: {aiMatch.variant_name}</span></span> : null}<div className="inventory-product-meta"><span className={`inventory-brand-pill ${!product.brand ? "muted" : ""}`}>{product.brand || "Tanpa Merek"}</span><span>{product.sku}{variants.length ? ` · ${variants.length} varian` : ""}</span></div></div></div></td><td data-label="Minimum">{product.minimum_stock} {product.unit}</td>{stores.map((store) => {
             const row = product.stocks[store.id];
             return <td key={store.id} data-label={store.name}><div className="stock-number stock-number-editable"><div><strong>{row?.quantity_on_hand ?? 0}</strong><span>{product.unit}</span></div>{!variants.length && editable.has(store.id) ? (
               <button
