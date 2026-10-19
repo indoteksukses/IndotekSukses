@@ -131,7 +131,7 @@ export function extractLLMResponseText(data: any): string {
  * Robust JSON extraction from raw LLM output.
  * Handles markdown codeblocks, prefix/suffix conversational text, and whitespace.
  */
-export function parseAISearchJSON(rawText: string): { interpretation?: string; matches?: AIMatchItem[] } | null {
+export function parseAISearchJSON(rawText: string): { interpretation?: string; matches?: any[] } | null {
   if (!rawText || typeof rawText !== "string") return null;
 
   // 1. Clean markdown code fences: ```json ... ```
@@ -144,6 +144,7 @@ export function parseAISearchJSON(rawText: string): { interpretation?: string; m
   try {
     const parsed = JSON.parse(stripped);
     if (parsed && Array.isArray(parsed.matches)) return parsed;
+    if (Array.isArray(parsed)) return { interpretation: "Rekomendasi produk", matches: parsed };
   } catch {
     // continue to fallback extraction
   }
@@ -159,7 +160,18 @@ export function parseAISearchJSON(rawText: string): { interpretation?: string; m
     }
   }
 
-  // 3. Generic JSON object match
+  // 3. Generic JSON array match [ { ... } ]
+  const arrMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+  if (arrMatch) {
+    try {
+      const parsed = JSON.parse(arrMatch[0]);
+      if (Array.isArray(parsed)) return { interpretation: "Rekomendasi produk", matches: parsed };
+    } catch {
+      // continue
+    }
+  }
+
+  // 4. Generic JSON object match
   const objMatch = rawText.match(/\{[\s\S]*\}/);
   if (objMatch) {
     try {
