@@ -24,7 +24,11 @@ import type { Product, ProductVisual, Store } from "@/lib/types";
 // Menghilangkan latency jaringan berulang ke Supabase (sub-millisecond hit)
 
 type MemEntry<T> = { data: T; expires: number };
-const memStore = new Map<string, MemEntry<any>>();
+const globalMem = globalThis as unknown as { __indotek_mem_store?: Map<string, MemEntry<any>> };
+if (!globalMem.__indotek_mem_store) {
+  globalMem.__indotek_mem_store = new Map<string, MemEntry<any>>();
+}
+const memStore = globalMem.__indotek_mem_store;
 
 export function memGet<T>(key: string): T | undefined {
   const entry = memStore.get(key);
@@ -46,8 +50,16 @@ export function invalidateTags(...tags: string[]) {
     // Purge semua cache di memori yang mengandung tag
     for (const key of memStore.keys()) {
       if (key.includes(tag)) memStore.delete(key);
-      if (tag === "catalog" && (key.includes("dashboard") || key.includes("inventory_network"))) {
-        memStore.delete(key);
+      if (tag === "catalog") {
+        if (
+          key.includes("catalog") ||
+          key.includes("inventory") ||
+          key.includes("dashboard") ||
+          key.includes("products") ||
+          key.includes("movements")
+        ) {
+          memStore.delete(key);
+        }
       }
       if (tag === "sales" && key.includes("dashboard")) {
         memStore.delete(key);

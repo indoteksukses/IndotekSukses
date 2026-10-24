@@ -713,12 +713,29 @@ export function ProductTable({
             const visObj = visuals.find((v) => v.id === saved.visual_id);
             setItems((current) => current.map((p) => {
               if (p.id !== saved.id) return p;
+              const updatedVariants = Array.isArray(saved.variants)
+                ? saved.variants.map((sv: any) => {
+                    const existingVar = (p.variants ?? []).find((v) => v.id === sv.id);
+                    return {
+                      ...existingVar,
+                      ...sv,
+                      cost_price: Number(sv.cost_price ?? 0),
+                      selling_price: Number(sv.selling_price ?? 0),
+                      stocks: existingVar?.stocks ?? sv.stocks ?? {},
+                      total_stock: existingVar?.total_stock ?? sv.total_stock ?? 0,
+                      selected_stock: existingVar?.selected_stock ?? sv.selected_stock,
+                    };
+                  })
+                : (p.variants ?? []);
+
               return {
                 ...p,
                 ...saved,
+                cost_price: Number(saved.cost_price !== undefined ? saved.cost_price : p.cost_price),
+                selling_price: Number(saved.selling_price !== undefined ? saved.selling_price : p.selling_price),
                 category: catName || p.category,
                 visual: visObj ? { id: visObj.id, name: visObj.name, code: visObj.code } : (saved.visual_id ? p.visual : null),
-                variants: saved.variants && saved.variants.length > 0 ? saved.variants : p.variants,
+                variants: updatedVariants,
               };
             }));
             setEditingProduct(null);

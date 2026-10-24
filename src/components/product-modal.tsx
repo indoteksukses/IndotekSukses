@@ -30,10 +30,22 @@ type ScannerTarget =
 
 type SavedProduct = {
   id: string;
+  sku?: string;
+  barcode?: string | null;
+  name?: string;
   category_id: string;
+  category_name?: string;
   brand: string;
+  unit?: string;
+  cost_price: number;
+  selling_price: number;
+  minimum_stock?: number;
   image_url?: string | null;
   visual_id?: string | null;
+  visual_name?: string | null;
+  is_active?: boolean;
+  sales_scope?: "all" | "selected";
+  sales_store_ids?: string[];
   variants?: ProductVariant[];
 };
 
@@ -247,7 +259,9 @@ export function ProductModal({
           if ((saved.variants?.length ?? 0) !== (variantMode ? variants.length : 0)) throw new Error("Daftar varian belum tersimpan lengkap.");
           setOpen(false);
           onSaved?.(saved);
-          router.refresh();
+          if (!onSaved) {
+            router.refresh();
+          }
         } catch (err) { setError(err instanceof Error ? err.message : "Gagal menyimpan produk"); }
         finally { setSaving(false); }
       }}>
@@ -311,7 +325,7 @@ export function ProductModal({
               <span><strong>Memiliki varian</strong><small>Setiap varian memiliki harga modal dan harga jual sendiri.</small></span>
             </label>
           </div>
-          {!variantMode ? <div className="product-single-price-grid"><label>Harga modal<input type="number" min="0" step="1" value={baseCost || ""} onChange={(event) => setBaseCost(Math.max(0, Number(event.target.value || 0)))}/></label><label>Harga jual<input type="number" min="0" step="1" value={baseSelling || ""} onChange={(event) => setBaseSelling(Math.max(0, Number(event.target.value || 0)))}/></label></div> : <div className="variant-mode-content-v261">
+          {!variantMode ? <div className="product-single-price-grid"><label>Harga modal<input type="number" min="0" step="1" value={baseCost === 0 ? "0" : (baseCost || "")} onChange={(event) => setBaseCost(event.target.value === "" ? 0 : Math.max(0, Number(event.target.value)))}/></label><label>Harga jual<input type="number" min="0" step="1" value={baseSelling === 0 ? "0" : (baseSelling || "")} onChange={(event) => setBaseSelling(event.target.value === "" ? 0 : Math.max(0, Number(event.target.value)))}/></label></div> : <div className="variant-mode-content-v261">
             <div className="variant-summary-bar"><button type="button" onClick={() => setVariantDetailsOpen((current) => !current)}>{variantDetailsOpen ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}<span><strong>{variants.length} varian</strong><small>{priceSummary ? `${formatCurrency(priceSummary.min)}${priceSummary.min !== priceSummary.max ? ` – ${formatCurrency(priceSummary.max)}` : ""}` : "Belum ada harga aktif"}</small></span></button><button type="button" className="button primary compact-button" onClick={addVariant}><Plus size={15}/> Tambah varian</button></div>
             {variantDetailsOpen ? <div className="variant-editor-list">{variants.map((variant, index) => <article className="variant-editor-row variant-editor-card" key={variant.key}>
               <div className="variant-editor-card-header">
@@ -360,8 +374,8 @@ export function ProductModal({
                     </div>
                   </div>
                 </div>
-                <label><span>Harga modal</span><input type="number" min="0" step="1" value={variant.cost_price || ""} onChange={(event) => patchVariant(variant.key, { cost_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
-                <label><span>Harga jual</span><input type="number" min="0" step="1" value={variant.selling_price || ""} onChange={(event) => patchVariant(variant.key, { selling_price: Math.max(0, Number(event.target.value || 0)) })}/></label>
+                <label><span>Harga modal</span><input type="number" min="0" step="1" value={variant.cost_price === 0 ? "0" : (variant.cost_price || "")} onChange={(event) => patchVariant(variant.key, { cost_price: event.target.value === "" ? 0 : Math.max(0, Number(event.target.value)) })}/></label>
+                <label><span>Harga jual</span><input type="number" min="0" step="1" value={variant.selling_price === 0 ? "0" : (variant.selling_price || "")} onChange={(event) => patchVariant(variant.key, { selling_price: event.target.value === "" ? 0 : Math.max(0, Number(event.target.value)) })}/></label>
               </div>
               <label className="variant-active"><input type="checkbox" checked={variant.is_active} onChange={(event) => patchVariant(variant.key, { is_active: event.target.checked })}/><span>Varian aktif dan dapat digunakan</span></label>
             </article>)}</div> : null}

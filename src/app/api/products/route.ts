@@ -157,10 +157,11 @@ async function persistProduct(body: any, productId: string | null) {
     if ((validStores ?? []).length !== salesStoreIds.length) return { ok: false as const, status: 400, error: "Salah satu cabang penjualan tidak valid." };
   }
 
+  const PRODUCT_FIELDS = "id,sku,barcode,name,category_id,brand,unit,cost_price,selling_price,minimum_stock,image_url,visual_id,is_active,sales_scope";
   const productRow = { ...product, image_url: product.visual_id ? null : product.image_url, visual_id: product.image_url ? null : product.visual_id, updated_at: new Date().toISOString() };
   const result = productId
-    ? await admin.from("products").update(productRow).eq("id", productId).select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").single()
-    : await admin.from("products").insert({ ...productRow, created_by: auth.user.id }).select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").single();
+    ? await admin.from("products").update(productRow).eq("id", productId).select(PRODUCT_FIELDS).single()
+    : await admin.from("products").insert({ ...productRow, created_by: auth.user.id }).select(PRODUCT_FIELDS).single();
   if (result.error) return { ok: false as const, status: 400, error: databaseMessage(result.error.message) };
   if (!result.data?.id) return { ok: false as const, status: 500, error: "Produk gagal disimpan." };
   const savedId = String(result.data.id);
@@ -182,7 +183,7 @@ async function persistProduct(body: any, productId: string | null) {
       }
     }
     const [{ data: verified, error: verifyError }, { data: savedSales, error: savedSalesError }] = await Promise.all([
-      admin.from("products").select("id,sku,name,category_id,brand,image_url,visual_id,is_active,sales_scope").eq("id", savedId).single(),
+      admin.from("products").select(PRODUCT_FIELDS).eq("id", savedId).single(),
       admin.from("product_store_sales").select("store_id").eq("product_id", savedId).order("store_id"),
     ]);
     if (verifyError || !verified) throw new Error(databaseMessage(verifyError?.message ?? "Produk gagal diverifikasi."));
@@ -192,7 +193,18 @@ async function persistProduct(body: any, productId: string | null) {
     if ((verified.visual_id ?? null) !== (productRow.visual_id ?? null)) throw new Error("Visual kode gagal tersimpan.");
     if (savedVariants.length !== variants.length) throw new Error("Jumlah varian yang tersimpan tidak lengkap.");
 
-    const saved = { ...verified, category_name: category.name, visual_name: visualResult.data?.name ?? null, sales_store_ids: (savedSales ?? []).map((row) => String(row.store_id)), variants: savedVariants };
+    const saved = {
+      ...verified,
+      cost_price: Number(verified.cost_price ?? product.cost_price ?? 0),
+      selling_price: Number(verified.selling_price ?? product.selling_price ?? 0),
+      minimum_stock: Number(verified.minimum_stock ?? product.minimum_stock ?? 0),
+      barcode: verified.barcode ?? product.barcode ?? null,
+      unit: verified.unit ?? product.unit ?? "pcs",
+      category_name: category.name,
+      visual_name: visualResult.data?.name ?? null,
+      sales_store_ids: (savedSales ?? []).map((row) => String(row.store_id)),
+      variants: savedVariants,
+    };
     for (const path of ["/products", "/inventory", "/dashboard", "/pos"]) revalidatePath(path, "page");
     invalidateTags("catalog"); // invalidate getCachedProductMeta, getInventoryOverview
     return { ok: true as const, status: productId ? 200 : 201, product: saved, demo: false };
