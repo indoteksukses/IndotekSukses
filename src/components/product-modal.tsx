@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, ChevronDown, ChevronUp, Image, Images, Link2, Plus, Save, ScanBarcode, Search, Sparkles, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -75,6 +76,7 @@ export function ProductModal({
   label,
   isOpen: externalOpen,
   onClose: externalClose,
+  onSaved,
 }: {
   categories: Array<{ id: string; name: string }>;
   visuals: ProductVisualType[];
@@ -83,7 +85,9 @@ export function ProductModal({
   label?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  onSaved?: (saved: SavedProduct) => void;
 }) {
+  const router = useRouter();
   const isControlled = externalOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = isControlled ? externalOpen : internalOpen;
@@ -238,7 +242,8 @@ export function ProductModal({
           if ((saved.visual_id ?? null) !== expectedVisualId) throw new Error("Visual kode belum tersimpan ke database.");
           if ((saved.variants?.length ?? 0) !== (variantMode ? variants.length : 0)) throw new Error("Daftar varian belum tersimpan lengkap.");
           setOpen(false);
-          window.location.replace(`/products?saved=${encodeURIComponent(saved.id)}&updated=${Date.now()}`);
+          onSaved?.(saved);
+          router.refresh();
         } catch (err) { setError(err instanceof Error ? err.message : "Gagal menyimpan produk"); }
         finally { setSaving(false); }
       }}>

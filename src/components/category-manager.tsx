@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Edit3, FolderPlus, Plus, Search, Tags, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui";
@@ -11,6 +11,11 @@ type Category = { id: string; name: string; description?: string | null; is_acti
 export function CategoryManager({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const [rows, setRows] = useState(categories);
+
+  useEffect(() => {
+    setRows(categories);
+  }, [categories]);
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [query, setQuery] = useState("");

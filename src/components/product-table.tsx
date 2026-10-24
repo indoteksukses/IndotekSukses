@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, useDeferredValue, useMemo, useState } from "react";
-import { Barcode, Building2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, Loader2, PackageOpen, Search, Sparkles, Tag, X } from "lucide-react";
+import { Fragment, useEffect, useDeferredValue, useMemo, useState } from "react";
+import { Barcode, Building2, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, Loader2, PackageOpen, Search, Sparkles, Tag, X } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { BarcodePrintModal } from "@/components/barcode-print-modal";
@@ -38,6 +38,18 @@ export function ProductTable({
   stores: Store[];
   canEdit: boolean;
 }) {
+  const [items, setItems] = useState<Product[]>(products);
+  const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    setItems(products);
+  }, [products]);
+
+  const notify = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 3500);
+  };
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
@@ -61,23 +73,23 @@ export function ProductTable({
 
   const brands = useMemo(() => {
     const set = new Set<string>();
-    for (const p of products) {
+    for (const p of items) {
       const b = p.brand?.trim();
       if (b) set.add(b);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
-  }, [products]);
+  }, [items]);
 
   const aiMatchMap = useMemo(() => new Map(aiMatches.map((m) => [m.product_id, m])), [aiMatches]);
 
-  const indexedProducts = useMemo(() => products.map((product) => ({
+  const indexedProducts = useMemo(() => items.map((product) => ({
     product,
     searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${(product.variants ?? []).map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ")}`.toLocaleLowerCase("id-ID"),
-  })), [products]);
+  })), [items]);
 
   const filtered = useMemo(() => {
     if (aiActive && aiMatches.length > 0) {
-      const productMap = new Map(products.map((p) => [p.id, p]));
+      const productMap = new Map(items.map((p) => [p.id, p]));
       const list: Product[] = [];
       for (const m of aiMatches) {
         const prod = productMap.get(m.product_id);
@@ -98,7 +110,7 @@ export function ProductTable({
       && (!brandFilter || (product.brand?.trim() || "Tanpa Merek") === brandFilter)
       && (!status || (status === "active" ? product.is_active : !product.is_active))
     ).map(({ product }) => product);
-  }, [aiActive, aiMatches, products, indexedProducts, normalizedQuery, category, brandFilter, status]);
+  }, [aiActive, aiMatches, items, indexedProducts, normalizedQuery, category, brandFilter, status]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount);
@@ -656,6 +668,22 @@ export function ProductTable({
           product={editingProduct}
           isOpen={Boolean(editingProduct)}
           onClose={() => setEditingProduct(null)}
+          onSaved={(saved: any) => {
+            const catName = categories.find((c) => c.id === saved.category_id)?.name;
+            const visObj = visuals.find((v) => v.id === saved.visual_id);
+            setItems((current) => current.map((p) => {
+              if (p.id !== saved.id) return p;
+              return {
+                ...p,
+                ...saved,
+                category: catName || p.category,
+                visual: visObj ? { id: visObj.id, name: visObj.name, code: visObj.code } : (saved.visual_id ? p.visual : null),
+                variants: saved.variants && saved.variants.length > 0 ? saved.variants : p.variants,
+              };
+            }));
+            setEditingProduct(null);
+            notify(`Perubahan produk "${saved.name || editingProduct.name}" berhasil disimpan.`);
+          }}
         />
       ) : null}
 
@@ -666,10 +694,23 @@ export function ProductTable({
             setBarcodeModalProduct(null);
             setBarcodeModalVariantId(undefined);
           }}
-          products={products}
+          products={items}
           initialProductId={barcodeModalProduct.id}
           initialVariantId={barcodeModalVariantId}
         />
+      ) : null}
+
+      {toast ? (
+        <div className="toast success">
+          <CheckCircle2 size={20} />
+          <div>
+            <strong>Berhasil disimpan</strong>
+            <span>{toast}</span>
+          </div>
+          <button type="button" onClick={() => setToast("")}>
+            <X size={16} />
+          </button>
+        </div>
       ) : null}
     </>
   );

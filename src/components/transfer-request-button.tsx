@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRightLeft, CheckCircle2, Layers3, X } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ModalPortal } from "@/components/modal-portal";
@@ -19,6 +20,7 @@ export function TransferRequestModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const variants = (product.variants ?? []).filter((variant) => variant.is_active);
   const destinations = stores.filter((store) => destinationStoreIds.includes(store.id));
   const [variantId, setVariantId] = useState<string | null>(variants[0]?.id ?? null);
@@ -70,6 +72,7 @@ export function TransferRequestModal({
               const result = await response.json();
               if (!response.ok) throw new Error(result.error || "Gagal membuat permintaan transfer.");
               setMessage(`Permintaan ${result.request_number ?? "transfer"} berhasil dikirim.`);
+              router.refresh();
               window.setTimeout(() => onClose(), 1200);
             } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal membuat permintaan transfer."); }
             finally { setSaving(false); }

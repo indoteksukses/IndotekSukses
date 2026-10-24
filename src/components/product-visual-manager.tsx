@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Braces, CheckCircle2, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
@@ -28,6 +28,12 @@ function parseCode(code: string): ProductVisualDefinition | null {
 
 export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[] }) {
   const router = useRouter();
+  const [items, setItems] = useState<ProductVisualType[]>(visuals);
+
+  useEffect(() => {
+    setItems(visuals);
+  }, [visuals]);
+
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState(JSON.stringify(template, null, 2));
@@ -39,9 +45,9 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
   const preview = useMemo(() => parseCode(code), [code]);
   const filteredVisuals = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return visuals;
-    return visuals.filter((visual) => `${visual.name} ${visual.code?.shape ?? ""} ${visual.is_builtin ? "bawaan" : "custom admin"}`.toLowerCase().includes(normalized));
-  }, [visuals, query]);
+    if (!normalized) return items;
+    return items.filter((visual) => `${visual.name} ${visual.code?.shape ?? ""} ${visual.is_builtin ? "bawaan" : "custom admin"}`.toLowerCase().includes(normalized));
+  }, [items, query]);
 
   const resetEditor = () => {
     setEditing(null);
@@ -67,6 +73,12 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Gagal menyimpan visual");
       setMessage(editing ? "Perubahan visual berhasil disimpan." : "Visual baru berhasil disimpan dan siap dipilih pada produk.");
+      if (result.visual) {
+        setItems((current) => editing
+          ? current.map((v) => v.id === result.visual.id ? result.visual : v)
+          : [result.visual, ...current]
+        );
+      }
       resetEditor();
       router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Gagal menyimpan visual"); }
@@ -81,6 +93,7 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
       const response = await fetch("/api/product-visuals", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: visual.id }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Gagal menghapus visual");
+      setItems((current) => current.filter((v) => v.id !== visual.id));
       if (editing?.id === visual.id) resetEditor();
       setMessage("Visual berhasil dihapus dari galeri.");
       router.refresh();
@@ -95,7 +108,7 @@ export function ProductVisualManager({ visuals }: { visuals: ProductVisualType[]
     {open ? <ModalPortal><div className="modal-backdrop"><div className="modal-card visual-manager-modal">
       <div className="modal-header"><div><h2>Galeri visual produk</h2><p>Edit visual buatan admin atau hapus visual apa pun dari galeri. Produk yang memakai visual terhapus otomatis kembali ke visual umum.</p></div><button className="icon-button" onClick={() => setOpen(false)}><X size={20}/></button></div>
       <div className="visual-manager-layout">
-        <section className="visual-library"><div className="visual-section-title"><strong>Pilihan tersimpan</strong><span>{visuals.filter((visual) => visual.is_active).length} aktif · {visuals.length} total</span></div>
+        <section className="visual-library"><div className="visual-section-title"><strong>Pilihan tersimpan</strong><span>{items.filter((visual) => visual.is_active).length} aktif · {items.length} total</span></div>
           <div className="visual-library-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama atau bentuk Visual Code..."/><b>{filteredVisuals.length}</b></div>
           <div className="visual-library-grid">{filteredVisuals.map((visual) => <article key={visual.id} className={`visual-library-card ${visual.is_active ? "" : "is-inactive"}`}>
             <ProductVisual name={visual.name} definition={visual.code} size="preview"/>

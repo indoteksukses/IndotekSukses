@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useDeferredValue, useMemo, useState } from "react";
+import { Fragment, useEffect, useDeferredValue, useMemo, useState } from "react";
 import { ArrowRightLeft, CheckCircle2, ChevronLeft, ChevronRight, FileText, Layers3, Loader2, PencilLine, Search, Sparkles, X } from "lucide-react";
 import { CriticalStockModal } from "@/components/critical-stock-modal";
 import { CsvButton } from "@/components/export-buttons";
@@ -69,6 +69,12 @@ export function InventoryTable({
   settings?: SystemSettings | null;
   profile?: UserProfile | null;
 }) {
+  const [items, setItems] = useState<Product[]>(products);
+
+  useEffect(() => {
+    setItems(products);
+  }, [products]);
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
@@ -96,21 +102,21 @@ export function InventoryTable({
   };
 
   const categories = useMemo(
-    () => [...new Set(products.map((product) => product.category).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "id")),
-    [products],
+    () => [...new Set(items.map((product) => product.category).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "id")),
+    [items],
   );
   const brands = useMemo(() => {
     const set = new Set<string>();
-    for (const p of products) {
+    for (const p of items) {
       const b = p.brand?.trim();
       if (b) set.add(b);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
-  }, [products]);
+  }, [items]);
   const editable = useMemo(() => new Set(editableStoreIds), [editableStoreIds]);
   const aiMatchMap = useMemo(() => new Map(aiMatches.map((m) => [m.product_id, m])), [aiMatches]);
 
-  const indexedProducts = useMemo(() => products.map((product) => {
+  const indexedProducts = useMemo(() => items.map((product) => {
     const variants = (product.variants ?? []).filter((variant) => variant.is_active);
     const state = calculateStockCondition(product, stores);
     const variantText = variants.map((variant) => `${variant.name} ${variant.sku ?? ""} ${variant.barcode ?? ""}`).join(" ");
@@ -119,7 +125,7 @@ export function InventoryTable({
       state,
       searchText: `${product.name} ${product.sku} ${product.barcode ?? ""} ${product.brand ?? ""} ${variantText}`.toLocaleLowerCase("id-ID"),
     };
-  }), [products, stores]);
+  }), [items, stores]);
 
   const filteredEntries = useMemo(() => {
     if (aiActive && aiMatches.length > 0) {
@@ -398,6 +404,45 @@ export function InventoryTable({
         onSaved={(quantity) => {
           const itemLabel = editingStock.variant ? `${editingStock.product.name} · ${editingStock.variant.name}` : editingStock.product.name;
           notify(`Stok ${itemLabel} di ${editingStock.store.name} menjadi ${quantity} ${editingStock.product.unit}.`);
+          setItems((current) => current.map((p) => {
+            if (p.id !== editingStock.product.id) return p;
+            if (editingStock.variant) {
+              const updatedVariants = (p.variants ?? []).map((v) => {
+                if (v.id !== editingStock.variant!.id) return v;
+                const prev = v.stocks?.[editingStock.store.id] ?? { quantity_on_hand: 0, quantity_reserved: 0, quantity_available: 0 };
+                const diff = quantity - prev.quantity_on_hand;
+                return {
+                  ...v,
+                  total_stock: v.total_stock + diff,
+                  stocks: {
+                    ...v.stocks,
+                    [editingStock.store.id]: {
+                      ...prev,
+                      quantity_on_hand: quantity,
+                      quantity_available: Math.max(0, quantity - (prev.quantity_reserved ?? 0)),
+                    },
+                  },
+                };
+              });
+              const newTotalStock = updatedVariants.reduce((sum, v) => sum + v.total_stock, 0);
+              return { ...p, variants: updatedVariants, total_stock: newTotalStock };
+            } else {
+              const prev = p.stocks[editingStock.store.id] ?? { quantity_on_hand: 0, quantity_reserved: 0, quantity_available: 0 };
+              const diff = quantity - prev.quantity_on_hand;
+              return {
+                ...p,
+                total_stock: p.total_stock + diff,
+                stocks: {
+                  ...p.stocks,
+                  [editingStock.store.id]: {
+                    ...prev,
+                    quantity_on_hand: quantity,
+                    quantity_available: Math.max(0, quantity - (prev.quantity_reserved ?? 0)),
+                  },
+                },
+              };
+            }
+          }));
           setEditingStock(null);
         }}
       />
@@ -417,7 +462,7 @@ export function InventoryTable({
       <CriticalStockModal
         isOpen={showCriticalPdfModal}
         onClose={() => setShowCriticalPdfModal(false)}
-        products={products}
+        products={items}
         stores={stores}
         settings={settings}
         profile={profile}
