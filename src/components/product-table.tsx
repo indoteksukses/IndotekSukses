@@ -1,10 +1,11 @@
 "use client";
 
 import { Fragment, useEffect, useDeferredValue, useMemo, useState } from "react";
-import { Barcode, Building2, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, Loader2, PackageOpen, Search, Sparkles, Tag, X } from "lucide-react";
+import { Barcode, Building2, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers3, Loader2, PackageOpen, Search, Sparkles, Tag, Trash2, X } from "lucide-react";
 import { CsvButton } from "@/components/export-buttons";
 import { ProductModal } from "@/components/product-modal";
 import { BarcodePrintModal } from "@/components/barcode-print-modal";
+import { ProductDeleteModal } from "@/components/product-delete-modal";
 import { ProductVisual } from "@/components/product-visual";
 import { StatusBadge } from "@/components/ui";
 import { executeAISearch } from "@/lib/ai-search-client";
@@ -58,8 +59,16 @@ export function ProductTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
   const [barcodeModalVariantId, setBarcodeModalVariantId] = useState<string | undefined>(undefined);
+
+  const handleProductDeleted = (productId: string, message: string) => {
+    setItems((current) => current.filter((p) => p.id !== productId));
+    if (editingProduct?.id === productId) setEditingProduct(null);
+    if (deletingProduct?.id === productId) setDeletingProduct(null);
+    notify(message);
+  };
 
   // AI Search states
   const [aiSearching, setAiSearching] = useState(false);
@@ -315,9 +324,23 @@ export function ProductTable({
                     <span>Barcode</span>
                   </button>
                   {canEdit ? (
-                    <div className="product-mobile-edit">
-                      <button type="button" className="button secondary sm" onClick={() => setEditingProduct(product)}>
+                    <div className="product-mobile-edit-delete-group">
+                      <button
+                        type="button"
+                        className="button secondary sm product-mobile-edit-btn"
+                        onClick={() => setEditingProduct(product)}
+                      >
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="button danger sm product-mobile-delete-btn"
+                        onClick={() => setDeletingProduct(product)}
+                        title={`Hapus produk ${product.name}`}
+                        aria-label={`Hapus produk ${product.name}`}
+                      >
+                        <Trash2 size={12} />
+                        <span>Hapus</span>
                       </button>
                     </div>
                   ) : null}
@@ -535,9 +558,25 @@ export function ProductTable({
                           <span>Barcode</span>
                         </button>
                         {canEdit ? (
-                          <button type="button" className="table-action" onClick={() => setEditingProduct(product)}>
-                            Edit
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="table-action"
+                              onClick={() => setEditingProduct(product)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="table-action danger-text product-table-delete-action"
+                              onClick={() => setDeletingProduct(product)}
+                              title={`Hapus produk ${product.name}`}
+                              aria-label={`Hapus produk ${product.name}`}
+                            >
+                              <Trash2 size={13} />
+                              <span>Hapus</span>
+                            </button>
+                          </>
                         ) : null}
                       </div>
                     </td>
@@ -668,6 +707,7 @@ export function ProductTable({
           product={editingProduct}
           isOpen={Boolean(editingProduct)}
           onClose={() => setEditingProduct(null)}
+          onDeleted={handleProductDeleted}
           onSaved={(saved: any) => {
             const catName = categories.find((c) => c.id === saved.category_id)?.name;
             const visObj = visuals.find((v) => v.id === saved.visual_id);
@@ -684,6 +724,15 @@ export function ProductTable({
             setEditingProduct(null);
             notify(`Perubahan produk "${saved.name || editingProduct.name}" berhasil disimpan.`);
           }}
+        />
+      ) : null}
+
+      {deletingProduct ? (
+        <ProductDeleteModal
+          product={deletingProduct}
+          isOpen={Boolean(deletingProduct)}
+          onClose={() => setDeletingProduct(null)}
+          onDeleted={handleProductDeleted}
         />
       ) : null}
 

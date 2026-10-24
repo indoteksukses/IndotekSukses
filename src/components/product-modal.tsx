@@ -7,6 +7,7 @@ import { ProductVisual } from "@/components/product-visual";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ModalPortal } from "@/components/modal-portal";
 import { BarcodeScanner } from "@/components/barcode-scanner";
+import { ProductDeleteModal } from "@/components/product-delete-modal";
 import { generateEan13Barcode } from "@/lib/barcode";
 import { formatCurrency } from "@/lib/format";
 import type { Product, ProductVariant, ProductVisual as ProductVisualType, Store } from "@/lib/types";
@@ -77,6 +78,7 @@ export function ProductModal({
   isOpen: externalOpen,
   onClose: externalClose,
   onSaved,
+  onDeleted,
 }: {
   categories: Array<{ id: string; name: string }>;
   visuals: ProductVisualType[];
@@ -86,8 +88,10 @@ export function ProductModal({
   isOpen?: boolean;
   onClose?: () => void;
   onSaved?: (saved: SavedProduct) => void;
+  onDeleted?: (productId: string, message: string) => void;
 }) {
   const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isControlled = externalOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = isControlled ? externalOpen : internalOpen;
@@ -371,9 +375,42 @@ export function ProductModal({
 
         <section className="span-2 product-appearance-editor-v231"><div className="product-appearance-fields-v231"><div className="appearance-heading"><Image size={17}/><div><strong>Gambar & visual produk</strong><span>Pilih satu sumber gambar.</span></div></div><div className="product-visual-source-tabs"><button type="button" className={visualMode === "image" ? "active" : ""} onClick={() => chooseMode("image")}><Link2 size={15}/> URL gambar</button><button type="button" className={visualMode === "visual" ? "active" : ""} onClick={() => chooseMode("visual")}><Images size={15}/> Visual kode</button><button type="button" className={visualMode === "none" ? "active" : ""} onClick={() => chooseMode("none")}><X size={15}/> Tanpa pilihan</button></div>{visualMode === "image" ? <label>URL gambar produk<input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://..."/></label> : null}{visualMode === "visual" ? <div className="visual-product-picker"><label><span>Cari Visual Code</span><div className="visual-search-input"><Search size={16}/><input value={visualQuery} onChange={(event) => setVisualQuery(event.target.value)} placeholder="Cari nama atau bentuk visual..."/></div></label><label><span>Visual ringan berbasis kode</span><select value={visualId} onChange={(event) => setVisualId(event.target.value)}><option value="" disabled>Pilih visual</option>{visualOptions.map((visual) => <option key={visual.id} value={visual.id}>{visual.name}</option>)}</select><small>{filteredVisuals.length} visual ditemukan{selectedVisual && visualQuery && !filteredVisuals.some((visual) => visual.id === selectedVisual.id) ? ` · pilihan aktif: ${selectedVisual.name}` : ""}</small></label></div> : null}</div><div className="product-preview-panel-v231"><span>Pratinjau</span><ProductVisual name={product?.name || "Produk"} imageUrl={previewImage} definition={previewDefinition} size="preview"/><small>{visualMode === "image" ? "URL gambar" : visualMode === "visual" ? selectedVisual?.name ?? "Visual kode" : "Visual umum"}</small></div></section>
         <label className="checkbox-field span-2"><input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true}/><span>Produk aktif dan dapat digunakan dalam sistem</span></label>
-        <div className="modal-actions span-2"><button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button><button type="submit" className="button primary" disabled={saving}>{saving ? <LoadingSpinner/> : <Save size={16}/>}<span>{saving ? "Menyimpan..." : "Simpan produk"}</span></button></div>
+        <div className="modal-actions span-2 product-modal-actions-bar">
+          {product?.id ? (
+            <button
+              type="button"
+              className="button danger product-delete-trigger-btn"
+              onClick={() => setConfirmDelete(true)}
+              disabled={saving}
+              title="Hapus produk ini"
+            >
+              <Trash2 size={15}/>
+              <span>Hapus produk</span>
+            </button>
+          ) : <span />}
+          <div className="product-modal-actions-right">
+            <button type="button" className="button secondary" onClick={() => setOpen(false)}>Batal</button>
+            <button type="submit" className="button primary" disabled={saving}>
+              {saving ? <LoadingSpinner/> : <Save size={16}/>}
+              <span>{saving ? "Menyimpan..." : "Simpan produk"}</span>
+            </button>
+          </div>
+        </div>
       </form>
     </div></div></ModalPortal> : null}
+    {confirmDelete && product ? (
+      <ProductDeleteModal
+        product={product}
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onDeleted={(id, msg) => {
+          setConfirmDelete(false);
+          setOpen(false);
+          onDeleted?.(id, msg);
+          router.refresh();
+        }}
+      />
+    ) : null}
     {scannerTarget ? (
       <BarcodeScanner
         open={Boolean(scannerTarget)}

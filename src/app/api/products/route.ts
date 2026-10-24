@@ -212,3 +212,105 @@ export async function PATCH(request: Request) {
   try { const body = await request.json(); if (!body.id) return json({ error: "ID produk tidak ditemukan" }, 400); const result = await persistProduct(body, String(body.id)); return result.ok ? json({ product: result.product, ...(result.demo ? { demo: true } : {}) }, result.status) : json({ error: result.error }, result.status); }
   catch (error) { return json({ error: error instanceof Error ? error.message : "Gagal memperbarui produk" }, 500); }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return json({ error: auth.error }, auth.status);
+
+    const body = await request.json().catch(() => ({}));
+    const id = String(body.id ?? "").trim();
+    if (!id) return json({ error: "ID produk wajib diisi" }, 400);
+
+    if (isDemoMode || !hasSupabaseEnv) {
+      return json({ success: true, deleted: true, demo: true });
+    }
+
+    const admin = createAdminClient();
+
+    // 1. Verify product exists
+    const { data: product, error: fetchErr } = await admin
+      .from("products")
+      .select("id, name, sku")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchErr) return json({ error: fetchErr.message }, 400);
+    if (!product) return json({ error: "Produk tidak ditemukan atau sudah dihapus." }, 404);
+
+    // 2. Check if product has historical transactions
+    const [
+      { count: salesCount },
+      { count: purchaseCount },
+      { count: movementCount },
+      { count: transferCount },
+      { count: stocktakeCount },
+    ] = await Promise.all([
+      admin.from("sale_items").select("id", { count: "exact", head: true }).eq("product_id", id),
+      admin.from("purchase_order_items").select("id", { count: "exact", head: true }).eq("product_id", id),
+      admin.from("stock_movements").select("id", { count: "exact", head: true }).eq("product_id", id),
+      admin.from("stock_transfer_items").select("id", { count: "exact", head: true }).eq("product_id", id),
+      admin.from("stocktake_items").select("id", { count: "exact", head: true }).eq("product_id", id),
+    ]);
+
+    const txCount = (salesCount ?? 0) + (purchaseCount ?? 0) + (movementCount ?? 0) + (transferCount ?? 0) + (stocktakeCount ?? 0);
+
+    if (txCount > 0) {
+      // Safely archive / deactivate to preserve historical ledger and receipts
+      const { error: archiveProdErr } = await admin
+        .from("products")
+        .update({ is_active: false })
+        .eq("id", id);
+      if (archiveProdErr) return json({ error: archiveProdErr.message }, 400);
+
+      // Also deactivate & archive variants
+      await admin
+        .from("product_variants")
+        .update({ is_active: false, archived_at: new Date().toISOString() })
+        .eq("product_id", id);
+
+      for (const path of ["/products", "/inventory", "/dashboard", "/pos"]) revalidatePath(path, "page");
+      invalidateTags("catalog");
+
+      return json({
+        success: true,
+        archived: true,
+        deleted: false,
+        message: `Produk "${product.name}" memiliki riwayat transaksi (${txCount} data) sehingga diarsipkan dan dinonaktifkan dari katalog aktif untuk melindungi pembukuan.`,
+        product_id: id,
+      });
+    }
+
+    // 3. No historical transactions: permanently delete dependent tables first, then product
+    const { data: variants } = await admin
+      .from("product_variants")
+      .select("id")
+      .eq("product_id", id);
+    const variantIds = (variants ?? []).map((v) => v.id);
+
+    if (variantIds.length > 0) {
+      await admin.from("product_variant_inventory").delete().in("variant_id", variantIds);
+      await admin.from("product_variants").delete().eq("product_id", id);
+    }
+
+    await admin.from("product_store_sales").delete().eq("product_id", id);
+    await admin.from("product_price_history").delete().eq("product_id", id);
+    await admin.from("store_inventory").delete().eq("product_id", id);
+
+    const { error: deleteErr } = await admin.from("products").delete().eq("id", id);
+    if (deleteErr) return json({ error: databaseMessage(deleteErr.message) }, 400);
+
+    for (const path of ["/products", "/inventory", "/dashboard", "/pos"]) revalidatePath(path, "page");
+    invalidateTags("catalog");
+
+    return json({
+      success: true,
+      deleted: true,
+      archived: false,
+      message: `Produk "${product.name}" berhasil dihapus permanen.`,
+      product_id: id,
+    });
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Gagal menghapus produk" }, 500);
+  }
+}
