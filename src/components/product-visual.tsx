@@ -17,8 +17,10 @@ const fallback: Required<Pick<ProductVisualDefinition, "shape" | "primary" | "se
 
 function safeColor(value: string | undefined, fallbackValue: string) {
   if (!value) return fallbackValue;
-  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)) return value;
-  if (/^(?:rgb|rgba|hsl|hsla)\(/i.test(value)) return value;
+  const trimmed = value.trim();
+  if (trimmed === "transparent" || trimmed === "none" || trimmed === "white" || trimmed === "black" || trimmed === "currentColor") return trimmed;
+  if (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmed)) return trimmed;
+  if (/^(?:rgb|rgba|hsl|hsla)\(/i.test(trimmed)) return trimmed;
   return fallbackValue;
 }
 
@@ -41,11 +43,14 @@ function Shapes({ shape, primary, secondary, accent }: Required<Pick<ProductVisu
   return <>{shapes[shape] ?? shapes.generic}</>;
 }
 
+const namedColors = new Set(["none", "white", "black", "transparent", "currentColor"]);
+
 function resolvePaint(value: string | undefined, palette: Record<string, string>, fallbackValue: string) {
   if (!value) return fallbackValue;
-  if (value === "none" || value === "white" || value === "transparent") return value;
-  if (value in palette) return palette[value];
-  return safeColor(value, fallbackValue);
+  const trimmed = value.trim();
+  if (namedColors.has(trimmed)) return trimmed;
+  if (trimmed in palette) return palette[trimmed];
+  return safeColor(trimmed, fallbackValue);
 }
 
 function CustomShapes({ elements, palette }: { elements: ProductVisualElement[]; palette: Record<string, string> }) {

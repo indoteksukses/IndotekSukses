@@ -5,25 +5,33 @@ import type { ProductVisualDefinition, ProductVisualElement, ProductVisualShape 
 
 const shapes = new Set<ProductVisualShape>(["bolt","nut","screw","wrench","drill","grinder","saw","hammer","pliers","bearing","tape","generic","custom"]);
 const elementTypes = new Set<ProductVisualElement["type"]>(["path","rect","circle","ellipse","polygon","line"]);
-const colorPattern = /^#[0-9a-f]{6}$/i;
-const paintNames = new Set(["primary", "secondary", "accent", "none", "white", "transparent"]);
-const pathPattern = /^[MmLlHhVvCcSsQqTtAaZz0-9,\.\-\s]+$/;
+const colorHexPattern = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const colorFuncPattern = /^(?:rgb|rgba|hsl|hsla)\([0-9.,\s%/-]+\)$/i;
+const paintNames = new Set(["primary", "secondary", "accent", "background", "none", "white", "black", "transparent", "currentColor"]);
+
+function isValidColor(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const text = value.trim();
+  return paintNames.has(text) || colorHexPattern.test(text) || colorFuncPattern.test(text);
+}
+
+const pathPattern = /^[MmLlHhVvCcSsQqTtAaZz0-9,\.\-\seE]+$/;
 const pointsPattern = /^[0-9,\.\-\s]+$/;
 
-function number(value: unknown, min = -100, max = 200) {
+function number(value: unknown, min = -200, max = 400) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < min || parsed > max) throw new Error("Koordinat elemen visual tidak valid");
   return parsed;
 }
 
-function optionalNumber(value: unknown, min = -100, max = 200) {
+function optionalNumber(value: unknown, min = -200, max = 400) {
   return value == null ? undefined : number(value, min, max);
 }
 
 function paint(value: unknown) {
   if (value == null || value === "") return undefined;
-  const text = String(value);
-  if (!paintNames.has(text) && !colorPattern.test(text)) throw new Error(`Warna ${text} tidak valid`);
+  const text = String(value).trim();
+  if (!isValidColor(text)) throw new Error(`Warna ${text} tidak valid`);
   return text;
 }
 
@@ -68,8 +76,11 @@ function normalizeCode(input: unknown): ProductVisualDefinition {
   const result: ProductVisualDefinition = { shape };
   for (const key of ["primary","secondary","accent","background"] as const) {
     const color = value[key];
-    if (color != null && !colorPattern.test(String(color))) throw new Error(`${key} harus menggunakan warna hex 6 digit, contoh #2563eb`);
-    if (color) result[key] = String(color);
+    if (color != null && color !== "") {
+      const text = String(color).trim();
+      if (!isValidColor(text)) throw new Error(`${key} harus menggunakan format warna yang valid (contoh #eff6ff atau transparent)`);
+      result[key] = text;
+    }
   }
   if (shape === "custom") {
     if (!Array.isArray(value.elements) || value.elements.length === 0) throw new Error("Visual custom membutuhkan minimal satu elemen");
